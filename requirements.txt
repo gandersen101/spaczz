@@ -1,0 +1,5 @@
+pre-commit
+black
+flake8
+spacy
+fuzzywuzzy
