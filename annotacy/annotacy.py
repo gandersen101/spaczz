@@ -1,6 +1,6 @@
 import re
-import heapq
-import itertools
+from heapq import nlargest
+from itertools import chain
 import string
 import operator
 from operator import itemgetter, truth
@@ -88,6 +88,28 @@ class FuzzySearch:
             match = (doc[match[0] : match[1]], match[0], match[1], match[2])
             return match
 
+    def multi_match(self, doc, query, max_results=3, step=1, flex=1, verbose=False):
+        query = self.nlp.make_doc(query)
+        flex = self._calc_flex(flex, query)
+        match_values = self._scan_doc(doc, query, step, verbose)
+        positions = [
+            pos * step for pos in self._indice_maxes(match_values, max_results)
+        ]
+        matches = [
+            self._adjust_left_right_positions(
+                doc, query, match_values, pos, step, flex, verbose
+            )
+            for pos in positions
+        ]
+        matches = [
+            (doc[match[0] : match[1]], match[0], match[1], match[2])
+            for match in matches
+            if match[2] >= self.min_ratio
+        ]
+        matches = sorted(matches, key=itemgetter(3), reverse=True)
+        matches = self._filter_overlapping_matches(matches)
+        return matches
+
     def match(self, a, b):
         if not self.case_sensitive:
             a = a.lower()
@@ -117,6 +139,12 @@ class FuzzySearch:
     @staticmethod
     def _index_max(match_values):
         return max(range(len(match_values)), key=match_values.__getitem__)
+
+    @staticmethod
+    def _indice_maxes(match_values, max_results):
+        return nlargest(
+            max_results, range(len(match_values)), key=match_values.__getitem__
+        )
 
     def _adjust_left_right_positions(
         self, doc, query, match_values, pos, step, flex, verbose
@@ -181,3 +209,13 @@ class FuzzySearch:
                 bp_r -= 1
             bp_r += 1
             return bp_l, bp_r
+
+    @staticmethod
+    def _filter_overlapping_matches(matches):
+        filtered_matches = []
+        for match in matches:
+            if not set(range(match[1], match[2])).intersection(
+                chain(*[set(range(n[1], n[2])) for n in filtered_matches])
+            ):
+                filtered_matches.append(match)
+        return filtered_matches
