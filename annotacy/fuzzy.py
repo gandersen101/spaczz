@@ -1,4 +1,3 @@
-import re
 import string
 import operator
 from itertools import chain
@@ -9,43 +8,38 @@ from fuzzywuzzy import fuzz
 from spacy.tokens import Span
 
 
-def map_chars_to_tokens(doc):
-    chars_to_tokens = {}
-    for token in doc:
-        for i in range(token.idx, token.idx + len(token.text)):
-            chars_to_tokens[i] = token.i
-    return chars_to_tokens
+class FuzzyBase:
+    def __init__(self):
+        self.ignores = None
+        self.left_ignores = None
+        self.right_ignores = None
+        self.ignore_rules = {
+            "space": lambda x: operator.truth(x.is_space),
+            "punct": lambda x: operator.truth(x.is_punct),
+            "stop": lambda x: operator.truth(x.is_stop),
+        }
+        self.left_ignore_rules = None
+        self.right_ignore_rules = None
+        self.fuzzy_algs = {
+            "simple": fuzz.ratio,
+            "partial": fuzz.partial_ratio,
+            "token_set": fuzz.token_set_ratio,
+            "token_sort": fuzz.token_sort_ratio,
+            "partial_token_set": fuzz.partial_token_set_ratio,
+            "partial_token_sort": fuzz.partial_token_sort_ratio,
+            "quick": fuzz.QRatio,
+            "u_quick": fuzz.UQRatio,
+            "weighted": fuzz.WRatio,
+            "u_weighted": fuzz.UWRatio,
+        }
 
-
-class RegexMatcher:
-    name = "regex_matcher"
-
-    def __init__(self, patterns):
-        self.patterns = patterns
-
-    def __call__(self, doc):
-        chars_to_tokens = map_chars_to_tokens(doc)
-        for label, pattern in self.patterns.items():
-            for match in re.finditer(pattern, doc.text):
-                start, end = match.span()
-                span = doc.char_span(start, end, label=label)
-                if span:
-                    doc = self.update_entities(doc, span)
-                else:
-                    start_token = chars_to_tokens.get(start)
-                    end_token = chars_to_tokens.get(end)
-                    if start_token and end_token:
-                        span = Span(doc, start_token, end_token + 1, label=label)
-                        doc = self.update_entities(doc, span)
-        return doc
-
-    @staticmethod
-    def update_entities(doc, span):
+    def get_fuzzy_alg(self, fuzzy):
         try:
-            doc.ents += (span,)
-        except ValueError:
-            pass
-        return doc
+            return self.fuzzy_algs[fuzzy]
+        except KeyError:
+            raise ValueError(
+                f"Fuzzy matching algorithm must be in the following: {list(self.fuzzy_algs.keys())}"
+            )
 
 
 class FuzzySearch:
@@ -79,7 +73,7 @@ class FuzzySearch:
         step=1,
         flex=1,
         verbose=False,
-    ):
+    ) -> tuple:
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         match_values = self._scan_doc(
@@ -112,7 +106,7 @@ class FuzzySearch:
         step=1,
         flex=1,
         verbose=False,
-    ):
+    ) -> list:
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         match_values = self._scan_doc(
@@ -144,7 +138,7 @@ class FuzzySearch:
         matches = self._filter_overlapping_matches(matches)
         return matches
 
-    def match(self, a, b, fuzzy_alg, case_sensitive):
+    def match(self, a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False):
         if not case_sensitive:
             a = a.lower()
             b = b.lower()

@@ -1,8 +1,10 @@
 import spacy
-from annotacy.annotacy import FuzzySearch
+from annotacy.fuzzy import FuzzySearch
+from fuzzywuzzy import fuzz
+from functools import partial
 
 nlp = spacy.blank("en")
-text = nlp("The cow the said moo I'm a cow, I'm a cow, I'm a cow.")
+text = nlp("The cow said 'moo, I'm a cow.'")
 
 fs = FuzzySearch(nlp)
-print(fs.best_match(text, "cow"))
+print(fs.multi_match(text, "cow"))
