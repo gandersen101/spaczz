@@ -1,9 +1,10 @@
-import string
 import operator
+import string
 import warnings
-from types import FunctionType
-from itertools import chain
+from collections import OrderedDict
 from functools import partial
+from itertools import chain
+from types import FunctionType
 from heapq import nlargest
 import spacy
 from fuzzywuzzy import fuzz
@@ -76,7 +77,7 @@ class FuzzySearch:
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
-            doc, query, fuzzy_alg, case_sensitive, step, verbose
+            doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
         )
         pos = self._index_max(match_values) * step
         match = self._adjust_left_right_positions(
@@ -110,13 +111,11 @@ class FuzzySearch:
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
-            doc, query, fuzzy_alg, case_sensitive, step, verbose
+            doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
         )
-        print(match_values)
         positions = [
             pos * step for pos in self._indice_maxes(match_values, max_results)
         ]
-        print(positions)
         matches = [
             self._adjust_left_right_positions(
                 doc,
@@ -151,15 +150,17 @@ class FuzzySearch:
             flex = 1
         return flex
 
-    def _scan_doc(self, doc, query, fuzzy_alg, case_sensitive, step, verbose) -> list:
-        match_values = []
+    def _scan_doc(
+        self, doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
+    ) -> OrderedDict:
+        match_values = OrderedDict()
         m = 0
         while m + len(query) - step <= len(doc) - 1:
-            match_values.append(
-                self.match(
-                    query.text, doc[m : m + len(query)].text, fuzzy_alg, case_sensitive
-                )
+            match = self.match(
+                query.text, doc[m : m + len(query)].text, fuzzy_alg, case_sensitive
             )
+            if match >= min_ratio:
+                match_values[m] = match
             if verbose:
                 print(
                     query,
@@ -177,13 +178,11 @@ class FuzzySearch:
 
     @staticmethod
     def _index_max(match_values):
-        return max(range(len(match_values)), key=match_values.__getitem__)
+        return max(match_values.items(), key=operator.itemgetter(1))[0]
 
     @staticmethod
     def _indice_maxes(match_values, max_results):
-        return nlargest(
-            max_results, range(len(match_values)), key=match_values.__getitem__
-        )
+        return nlargest(max_results, match_values, key=match_values.get)
 
     def _adjust_left_right_positions(
         self,
