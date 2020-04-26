@@ -8,7 +8,7 @@ from types import FunctionType
 from heapq import nlargest
 import spacy
 from fuzzywuzzy import fuzz
-from spacy.tokens import Span
+from spacy.tokens import Span, Doc
 
 
 class FuzzySearch:
@@ -106,7 +106,7 @@ class FuzzySearch:
         step=1,
         flex=1,
         verbose=False,
-    ) -> tuple:
+    ) -> list:
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
@@ -177,11 +177,11 @@ class FuzzySearch:
         return match_values
 
     @staticmethod
-    def _index_max(match_values):
+    def _index_max(match_values) -> int:
         return max(match_values.items(), key=operator.itemgetter(1))[0]
 
     @staticmethod
-    def _indice_maxes(match_values, max_results):
+    def _indice_maxes(match_values, max_results) -> list:
         return nlargest(max_results, match_values, key=match_values.get)
 
     def _adjust_left_right_positions(
@@ -302,3 +302,82 @@ class FuzzySearch:
             ):
                 filtered_matches.append(match)
         return filtered_matches
+
+
+class FuzzyRuler(FuzzySearch):
+    name = "fuzzy_matcher"
+
+    def __init__(
+        self,
+        nlp,
+        search_terms,
+        labels,
+        ignores=("space", "punct", "stop"),
+        left_ignores=None,
+        right_ignores=None,
+        overlap_adjust=0,
+        **kwargs,
+    ):
+        super().__init__(nlp, ignores, left_ignores, right_ignores)
+        self.search_terms = search_terms
+        if len(labels) == len(search_terms):
+            self.labels = labels
+        elif len(labels) == 1 and len(labels) < len(search_terms):
+            self.labels = labels * len(search_terms)
+        else:
+            raise ValueError(
+                "search_terms and labels must have equal lengths or one label that applies to all search_terms."
+            )
+        self.overlap_adjust = overlap_adjust
+        self.kwargs = kwargs
+
+    def __call__(self, doc) -> Doc:
+        matches = []
+        for term, label in zip(self.search_terms, self.labels):
+            matches_wo_label = self.multi_match(doc, term, **self.kwargs)
+            matches_w_label = [
+                match_wo_label + (label,) for match_wo_label in matches_wo_label
+            ]
+            matches.extend(matches_w_label)
+        doc = self._iter_matches(doc, matches)
+        return doc
+
+    def _iter_matches(self, doc, matches) -> Doc:
+        for _, start, end, _, label in matches:
+            span = Span(doc, start, end, label=label)
+            doc = self._update_entities(doc, span, label)
+        return doc
+
+    def _update_entities(self, doc, span, label) -> Doc:
+        try:
+            doc.ents += (span,)
+        except ValueError:
+            if self.overlap_adjust:
+                doc = self._adjust_ent_boundaries(doc, span, label)
+        return doc
+
+    def _adjust_ent_boundaries(self, doc, span, label) -> Doc:
+        for i in range(1, self.overlap_adjust + 1):
+            if (
+                doc[span.start].ent_type_
+                and span.start < len(doc) - i
+                and span.start + i < span.end
+            ):
+                span = Span(doc, span.start + i, span.end, label=label)
+                try:
+                    doc.ents += (span,)
+                    break
+                except ValueError:
+                    pass
+            if (
+                doc[span.end - i].ent_type_
+                and span.end - i > 0
+                and span.end - i > span.start
+            ):
+                span = Span(doc, span.start, span.end - i, label=label)
+                try:
+                    doc.ents += (span,)
+                    break
+                except ValueError:
+                    pass
+        return doc
