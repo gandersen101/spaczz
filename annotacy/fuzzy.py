@@ -1,5 +1,7 @@
 import string
 import operator
+import warnings
+from types import FunctionType
 from itertools import chain
 from functools import partial
 from heapq import nlargest
@@ -8,18 +10,23 @@ from fuzzywuzzy import fuzz
 from spacy.tokens import Span
 
 
-class FuzzyBase:
-    def __init__(self):
-        self.ignores = None
-        self.left_ignores = None
-        self.right_ignores = None
+class FuzzySearch:
+    def __init__(
+        self,
+        nlp=spacy.blank("en"),
+        ignores=("space", "punct", "stop"),
+        left_ignores=None,
+        right_ignores=None,
+    ):
+        self.nlp = nlp
+        self.ignores = ignores
+        self.left_ignores = left_ignores
+        self.right_ignores = right_ignores
         self.ignore_rules = {
             "space": lambda x: operator.truth(x.is_space),
             "punct": lambda x: operator.truth(x.is_punct),
             "stop": lambda x: operator.truth(x.is_stop),
         }
-        self.left_ignore_rules = None
-        self.right_ignore_rules = None
         self.fuzzy_algs = {
             "simple": fuzz.ratio,
             "partial": fuzz.partial_ratio,
@@ -33,41 +40,32 @@ class FuzzyBase:
             "u_weighted": fuzz.UWRatio,
         }
 
-    def get_fuzzy_alg(self, fuzzy):
+    def get_fuzzy_alg(self, fuzz, case_sensitive=False) -> FunctionType:
+        if case_sensitive and fuzz in [
+            "token_sort",
+            "token_set",
+            "partial_token_set",
+            "partial_token_sort",
+            "quick",
+            "u_quick",
+            "weighted",
+            "u_weighted",
+        ]:
+            warnings.warn(
+                f"{fuzz} algorithm lower cases input by default. This overrides case_sensitive setting."
+            )
         try:
-            return self.fuzzy_algs[fuzzy]
+            return self.fuzzy_algs[fuzz]
         except KeyError:
             raise ValueError(
-                f"Fuzzy matching algorithm must be in the following: {list(self.fuzzy_algs.keys())}"
+                f"No fuzzy matching algorithm called {fuzz}, algorithm must be in the following: {list(self.fuzzy_algs.keys())}"
             )
-
-
-class FuzzySearch:
-    def __init__(
-        self,
-        nlp=spacy.blank("en"),
-        left_ignores=("space", "punct", "stop"),
-        right_ignores=("space", "punct", "stop"),
-    ):
-        self.nlp = nlp
-        self.left_ignores = left_ignores
-        self.right_ignores = right_ignores
-        self.left_ignore_rules = {
-            "space": lambda x: operator.truth(x.is_space),
-            "punct": lambda x: operator.truth(x.is_punct),
-            "stop": lambda x: operator.truth(x.is_stop),
-        }
-        self.right_ignore_rules = {
-            "space": lambda x: operator.truth(x.is_space),
-            "punct": lambda x: operator.truth(x.is_punct),
-            "stop": lambda x: operator.truth(x.is_stop),
-        }
 
     def best_match(
         self,
         doc,
         query,
-        fuzzy_alg=fuzz.ratio,
+        fuzzy_alg="simple",
         min_ratio=70,
         case_sensitive=False,
         step=1,
@@ -76,6 +74,7 @@ class FuzzySearch:
     ) -> tuple:
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
+        fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
             doc, query, fuzzy_alg, case_sensitive, step, verbose
         )
@@ -100,21 +99,24 @@ class FuzzySearch:
         doc,
         query,
         max_results=3,
-        fuzzy_alg=fuzz.ratio,
+        fuzzy_alg="simple",
         min_ratio=70,
         case_sensitive=False,
         step=1,
         flex=1,
         verbose=False,
-    ) -> list:
+    ) -> tuple:
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
+        fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
             doc, query, fuzzy_alg, case_sensitive, step, verbose
         )
+        print(match_values)
         positions = [
             pos * step for pos in self._indice_maxes(match_values, max_results)
         ]
+        print(positions)
         matches = [
             self._adjust_left_right_positions(
                 doc,
@@ -138,18 +140,18 @@ class FuzzySearch:
         matches = self._filter_overlapping_matches(matches)
         return matches
 
-    def match(self, a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False):
+    def match(self, a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False) -> int:
         if not case_sensitive:
             a = a.lower()
             b = b.lower()
         return fuzzy_alg(a, b)
 
-    def _calc_flex(self, flex, query):
+    def _calc_flex(self, flex, query) -> int:
         if flex >= len(query) / 2:
             flex = 1
         return flex
 
-    def _scan_doc(self, doc, query, fuzzy_alg, case_sensitive, step, verbose):
+    def _scan_doc(self, doc, query, fuzzy_alg, case_sensitive, step, verbose) -> list:
         match_values = []
         m = 0
         while m + len(query) - step <= len(doc) - 1:
@@ -194,7 +196,7 @@ class FuzzySearch:
         step,
         flex,
         verbose,
-    ):
+    ) -> tuple:
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
         bmv_l = match_values[int(p_l / step)]
@@ -226,9 +228,7 @@ class FuzzySearch:
                 bp_r = p_r + f
             if verbose:
                 print("\n" + str(f))
-                print(
-                    "ll: -- values: %f -- snippet: %s" % (ll, doc[p_l - f : p_r].text)
-                )
+                print("ll: -- value: %f -- snippet: %s" % (ll, doc[p_l - f : p_r].text))
                 print("lr: -- value: %f -- snippet: %s" % (lr, doc[p_l + f : p_r].text))
                 print("rl: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r - f].text))
                 print("rr: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r + f].text))
@@ -239,28 +239,54 @@ class FuzzySearch:
                 self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive),
             )
 
-    def _enforce_rules(self, doc, bp_l, bp_r):
-        if self.left_ignores:
+    def _enforce_rules(self, doc, bp_l, bp_r) -> tuple:
+        bp_l, bp_r = self._enforce_left(doc, bp_l, bp_r)
+        bp_l, bp_r = self._enforce_right(doc, bp_l, bp_r)
+        return bp_l, bp_r
+
+    def _enforce_left(self, doc, bp_l, bp_r) -> tuple:
+        if self.ignores or self.left_ignores:
             left_ignore_funcs = []
-            for key in self.left_ignores:
-                try:
-                    func = self.left_ignore_rules[key]
-                    left_ignore_funcs.append(func)
-                except KeyError:
-                    pass
+            if self.ignores:
+                for key in self.ignores:
+                    try:
+                        func = self.ignore_rules[key]
+                        left_ignore_funcs.append(func)
+                    except KeyError:
+                        pass
+            if self.left_ignores:
+                for key in self.left_ignores:
+                    try:
+                        func = self.ignore_rules[key]
+                        if func not in left_ignore_funcs:
+                            left_ignore_funcs.append(func)
+                    except KeyError:
+                        pass
             while any([func(doc[bp_l]) for func in left_ignore_funcs]):
                 if bp_l == bp_r - 1:
                     break
                 bp_l += 1
-        if self.right_ignores:
+        return bp_l, bp_r
+
+    def _enforce_right(self, doc, bp_l, bp_r) -> tuple:
+        if self.ignores or self.right_ignores:
             bp_r -= 1
             right_ignore_funcs = []
-            for key in self.right_ignores:
-                try:
-                    func = self.right_ignore_rules[key]
-                    right_ignore_funcs.append(func)
-                except KeyError:
-                    pass
+            if self.ignores:
+                for key in self.ignores:
+                    try:
+                        func = self.ignore_rules[key]
+                        right_ignore_funcs.append(func)
+                    except KeyError:
+                        pass
+            if self.right_ignores:
+                for key in self.right_ignores:
+                    try:
+                        func = self.ignore_rules[key]
+                        if func not in right_ignore_funcs:
+                            right_ignore_funcs.append(func)
+                    except KeyError:
+                        pass
             while any([func(doc[bp_r]) for func in right_ignore_funcs]):
                 if bp_r == bp_l:
                     break
@@ -269,7 +295,7 @@ class FuzzySearch:
         return bp_l, bp_r
 
     @staticmethod
-    def _filter_overlapping_matches(matches):
+    def _filter_overlapping_matches(matches) -> list:
         filtered_matches = []
         for match in matches:
             if not set(range(match[1], match[2])).intersection(
