@@ -305,7 +305,7 @@ class FuzzySearch:
 
 
 class FuzzyRuler(FuzzySearch):
-    name = "fuzzy_matcher"
+    name = "fuzzy_ruler"
 
     def __init__(
         self,
