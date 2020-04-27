@@ -154,13 +154,14 @@ class FuzzySearch:
         self, doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
     ) -> OrderedDict:
         match_values = OrderedDict()
+        i = 0
         m = 0
         while m + len(query) - step <= len(doc) - 1:
             match = self.match(
                 query.text, doc[m : m + len(query)].text, fuzzy_alg, case_sensitive
             )
             if match >= min_ratio:
-                match_values[m] = match
+                match_values[i] = match
             if verbose:
                 print(
                     query,
@@ -173,6 +174,7 @@ class FuzzySearch:
                         case_sensitive,
                     ),
                 )
+            i += 1
             m += step
         return match_values
 
@@ -198,8 +200,8 @@ class FuzzySearch:
     ) -> tuple:
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
-        bmv_l = match_values[int(p_l / step)]
-        bmv_r = match_values[int(p_l / step)]
+        bmv_l = match_values[p_l // step]
+        bmv_r = match_values[p_l // step]
         for f in range(flex):
             ll = self.match(
                 query.text, doc[p_l - f : p_r].text, fuzzy_alg, case_sensitive
@@ -231,19 +233,20 @@ class FuzzySearch:
                 print("lr: -- value: %f -- snippet: %s" % (lr, doc[p_l + f : p_r].text))
                 print("rl: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r - f].text))
                 print("rr: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r + f].text))
-            bp_l, bp_r = self._enforce_rules(doc, bp_l, bp_r)
-            return (
-                bp_l,
-                bp_r,
-                self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive),
-            )
+        bp_l, bp_r = self._enforce_rules(doc, bp_l, bp_r)
+        return (
+            bp_l,
+            bp_r,
+            self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive),
+        )
 
     def _enforce_rules(self, doc, bp_l, bp_r) -> tuple:
-        bp_l, bp_r = self._enforce_left(doc, bp_l, bp_r)
-        bp_l, bp_r = self._enforce_right(doc, bp_l, bp_r)
+        bp_l = self._enforce_left(doc, bp_l, bp_r)
+        if bp_r > bp_l:
+            bp_r = self._enforce_right(doc, bp_l, bp_r)
         return bp_l, bp_r
 
-    def _enforce_left(self, doc, bp_l, bp_r) -> tuple:
+    def _enforce_left(self, doc, bp_l, bp_r) -> int:
         if self.ignores or self.left_ignores:
             left_ignore_funcs = []
             if self.ignores:
@@ -265,9 +268,9 @@ class FuzzySearch:
                 if bp_l == bp_r - 1:
                     break
                 bp_l += 1
-        return bp_l, bp_r
+        return bp_l
 
-    def _enforce_right(self, doc, bp_l, bp_r) -> tuple:
+    def _enforce_right(self, doc, bp_l, bp_r) -> int:
         if self.ignores or self.right_ignores:
             bp_r -= 1
             right_ignore_funcs = []
@@ -291,7 +294,7 @@ class FuzzySearch:
                     break
                 bp_r -= 1
             bp_r += 1
-        return bp_l, bp_r
+        return bp_r
 
     @staticmethod
     def _filter_overlapping_matches(matches) -> list:
