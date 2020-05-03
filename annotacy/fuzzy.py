@@ -1,7 +1,7 @@
 import operator
 import string
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import partial
 from itertools import chain
 from types import FunctionType
@@ -313,8 +313,6 @@ class FuzzyRuler(FuzzySearch):
     def __init__(
         self,
         nlp,
-        search_terms,
-        labels,
         ignores=("space", "punct", "stop"),
         left_ignores=None,
         right_ignores=None,
@@ -322,65 +320,94 @@ class FuzzyRuler(FuzzySearch):
         **kwargs,
     ):
         super().__init__(nlp, ignores, left_ignores, right_ignores)
-        self.search_terms = search_terms
-        if len(labels) == len(search_terms):
-            self.labels = labels
-        elif len(labels) == 1 and len(labels) < len(search_terms):
-            self.labels = labels * len(search_terms)
-        else:
-            raise ValueError(
-                "search_terms and labels must have equal lengths or one label that applies to all search_terms."
-            )
+        self.fuzzy_patterns = defaultdict(list)
         self.overlap_adjust = overlap_adjust
         self.kwargs = kwargs
 
+    def __len__(self):
+        """The number of all patterns added to the fuzzy ruler."""
+        n_fuzzy_patterns = sum(len(p) for p in self.fuzzy_patterns.values())
+        return n_fuzzy_patterns
+
+    def __contains__(self, label):
+        """Whether a label is present in the patterns."""
+        return label in self.fuzzy_patterns
+
     def __call__(self, doc) -> Doc:
         matches = []
-        for term, label in zip(self.search_terms, self.labels):
-            matches_wo_label = self.multi_match(doc, term, **self.kwargs)
+        for pattern in self.patterns:
+            label, query = pattern.values()
+            matches_wo_label = self.multi_match(doc, query, **self.kwargs)
             matches_w_label = [
                 match_wo_label + (label,) for match_wo_label in matches_wo_label
             ]
             matches.extend(matches_w_label)
-        doc = self._iter_matches(doc, matches)
+        doc = self._update_entities(doc, matches)
         return doc
 
-    def _iter_matches(self, doc, matches) -> Doc:
+    def _update_entities(self, doc, matches) -> Doc:
         for _, start, end, _, label in matches:
             span = Span(doc, start, end, label=label)
-            doc = self._update_entities(doc, span, label)
+            try:
+                doc.ents += (span,)
+            except ValueError:
+                pass
         return doc
 
-    def _update_entities(self, doc, span, label) -> Doc:
+    @property
+    def labels(self):
+        """All labels present in the match patterns.
+        RETURNS (set): The string labels.
+        DOCS: https://spacy.io/api/entityruler#labels
+        """
+        keys = set(self.fuzzy_patterns.keys())
+        return tuple(keys)
+
+    @property
+    def patterns(self):
+        """Get all patterns that were added to the fuzzy ruler.
+        RETURNS (list): The original patterns, one dictionary per pattern.
+        DOCS: https://spacy.io/api/entityruler#patterns
+        """
+        all_patterns = []
+        for label, patterns in self.fuzzy_patterns.items():
+            for pattern in patterns:
+                p = {"label": label, "pattern": pattern.text}
+                all_patterns.append(p)
+        return all_patterns
+
+    def add_patterns(self, patterns):
+        """Add patterns to the fuzzy ruler. A pattern must be a phrase pattern (string). For example:
+        {'label': 'ORG', 'pattern': 'Apple'}
+        patterns (list): The patterns to add.
+        DOCS: https://spacy.io/api/entityruler#add_patterns
+        """
+
+        # disable the nlp components after this one in case they hadn't been initialized / deserialised yet
         try:
-            doc.ents += (span,)
+            current_index = self.nlp.pipe_names.index(self.name)
+            subsequent_pipes = [
+                pipe for pipe in self.nlp.pipe_names[current_index + 1 :]
+            ]
         except ValueError:
-            if self.overlap_adjust:
-                doc = self._adjust_ent_boundaries(doc, span, label)
-        return doc
-
-    def _adjust_ent_boundaries(self, doc, span, label) -> Doc:
-        for i in range(1, self.overlap_adjust + 1):
-            if (
-                doc[span.start].ent_type_
-                and span.start < len(doc) - i
-                and span.start + i < span.end
+            subsequent_pipes = []
+        with self.nlp.disable_pipes(subsequent_pipes):
+            fuzzy_pattern_labels = []
+            fuzzy_pattern_texts = []
+            for entry in patterns:
+                if isinstance(entry["pattern"], str):
+                    fuzzy_pattern_labels.append(entry["label"])
+                    fuzzy_pattern_texts.append(entry["pattern"])
+            fuzzy_patterns = []
+            for label, pattern in zip(
+                fuzzy_pattern_labels, self.nlp.pipe(fuzzy_pattern_texts),
             ):
-                span = Span(doc, span.start + i, span.end, label=label)
-                try:
-                    doc.ents += (span,)
-                    break
-                except ValueError:
-                    pass
-            if (
-                doc[span.end - i].ent_type_
-                and span.end - i > 0
-                and span.end - i > span.start
-            ):
-                span = Span(doc, span.start, span.end - i, label=label)
-                try:
-                    doc.ents += (span,)
-                    break
-                except ValueError:
-                    pass
-        return doc
+                fuzzy_pattern = {"label": label, "pattern": pattern}
+                fuzzy_patterns.append(fuzzy_pattern)
+            for entry in fuzzy_patterns:
+                label = entry["label"]
+                pattern = entry["pattern"]
+                if isinstance(pattern, Doc):
+                    self.fuzzy_patterns[label].append(pattern)
+                else:
+                    raise ValueError
