@@ -139,6 +139,7 @@ cython_debug/
 
 # VSCode
 .vscode
+*.code-workspace
 
 # Personal
 ideas.py

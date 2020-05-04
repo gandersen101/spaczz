@@ -1,5 +1,5 @@
 import spacy
-from annotacy.fuzzy import FuzzySearch, FuzzyRuler
+from matchy.fuzzy import FuzzySearch, FuzzyRuler
 from fuzzywuzzy import fuzz
 from functools import partial
 

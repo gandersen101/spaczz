@@ -12,6 +12,11 @@ from spacy.tokens import Span, Doc
 
 
 class FuzzySearch:
+    """
+    Class for fuzzy searching by tokens via spaCy tokenization.
+    Uses custom search algorithm and left/right stopping rules along with FuzzyWuzzy algorithms for scoring potential matches.
+    """
+
     def __init__(
         self,
         nlp=spacy.blank("en"),
@@ -42,6 +47,10 @@ class FuzzySearch:
         }
 
     def get_fuzzy_alg(self, fuzz, case_sensitive=False) -> FunctionType:
+        """
+        Returns a FuzzyWuzzy algorithm based on it's string, key name.
+        Will return a ValueError if the string does not match any of the included keys.
+        """
         if case_sensitive and fuzz in [
             "token_sort",
             "token_set",
@@ -73,6 +82,10 @@ class FuzzySearch:
         flex=1,
         verbose=False,
     ) -> tuple:
+        """
+        Returns the single best match in a spaCy tokenized doc based on the search string given as a tuple.
+        (matched text, start token position, end token position, algorithm matching score)
+        """
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
@@ -107,6 +120,11 @@ class FuzzySearch:
         flex=1,
         verbose=False,
     ) -> list:
+        """
+        Returns the n best mathes in a spaCy tokenized doc based on the search string given as a list of tuples.
+        Will be sorted by matching score, then start token position.
+        [(matched text, start token position, end token position, algorithm matching score)...]
+        """
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
@@ -135,7 +153,7 @@ class FuzzySearch:
             for match in matches
             if match[2] >= min_ratio
         ]
-        matches = sorted(matches, key=operator.itemgetter(3), reverse=True)
+        matches = sorted(matches, key=operator.itemgetter(3, 1), reverse=True)
         matches = self._filter_overlapping_matches(matches)
         return matches
 
@@ -324,12 +342,12 @@ class FuzzyRuler(FuzzySearch):
         self.overlap_adjust = overlap_adjust
         self.kwargs = kwargs
 
-    def __len__(self):
+    def __len__(self) -> int:
         """The number of all patterns added to the fuzzy ruler."""
         n_fuzzy_patterns = sum(len(p) for p in self.fuzzy_patterns.values())
         return n_fuzzy_patterns
 
-    def __contains__(self, label):
+    def __contains__(self, label) -> bool:
         """Whether a label is present in the patterns."""
         return label in self.fuzzy_patterns
 
@@ -355,7 +373,7 @@ class FuzzyRuler(FuzzySearch):
         return doc
 
     @property
-    def labels(self):
+    def labels(self) -> tuple:
         """All labels present in the match patterns.
         RETURNS (set): The string labels.
         DOCS: https://spacy.io/api/entityruler#labels
@@ -364,7 +382,7 @@ class FuzzyRuler(FuzzySearch):
         return tuple(keys)
 
     @property
-    def patterns(self):
+    def patterns(self) -> list:
         """Get all patterns that were added to the fuzzy ruler.
         RETURNS (list): The original patterns, one dictionary per pattern.
         DOCS: https://spacy.io/api/entityruler#patterns
