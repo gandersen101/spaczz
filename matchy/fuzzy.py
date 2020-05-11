@@ -1,7 +1,7 @@
 import operator
 import string
 import warnings
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from functools import partial
 from itertools import chain
 from types import FunctionType
@@ -14,7 +14,8 @@ from spacy.tokens import Span, Doc
 class FuzzySearch:
     """
     Class for fuzzy searching by tokens via spaCy tokenization.
-    Uses custom search algorithm and left/right stopping rules along with FuzzyWuzzy algorithms for scoring potential matches.
+    Uses custom search algorithm and left/right stopping rules
+    along with FuzzyWuzzy algorithms for scoring potential matches.
     """
 
     def __init__(
@@ -76,66 +77,29 @@ class FuzzySearch:
         doc,
         query,
         fuzzy_alg="simple",
-        min_ratio=70,
+        min_r1=50,
+        min_r2=70,
         case_sensitive=False,
         step=1,
-        flex=1,
+        flex="default",
         verbose=False,
     ) -> tuple:
         """
-        Returns the single best match in a spaCy tokenized doc based on the search string given as a tuple.
+        Returns the single best match meeting the minimum ratio in a
+        spaCy tokenized doc based on the search string given.
+        Returns a tuple:
         (matched text, start token position, end token position, algorithm matching score)
         """
         query = self.nlp.make_doc(query)
         flex = self._calc_flex(flex, query)
         fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
-            doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
+            doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
         )
-        pos = self._index_max(match_values) * step
-        match = self._adjust_left_right_positions(
-            doc,
-            query,
-            match_values,
-            fuzzy_alg,
-            case_sensitive,
-            pos,
-            step,
-            flex,
-            verbose,
-        )
-        if match[2] >= min_ratio:
-            match = (doc[match[0] : match[1]], match[0], match[1], match[2])
-            return match
-
-    def multi_match(
-        self,
-        doc,
-        query,
-        max_results=3,
-        fuzzy_alg="simple",
-        min_ratio=70,
-        case_sensitive=False,
-        step=1,
-        flex=1,
-        verbose=False,
-    ) -> list:
-        """
-        Returns the n best mathes in a spaCy tokenized doc based on the search string given as a list of tuples.
-        Will be sorted by matching score, then start token position.
-        [(matched text, start token position, end token position, algorithm matching score)...]
-        """
-        query = self.nlp.make_doc(query)
-        flex = self._calc_flex(flex, query)
-        fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
-        match_values = self._scan_doc(
-            doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
-        )
-        positions = [
-            pos * step for pos in self._indice_maxes(match_values, max_results)
-        ]
-        matches = [
-            self._adjust_left_right_positions(
+        i = self._index_max(match_values)
+        if i is not None:
+            pos = i * step
+            match = self._adjust_left_right_positions(
                 doc,
                 query,
                 match_values,
@@ -146,43 +110,117 @@ class FuzzySearch:
                 flex,
                 verbose,
             )
-            for pos in positions
-        ]
-        matches = [
-            (doc[match[0] : match[1]], match[0], match[1], match[2])
-            for match in matches
-            if match[2] >= min_ratio
-        ]
-        matches = sorted(matches, key=operator.itemgetter(3, 1), reverse=True)
-        matches = self._filter_overlapping_matches(matches)
-        return matches
+            if match[2] >= min_r2:
+                match = (doc[match[0] : match[1]], match[0], match[1], match[2])
+                return match
+
+    def multi_match(
+        self,
+        doc,
+        query,
+        n=None,
+        fuzzy_alg="simple",
+        min_r1=50,
+        min_r2=70,
+        case_sensitive=False,
+        step=1,
+        flex="default",
+        verbose=False,
+    ) -> list:
+        """
+        Returns the n best matches meeting the minimum ratio in a
+        spaCy tokenized doc based on the search string given.
+        Will be sorted by matching score, then start token position.
+        Returns a list of tuples:
+        [(matched text, start token position, end token position, algorithm matching score)...]
+        """
+        if n is None:
+            n = int(len(doc) / len(query) + 2)
+        query = self.nlp.make_doc(query)
+        flex = self._calc_flex(flex, query)
+        fuzzy_alg = self.get_fuzzy_alg(fuzzy_alg, case_sensitive)
+        match_values = self._scan_doc(
+            doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
+        )
+        if verbose:
+            print("\n", f"Optimizing {len(match_values)} potential match(es):", sep="")
+        positions = [pos * step for pos in self._indice_maxes(match_values, n)]
+        if positions:
+            # turn this into a loop in order to make verbose clearer
+            matches = [
+                self._adjust_left_right_positions(
+                    doc,
+                    query,
+                    match_values,
+                    fuzzy_alg,
+                    case_sensitive,
+                    pos,
+                    step,
+                    flex,
+                    verbose,
+                )
+                for pos in positions
+            ]
+            matches = [
+                (doc[match[0] : match[1]], match[0], match[1], match[2])
+                for match in matches
+                if match[2] >= min_r2
+            ]
+            matches = sorted(matches, key=lambda x: (-x[3], x[1]))
+            matches = self._filter_overlapping_matches(matches)
+            return matches
 
     def match(self, a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False) -> int:
+        """
+        Applies the given fuzzy matching algorithm to two strings and
+        gives the resulting fuzzy ratio.
+        Returns an int.
+        """
         if not case_sensitive:
             a = a.lower()
             b = b.lower()
         return fuzzy_alg(a, b)
 
     def _calc_flex(self, flex, query) -> int:
-        if flex >= len(query) / 2:
-            flex = 1
+        """
+        By default flex is set to the token legth of a the query string.
+        If flex is a value greater than the token length of the query string,
+        flex will be set to 1 instead.
+        Returns an int.
+        -Should probably include some kind of warning.
+        """
+        if flex == "default":
+            flex = len(query)
+        elif flex > len(query):
+            flex = len(query)
         return flex
 
     def _scan_doc(
-        self, doc, query, fuzzy_alg, min_ratio, case_sensitive, step, verbose
-    ) -> OrderedDict:
-        match_values = OrderedDict()
+        self, doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
+    ) -> dict:
+        """
+        Iterates through the doc spans of size len(query) by step size
+        and fuzzy matches all token sequences.
+        If a matches fuzzy ratio is greater than or equal to the
+        min_r1 it is added to a dict with it's token index
+        as the key and it's ratio as the value.
+        Returns a dict.
+        """
+        if verbose:
+            print(f"Scanning doc for: {query.text}", "\n")
+            print(f"Scanning doc spans of length: {len(query)}, by step size: {step}")
+        match_values = dict()
         i = 0
         m = 0
         while m + len(query) - step <= len(doc) - 1:
             match = self.match(
                 query.text, doc[m : m + len(query)].text, fuzzy_alg, case_sensitive
             )
-            if match >= min_ratio:
+            if match >= min_r1:
                 match_values[i] = match
             if verbose:
                 print(
-                    query,
+                    query.text,
                     "-",
                     doc[m : m + len(query)],
                     self.match(
@@ -198,11 +236,24 @@ class FuzzySearch:
 
     @staticmethod
     def _index_max(match_values) -> int:
-        return max(match_values.items(), key=operator.itemgetter(1))[0]
+        """
+        Returns the token start index of the highest ratio fuzzy match.
+        If the max value applies to multiple indices the lowest index will be returned.
+        Returns an int.
+        """
+        try:
+            return sorted(match_values, key=lambda x: (-match_values[x], x))[0]
+        except IndexError:
+            pass
 
     @staticmethod
-    def _indice_maxes(match_values, max_results) -> list:
-        return nlargest(max_results, match_values, key=match_values.get)
+    def _indice_maxes(match_values, n) -> list:
+        """
+        Returns the token start indices of the n highest ratio fuzzy matches.
+        If more than n matches are found the n lowest indices will be returned.
+        Returns a list.
+        """
+        return sorted(match_values, key=lambda x: (-match_values[x], x))[:n]
 
     def _adjust_left_right_positions(
         self,
@@ -216,41 +267,65 @@ class FuzzySearch:
         flex,
         verbose,
     ) -> tuple:
+        """
+        For all span matches from _scan_doc that are greater than or equal to min_r1 the spans will be extended
+        both left and right by flex number tokens and fuzzy matched to the original query string.
+        The optimal start and end token position for each span are then run through optional rules enforcement
+        before being returned along with the span's fuzzy ratio.
+        Returns a tuple.
+        """
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
         bmv_l = match_values[p_l // step]
         bmv_r = match_values[p_l // step]
-        for f in range(flex):
-            ll = self.match(
-                query.text, doc[p_l - f : p_r].text, fuzzy_alg, case_sensitive
-            )
-            if ll > bmv_l:
-                bmv_l = ll
-                bp_l = p_l - f
-            lr = self.match(
-                query.text, doc[p_l + f : p_r].text, fuzzy_alg, case_sensitive
-            )
-            if lr > bmv_l:
-                bmv_l = lr
-                bp_l = p_l + f
-            rl = self.match(
-                query.text, doc[p_l : p_r - f].text, fuzzy_alg, case_sensitive
-            )
-            if rl > bmv_r:
-                bmv_r = rl
-                bp_r = p_r - f
-            rr = self.match(
-                query.text, doc[p_l : p_r + f].text, fuzzy_alg, case_sensitive
-            )
-            if rr > bmv_r:
-                bmv_r = rr
-                bp_r = p_r + f
-            if verbose:
-                print("\n" + str(f))
-                print("ll: -- value: %f -- snippet: %s" % (ll, doc[p_l - f : p_r].text))
-                print("lr: -- value: %f -- snippet: %s" % (lr, doc[p_l + f : p_r].text))
-                print("rl: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r - f].text))
-                print("rr: -- value: %f -- snippet: %s" % (rl, doc[p_l : p_r + f].text))
+        if flex:
+            for f in range(1, flex + 1):
+                ll = self.match(
+                    query.text, doc[p_l - f : p_r].text, fuzzy_alg, case_sensitive
+                )
+                if ll > bmv_l:
+                    bmv_l = ll
+                    bp_l = p_l - f
+                lr = self.match(
+                    query.text, doc[p_l + f : p_r].text, fuzzy_alg, case_sensitive
+                )
+                if lr > bmv_l:
+                    bmv_l = lr
+                    bp_l = p_l + f
+                rl = self.match(
+                    query.text, doc[p_l : p_r - f].text, fuzzy_alg, case_sensitive
+                )
+                if rl > bmv_r:
+                    bmv_r = rl
+                    bp_r = p_r - f
+                rr = self.match(
+                    query.text, doc[p_l : p_r + f].text, fuzzy_alg, case_sensitive
+                )
+                if rr > bmv_r:
+                    bmv_r = rr
+                    bp_r = p_r + f
+                if verbose:
+                    print(
+                        "\n",
+                        f"Flexing left and rightmost span boundaries by {f} token(s):",
+                        sep="",
+                    )
+                    print(
+                        "ll: -- value: %f -- snippet: %s"
+                        % (ll, doc[p_l - f : p_r].text)
+                    )
+                    print(
+                        "lr: -- value: %f -- snippet: %s"
+                        % (lr, doc[p_l + f : p_r].text)
+                    )
+                    print(
+                        "rl: -- value: %f -- snippet: %s"
+                        % (rl, doc[p_l : p_r - f].text)
+                    )
+                    print(
+                        "rr: -- value: %f -- snippet: %s"
+                        % (rr, doc[p_l : p_r + f].text)
+                    )
         bp_l, bp_r = self._enforce_rules(doc, bp_l, bp_r)
         return (
             bp_l,
