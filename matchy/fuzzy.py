@@ -5,7 +5,7 @@ from collections import defaultdict
 from functools import partial
 from itertools import chain
 from types import FunctionType
-from heapq import nlargest
+from typing import Union, Tuple, List, Dict
 import spacy
 from fuzzywuzzy import fuzz
 from spacy.tokens import Span, Doc
@@ -83,10 +83,11 @@ class FuzzySearch:
         step=1,
         flex="default",
         verbose=False,
-    ) -> tuple:
+    ) -> Union[Tuple[str, int, int, int], None]:
         """
         Returns the single best match meeting the minimum ratio in a
         spaCy tokenized doc based on the search string given.
+        If more than one match has the same ratio, the earliest match will be returned.
         Returns a tuple:
         (matched text, start token position, end token position, algorithm matching score)
         """
@@ -98,19 +99,24 @@ class FuzzySearch:
         )
         i = self._index_max(match_values)
         if i is not None:
+            if verbose:
+                print(
+                    "\n", f"Optimizing the best match by flex size of {flex}:", sep="",
+                )
             pos = i * step
             match = self._adjust_left_right_positions(
                 doc,
                 query,
                 match_values,
                 fuzzy_alg,
+                min_r2,
                 case_sensitive,
                 pos,
                 step,
                 flex,
                 verbose,
             )
-            if match[2] >= min_r2:
+            if match:
                 match = (doc[match[0] : match[1]], match[0], match[1], match[2])
                 return match
 
@@ -126,7 +132,7 @@ class FuzzySearch:
         step=1,
         flex="default",
         verbose=False,
-    ) -> list:
+    ) -> Union[List[Tuple[str, int, int, int]], None]:
         """
         Returns the n best matches meeting the minimum ratio in a
         spaCy tokenized doc based on the search string given.
@@ -143,16 +149,20 @@ class FuzzySearch:
             doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
         )
         if verbose:
-            print("\n", f"Optimizing {len(match_values)} potential match(es):", sep="")
+            print(
+                "\n",
+                f"Optimizing {len(match_values)} potential match(es) by flex size of {flex}:",
+                sep="",
+            )
         positions = [pos * step for pos in self._indice_maxes(match_values, n)]
         if positions:
-            # turn this into a loop in order to make verbose clearer
             matches = [
                 self._adjust_left_right_positions(
                     doc,
                     query,
                     match_values,
                     fuzzy_alg,
+                    min_r2,
                     case_sensitive,
                     pos,
                     step,
@@ -164,11 +174,12 @@ class FuzzySearch:
             matches = [
                 (doc[match[0] : match[1]], match[0], match[1], match[2])
                 for match in matches
-                if match[2] >= min_r2
+                if match
             ]
             matches = sorted(matches, key=lambda x: (-x[3], x[1]))
             matches = self._filter_overlapping_matches(matches)
-            return matches
+            if matches:
+                return matches
 
     def match(self, a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False) -> int:
         """
@@ -197,7 +208,7 @@ class FuzzySearch:
 
     def _scan_doc(
         self, doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
-    ) -> dict:
+    ) -> Dict:
         """
         Iterates through the doc spans of size len(query) by step size
         and fuzzy matches all token sequences.
@@ -247,7 +258,7 @@ class FuzzySearch:
             pass
 
     @staticmethod
-    def _indice_maxes(match_values, n) -> list:
+    def _indice_maxes(match_values, n) -> List:
         """
         Returns the token start indices of the n highest ratio fuzzy matches.
         If more than n matches are found the n lowest indices will be returned.
@@ -261,12 +272,13 @@ class FuzzySearch:
         query,
         match_values,
         fuzzy_alg,
+        min_r2,
         case_sensitive,
         pos,
         step,
         flex,
         verbose,
-    ) -> tuple:
+    ) -> Tuple:
         """
         For all span matches from _scan_doc that are greater than or equal to min_r1 the spans will be extended
         both left and right by flex number tokens and fuzzy matched to the original query string.
@@ -327,19 +339,30 @@ class FuzzySearch:
                         % (rr, doc[p_l : p_r + f].text)
                     )
         bp_l, bp_r = self._enforce_rules(doc, bp_l, bp_r)
-        return (
-            bp_l,
-            bp_r,
-            self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive),
-        )
+        if None not in (bp_l, bp_r):
+            r = self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive)
+            if r > min_r2:
+                return (
+                    bp_l,
+                    bp_r,
+                    r,
+                )
 
-    def _enforce_rules(self, doc, bp_l, bp_r) -> tuple:
+    def _enforce_rules(self, doc, bp_l, bp_r) -> Tuple[Union[int, None]]:
+        """
+        After finding the best fuzzy match, constant, left-only, or right-only rules
+        are applied to the match to prevent unwanted tokens from populating
+        the match span.
+        Changes to the match span here will change the match ratio.
+        Returns a tuple.
+        """
         bp_l = self._enforce_left(doc, bp_l, bp_r)
-        if bp_r > bp_l:
-            bp_r = self._enforce_right(doc, bp_l, bp_r)
+        if bp_l:
+            if bp_r > bp_l:
+                bp_r = self._enforce_right(doc, bp_l, bp_r)
         return bp_l, bp_r
 
-    def _enforce_left(self, doc, bp_l, bp_r) -> int:
+    def _enforce_left(self, doc, bp_l, bp_r) -> Union[int, None]:
         if self.ignores or self.left_ignores:
             left_ignore_funcs = []
             if self.ignores:
@@ -358,12 +381,12 @@ class FuzzySearch:
                     except KeyError:
                         pass
             while any([func(doc[bp_l]) for func in left_ignore_funcs]):
-                if bp_l == bp_r - 1:
-                    break
+                if bp_l == bp_r:
+                    return None
                 bp_l += 1
         return bp_l
 
-    def _enforce_right(self, doc, bp_l, bp_r) -> int:
+    def _enforce_right(self, doc, bp_l, bp_r) -> Union[int, None]:
         if self.ignores or self.right_ignores:
             bp_r -= 1
             right_ignore_funcs = []
@@ -384,13 +407,13 @@ class FuzzySearch:
                         pass
             while any([func(doc[bp_r]) for func in right_ignore_funcs]):
                 if bp_r == bp_l:
-                    break
+                    return None
                 bp_r -= 1
             bp_r += 1
         return bp_r
 
     @staticmethod
-    def _filter_overlapping_matches(matches) -> list:
+    def _filter_overlapping_matches(matches) -> List:
         filtered_matches = []
         for match in matches:
             if not set(range(match[1], match[2])).intersection(
@@ -448,7 +471,7 @@ class FuzzyRuler(FuzzySearch):
         return doc
 
     @property
-    def labels(self) -> tuple:
+    def labels(self) -> Tuple:
         """All labels present in the match patterns.
         RETURNS (set): The string labels.
         DOCS: https://spacy.io/api/entityruler#labels
@@ -457,7 +480,7 @@ class FuzzyRuler(FuzzySearch):
         return tuple(keys)
 
     @property
-    def patterns(self) -> list:
+    def patterns(self) -> List:
         """Get all patterns that were added to the fuzzy ruler.
         RETURNS (list): The original patterns, one dictionary per pattern.
         DOCS: https://spacy.io/api/entityruler#patterns
@@ -469,7 +492,7 @@ class FuzzyRuler(FuzzySearch):
                 all_patterns.append(p)
         return all_patterns
 
-    def add_patterns(self, patterns):
+    def add_patterns(self, patterns) -> None:
         """Add patterns to the fuzzy ruler. A pattern must be a phrase pattern (string). For example:
         {'label': 'ORG', 'pattern': 'Apple'}
         patterns (list): The patterns to add.

@@ -6,7 +6,7 @@ nlp = spacy.blank("en")
 text = nlp("The cow said, 'moo, I'm a cow.'")
 
 fs = FuzzySearch(nlp)
-print(fs.multi_match(text, "cow say moo", verbose=False))
+print(fs.multi_match(text, "the", verbose=True))
 
 # fm = FuzzyRuler(nlp, ("cow",), ("animal",))
 # fm.add_patterns(
