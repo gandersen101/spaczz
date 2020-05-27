@@ -1,19 +1,26 @@
 import spacy
+from spacy.matcher import PhraseMatcher
 from matchy.fuzzy import FuzzySearch, FuzzyRuler, FuzzyMatcher
 from fuzzywuzzy import fuzz
 
 nlp = spacy.blank("en")
-text = nlp("The large cow said, 'moooooo, I'm a large cow.' There's also a chicken.")
+doc = nlp.make_doc("The lrg cow said, 'moooooo, I'm a cow.' There's also a chken.")
 
 # fs = FuzzySearch()
-# print(fs.best_match(text, nlp.make_doc("lrgcow")))
+# print(fs.multi_match(doc, nlp.make_doc("large cow"), verbose=True))
 
-animals = ["lrgcow", "chiken"]
-sounds = ["moooop"]
-fm = FuzzyMatcher()
-fm.add("ANIMAL", [nlp.make_doc(animal) for animal in animals])
+animals = ["large cow", "cow", "chicken"]
+sounds = ["moooo"]
+fm = FuzzyMatcher(nlp.vocab)
+fm.add(
+    "ANIMAL", [nlp.make_doc(animal) for animal in animals],
+)
 fm.add("SOUNDS", [nlp.make_doc(sound) for sound in sounds])
-print(fm(text))
+matches = fm(doc)
+
+for _, start, end in matches:
+    print(doc[start:end])
+
 
 # fm.add_patterns(
 #     [

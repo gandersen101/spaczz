@@ -4,6 +4,7 @@ import warnings
 from collections import defaultdict
 from functools import partial
 from itertools import chain
+from operator import itemgetter
 from types import FunctionType
 from typing import Union, Tuple, List, Dict
 import spacy
@@ -89,7 +90,7 @@ class FuzzySearch:
         query,
         fuzzy_alg="simple",
         min_r1=50,
-        min_r2=70,
+        min_r2=80,
         case_sensitive=False,
         ignores=None,
         left_ignores=None,
@@ -140,7 +141,7 @@ class FuzzySearch:
         n=0,
         fuzzy_alg="simple",
         min_r1=50,
-        min_r2=70,
+        min_r2=80,
         case_sensitive=False,
         ignores=None,
         left_ignores=None,
@@ -488,45 +489,51 @@ class FuzzyMatcher(FuzzySearch):
     name = "fuzzy_matcher"
 
     def __init__(
-        self, **fuzzy_kwargs,
+        self, vocab, **defaults,
     ):
         super().__init__()
-        self.fuzzy_patterns = dict()
-        self.fuzzy_kwargs = fuzzy_kwargs
+        self.vocab = vocab
+        self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
+        self.defaults = defaults
 
     def __len__(self) -> int:
-        """The number of rules added to the matcher."""
-        return len(self.fuzz_patterns)
+        """The number of labels added to the matcher."""
+        return len(self.fuzzy_patterns)
 
-    def __contains__(self, match_id) -> bool:
-        """Whether the matcher contains rules for a match ID."""
-        return match_id in self.fuzzy_patterns
+    def __contains__(self, label) -> bool:
+        """Whether the matcher contains patterns for a label."""
+        return label in self.fuzzy_patterns
 
     def __call__(self, doc) -> Doc:
-        matches = []
+        """
+        pass
+        """
+        matches = set()
         for label, patterns in self.fuzzy_patterns.items():
-            fuzzy_kwargs = patterns.get("fuzzy_kwargs", self.fuzzy_kwargs)
-            for pattern in patterns["patterns"]:
-                matches_wo_label = self.multi_match(doc, pattern, **fuzzy_kwargs)
+            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+                if not kwargs:
+                    kwargs = self.defaults
+                matches_wo_label = self.multi_match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label[1:4]
+                        (label,) + match_wo_label[1:3]
                         for match_wo_label in matches_wo_label
                     ]
-                    matches.extend(matches_w_label)
-        return matches
+                    for match in matches_w_label:
+                        matches.add(match)
+        return sorted(matches, key=lambda x: (x[2] - x[1], x[1]))
 
     @property
     def labels(self) -> Tuple:
-        """All Match IDs present in the matcher.
+        """All labels present in the matcher.
         RETURNS (set): The string labels.
         """
         return self.fuzzy_patterns.keys()
 
     @property
     def patterns(self) -> List:
-        """Get all patterns that were added to the matcher.
-        RETURNS (list): The original patterns, one dictionary per pattern.
+        """Get all patterns and kwargs that were added to the matcher.
+        RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
         """
         all_patterns = []
         for label, patterns in self.fuzzy_patterns.items():
@@ -535,21 +542,43 @@ class FuzzyMatcher(FuzzySearch):
                 all_patterns.append(p)
         return all_patterns
 
-    def add(self, match_id, patterns, **fuzzy_kwargs) -> None:
-        """Add a rule to the matcher, consisting of an ID key and one or more patterns.
-        A pattern must be a Doc object.
+    def add(self, label, patterns, kwargs=None) -> None:
+        """Add a rule to the matcher, consisting of a label and one or more patterns.
+        patterns must be lists of Doc object and if kwargs is not None,
+        kwargs must be a list of dictionaries.
         """
-        matches = defaultdict(list)
-        for pattern in patterns:
+        if kwargs is None:
+            kwargs = [{} for p in patterns]
+        elif len(kwargs) < len(patterns):
+            warnings.warn(
+                "There are more patterns then there are kwargs. Patterns not matched to a kwarg dict will have default settings."
+            )
+            kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
+        else:
+            warnings.warn(
+                "There are more kwargs dicts than patterns. The extra kwargs will be ignored."
+            )
+        for pattern, kwarg in zip(patterns, kwargs):
             if isinstance(pattern, Doc):
-                matches["patterns"].append(pattern)
+                self.fuzzy_patterns[label]["patterns"].append(pattern)
             else:
                 raise ValueError("Patterns must be Doc objects.")
-        matches["fuzzy_kwargs"] = fuzzy_kwargs
-        self.fuzzy_patterns[match_id] = matches
+            if isinstance(kwarg, dict):
+                self.fuzzy_patterns[label]["kwargs"].append(kwarg)
+            else:
+                raise ValueError("Kwargs must be dictionary objects.")
 
-    def remove(self, match_id) -> None:
-        pass
+    def remove(self, label) -> None:
+        """
+        Remove a label and its respective patterns from the matcher by label.
+        A KeyError is raised if the key does not exist.
+        """
+        try:
+            del self.fuzzy_patterns[label]
+        except KeyError:
+            raise KeyError(
+                f"The match ID: {label} does not exist within the matcher rules."
+            )
 
 
 class FuzzyRuler(FuzzySearch):
