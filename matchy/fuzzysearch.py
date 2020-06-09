@@ -6,7 +6,7 @@ from functools import partial
 from itertools import chain
 from operator import itemgetter
 from types import FunctionType
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, List, Dict, Iterable, Set
 import spacy
 from fuzzywuzzy import fuzz
 from spacy.tokens import Span, Doc
@@ -15,7 +15,7 @@ from spacy.tokens import Span, Doc
 class FuzzySearch:
     """
     Class for fuzzy searching by tokens via spaCy tokenization.
-    Uses custom search algorithm and left/right stopping rules
+    Uses custom search algorithm and boundary rules
     along with FuzzyWuzzy algorithms for scoring potential matches.
     """
 
@@ -38,7 +38,7 @@ class FuzzySearch:
             "u_weighted": fuzz.UWRatio,
         }
 
-    def _get_fuzzy_alg(self, fuzz, case_sensitive) -> Union[FunctionType, None]:
+    def _get_fuzzy_alg(self, fuzz: str, case_sensitive: bool) -> FunctionType:
         """
         Returns a FuzzyWuzzy algorithm based on it's string, key name.
         Will return a ValueError if the string does not match any of the included keys.
@@ -63,9 +63,15 @@ class FuzzySearch:
                 f"No fuzzy matching algorithm called {fuzz}, algorithm must be in the following: {list(self.fuzzy_algs.keys())}"
             )
 
-    def _preprocess_query(self, query, ignores, left_ignores, right_ignores) -> Doc:
+    def _preprocess_query(
+        self,
+        query: Doc,
+        ignores: Iterable[str],
+        left_ignores: Iterable[str],
+        right_ignores: Iterable[str],
+    ) -> Doc:
         """
-        pass
+        Ensures the query is a doc object and will raise a warning if any of the ignore functions affect the query.
         """
         if not isinstance(query, Doc):
             raise TypeError("The query must be a Doc object.")
@@ -86,18 +92,18 @@ class FuzzySearch:
 
     def best_match(
         self,
-        doc,
-        query,
-        fuzzy_alg="simple",
-        min_r1=50,
-        min_r2=80,
-        case_sensitive=False,
-        ignores=None,
-        left_ignores=None,
-        right_ignores=None,
-        flex="default",
-        step=1,
-        verbose=False,
+        doc: Doc,
+        query: Doc,
+        fuzzy_alg: str = "simple",
+        min_r1: int = 50,
+        min_r2: int = 80,
+        case_sensitive: bool = False,
+        ignores: Iterable[str] = None,
+        left_ignores: Iterable[str] = None,
+        right_ignores: Iterable[str] = None,
+        flex: Union[str, int] = "default",
+        step: int = 1,
+        verbose: bool = False,
     ) -> Union[Tuple[str, int, int, int], None]:
         """
         Returns the single best match meeting the minimum ratio in a
@@ -136,20 +142,20 @@ class FuzzySearch:
 
     def multi_match(
         self,
-        doc,
-        query,
-        n=0,
-        fuzzy_alg="simple",
-        min_r1=50,
-        min_r2=80,
-        case_sensitive=False,
-        ignores=None,
-        left_ignores=None,
-        right_ignores=None,
-        flex="default",
-        step=1,
-        verbose=False,
-    ) -> Union[List[Tuple[str, int, int, int]], None]:
+        doc: Doc,
+        query: Doc,
+        n: int = 0,
+        fuzzy_alg: str = "simple",
+        min_r1: int = 50,
+        min_r2: int = 80,
+        case_sensitive: bool = False,
+        ignores: Iterable[str] = None,
+        left_ignores: Iterable[str] = None,
+        right_ignores: Iterable[str] = None,
+        flex: Union[str, int] = "default",
+        step: int = 1,
+        verbose: bool = False,
+    ) -> List[Tuple[str, int, int, int]]:
         """
         Returns the n best matches meeting the minimum ratio in a
         spaCy tokenized doc based on the search string given.
@@ -197,7 +203,12 @@ class FuzzySearch:
             return matches
 
     @staticmethod
-    def match(a, b, fuzzy_alg=fuzz.ratio, case_sensitive=False) -> int:
+    def match(
+        a: str,
+        b: str,
+        fuzzy_alg: FunctionType = fuzz.ratio,
+        case_sensitive: bool = False,
+    ) -> int:
         """
         Applies the given fuzzy matching algorithm to two strings and
         gives the resulting fuzzy ratio.
@@ -208,7 +219,7 @@ class FuzzySearch:
         return fuzzy_alg(a, b)
 
     @staticmethod
-    def _calc_flex(flex, query) -> int:
+    def _calc_flex(flex: Union[str, int], query: Doc) -> int:
         """
         By default flex is set to the token legth of a the query string.
         If flex is a value greater than the token length of the query string,
@@ -227,8 +238,15 @@ class FuzzySearch:
         return flex
 
     def _scan_doc(
-        self, doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
-    ) -> Dict:
+        self,
+        doc: Doc,
+        query: Doc,
+        fuzzy_alg: str,
+        min_r1: int,
+        case_sensitive: bool,
+        step: int,
+        verbose: bool,
+    ) -> Dict[int, int]:
         """
         Iterates through the doc spans of size len(query) by step size
         and fuzzy matches all token sequences.
@@ -265,7 +283,7 @@ class FuzzySearch:
         return match_values
 
     @staticmethod
-    def _index_max(match_values) -> int:
+    def _index_max(match_values: Dict[int, int]) -> int:
         """
         Returns the token start index of the highest ratio fuzzy match.
         If the max value applies to multiple indices the lowest index will be returned.
@@ -276,7 +294,7 @@ class FuzzySearch:
             pass
 
     @staticmethod
-    def _indice_maxes(match_values, n) -> List:
+    def _indice_maxes(match_values: Dict[int, int], n: int) -> List[int]:
         """
         Returns the token start indices of the n highest ratio fuzzy matches.
         If more than n matches are found the n lowest indices will be returned.
@@ -288,20 +306,20 @@ class FuzzySearch:
 
     def _adjust_left_right_positions(
         self,
-        doc,
-        query,
-        match_values,
-        pos,
-        fuzzy_alg,
-        min_r2,
-        case_sensitive,
-        ignores,
-        left_ignores,
-        right_ignores,
-        flex,
-        step,
-        verbose,
-    ) -> Tuple:
+        doc: Doc,
+        query: Doc,
+        match_values: Dict[int, int],
+        pos: int,
+        fuzzy_alg: FunctionType,
+        min_r2: int,
+        case_sensitive: bool,
+        ignores: Iterable[str],
+        left_ignores: Iterable[str],
+        right_ignores: Iterable[str],
+        flex: int,
+        step: int,
+        verbose: bool,
+    ) -> Tuple[int, int, int]:
         """
         For all span matches from _scan_doc that are greater than or equal to min_r1 the spans will be extended
         both left and right by flex number tokens and fuzzy matched to the original query string.
@@ -371,8 +389,15 @@ class FuzzySearch:
                 )
 
     def _enforce_rules(
-        self, doc, bp_l, bp_r, ignores, left_ignores, right_ignores, verbose
-    ) -> Tuple[Union[int, None]]:
+        self,
+        doc: Doc,
+        bp_l: int,
+        bp_r: int,
+        ignores: Iterable[str],
+        left_ignores: Iterable[str],
+        right_ignores: Iterable[str],
+        verbose: bool,
+    ) -> Tuple[Union[int, None], Union[int, None]]:
         """
         After finding the best fuzzy match, any left-only, right-only,
         or direction agnostic rules are applied to the left and right sides
@@ -387,12 +412,16 @@ class FuzzySearch:
         return bp_l, bp_r
 
     def _populate_ignores(
-        self, side, ignores, left_ignores=None, right_ignores=None
-    ) -> Tuple:
+        self,
+        side: str,
+        ignores: Iterable[str],
+        left_ignores: Iterable[str] = None,
+        right_ignores: Iterable[str] = None,
+    ) -> Tuple[Set[FunctionType], Set[str]]:
         """
-        pass
+        Gets the direction agnostic and specific direction ignore rules functions matching their respective string keys.
         """
-        ignore_funcs = []
+        ignore_funcs = set()
         ignore_keys = set()
         if ignores:
             for key in ignores:
@@ -408,13 +437,19 @@ class FuzzySearch:
         if ignore_keys:
             for key in ignore_keys:
                 try:
-                    ignore_funcs.append(self.ignore_rules[key])
+                    ignore_funcs.add(self.ignore_rules[key])
                 except KeyError:
                     pass
         return ignore_funcs, ignore_keys
 
     def _enforce_left(
-        self, doc, bp_l, bp_r, ignores, left_ignores, verbose
+        self,
+        doc: Doc,
+        bp_l: int,
+        bp_r: int,
+        ignores: Iterable[str],
+        left_ignores: Iterable[str],
+        verbose: bool,
     ) -> Union[int, None]:
         """
         Enforces any left-only and direction agnostic rules to the
@@ -439,7 +474,13 @@ class FuzzySearch:
         return bp_l
 
     def _enforce_right(
-        self, doc, bp_l, bp_r, ignores, right_ignores, verbose
+        self,
+        doc: Doc,
+        bp_l: int,
+        bp_r: int,
+        ignores: Iterable[str],
+        right_ignores: Iterable[str],
+        verbose: bool,
     ) -> Union[int, None]:
         """
         Enforces any right-only and direction agnostic rules to the
@@ -466,7 +507,7 @@ class FuzzySearch:
     @staticmethod
     def _filter_overlapping_matches(
         matches, verbose,
-    ) -> Union[List[Tuple[str, int, int, int]], None]:
+    ) -> List[Tuple[str, int, int, int]]:
         """
         If more than one match spans encompass the same tokens the match span with
         the highest ratio will be kept. If multiple match spans have the same ratio,
@@ -483,198 +524,3 @@ class FuzzySearch:
                 if verbose:
                     print("Including:", match)
         return filtered_matches
-
-
-class FuzzyMatcher(FuzzySearch):
-    name = "fuzzy_matcher"
-
-    def __init__(
-        self, vocab, **defaults,
-    ):
-        super().__init__()
-        self.vocab = vocab
-        self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
-        self.defaults = defaults
-
-    def __len__(self) -> int:
-        """The number of labels added to the matcher."""
-        return len(self.fuzzy_patterns)
-
-    def __contains__(self, label) -> bool:
-        """Whether the matcher contains patterns for a label."""
-        return label in self.fuzzy_patterns
-
-    def __call__(self, doc) -> Doc:
-        """
-        pass
-        """
-        matches = set()
-        for label, patterns in self.fuzzy_patterns.items():
-            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
-                if not kwargs:
-                    kwargs = self.defaults
-                matches_wo_label = self.multi_match(doc, pattern, **kwargs)
-                if matches_wo_label:
-                    matches_w_label = [
-                        (label,) + match_wo_label[1:3]
-                        for match_wo_label in matches_wo_label
-                    ]
-                    for match in matches_w_label:
-                        matches.add(match)
-        return sorted(matches, key=lambda x: (x[2] - x[1], x[1]))
-
-    @property
-    def labels(self) -> Tuple:
-        """All labels present in the matcher.
-        RETURNS (set): The string labels.
-        """
-        return self.fuzzy_patterns.keys()
-
-    @property
-    def patterns(self) -> List:
-        """Get all patterns and kwargs that were added to the matcher.
-        RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
-        """
-        all_patterns = []
-        for label, patterns in self.fuzzy_patterns.items():
-            for pattern in patterns["patterns"]:
-                p = {"label": label, "pattern": pattern.text}
-                all_patterns.append(p)
-        return all_patterns
-
-    def add(self, label, patterns, kwargs=None) -> None:
-        """Add a rule to the matcher, consisting of a label and one or more patterns.
-        patterns must be lists of Doc object and if kwargs is not None,
-        kwargs must be a list of dictionaries.
-        """
-        if kwargs is None:
-            kwargs = [{} for p in patterns]
-        elif len(kwargs) < len(patterns):
-            warnings.warn(
-                "There are more patterns then there are kwargs. Patterns not matched to a kwarg dict will have default settings."
-            )
-            kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
-        else:
-            warnings.warn(
-                "There are more kwargs dicts than patterns. The extra kwargs will be ignored."
-            )
-        for pattern, kwarg in zip(patterns, kwargs):
-            if isinstance(pattern, Doc):
-                self.fuzzy_patterns[label]["patterns"].append(pattern)
-            else:
-                raise ValueError("Patterns must be Doc objects.")
-            if isinstance(kwarg, dict):
-                self.fuzzy_patterns[label]["kwargs"].append(kwarg)
-            else:
-                raise ValueError("Kwargs must be dictionary objects.")
-
-    def remove(self, label) -> None:
-        """
-        Remove a label and its respective patterns from the matcher by label.
-        A KeyError is raised if the key does not exist.
-        """
-        try:
-            del self.fuzzy_patterns[label]
-        except KeyError:
-            raise KeyError(
-                f"The match ID: {label} does not exist within the matcher rules."
-            )
-
-
-class FuzzyRuler(FuzzySearch):
-    name = "fuzzy_ruler"
-
-    def __init__(
-        self, nlp, **kwargs,
-    ):
-        super().__init__(nlp)
-        self.fuzzy_patterns = defaultdict(list)
-        self.kwargs = kwargs
-
-    def __len__(self) -> int:
-        """The number of all patterns added to the fuzzy ruler."""
-        n_fuzzy_patterns = sum(len(p) for p in self.fuzzy_patterns.values())
-        return n_fuzzy_patterns
-
-    def __contains__(self, label) -> bool:
-        """Whether a label is present in the patterns."""
-        return label in self.fuzzy_patterns
-
-    def __call__(self, doc) -> Doc:
-        matches = []
-        for pattern in self.patterns:
-            label, query = pattern.values()
-            matches_wo_label = self.multi_match(doc, query, **self.kwargs)
-            matches_w_label = [
-                match_wo_label + (label,) for match_wo_label in matches_wo_label
-            ]
-            matches.extend(matches_w_label)
-        doc = self._update_entities(doc, matches)
-        return doc
-
-    def _update_entities(self, doc, matches) -> Doc:
-        for _, start, end, _, label in matches:
-            span = Span(doc, start, end, label=label)
-            try:
-                doc.ents += (span,)
-            except ValueError:
-                pass
-        return doc
-
-    @property
-    def labels(self) -> Tuple:
-        """All labels present in the match patterns.
-        RETURNS (set): The string labels.
-        DOCS: https://spacy.io/api/entityruler#labels
-        """
-        keys = set(self.fuzzy_patterns.keys())
-        return tuple(keys)
-
-    @property
-    def patterns(self) -> List:
-        """Get all patterns that were added to the fuzzy ruler.
-        RETURNS (list): The original patterns, one dictionary per pattern.
-        DOCS: https://spacy.io/api/entityruler#patterns
-        """
-        all_patterns = []
-        for label, patterns in self.fuzzy_patterns.items():
-            for pattern in patterns:
-                p = {"label": label, "pattern": pattern.text}
-                all_patterns.append(p)
-        return all_patterns
-
-    def add_patterns(self, patterns) -> None:
-        """Add patterns to the fuzzy ruler. A pattern must be a phrase pattern (string). For example:
-        {'label': 'ORG', 'pattern': 'Apple'}
-        patterns (list): The patterns to add.
-        DOCS: https://spacy.io/api/entityruler#add_patterns
-        """
-
-        # disable the nlp components after this one in case they hadn't been initialized / deserialised yet
-        try:
-            current_index = self.nlp.pipe_names.index(self.name)
-            subsequent_pipes = [
-                pipe for pipe in self.nlp.pipe_names[current_index + 1 :]
-            ]
-        except ValueError:
-            subsequent_pipes = []
-        with self.nlp.disable_pipes(subsequent_pipes):
-            fuzzy_pattern_labels = []
-            fuzzy_pattern_texts = []
-            for entry in patterns:
-                if isinstance(entry["pattern"], str):
-                    fuzzy_pattern_labels.append(entry["label"])
-                    fuzzy_pattern_texts.append(entry["pattern"])
-            fuzzy_patterns = []
-            for label, pattern in zip(
-                fuzzy_pattern_labels, self.nlp.pipe(fuzzy_pattern_texts),
-            ):
-                fuzzy_pattern = {"label": label, "pattern": pattern}
-                fuzzy_patterns.append(fuzzy_pattern)
-            for entry in fuzzy_patterns:
-                label = entry["label"]
-                pattern = entry["pattern"]
-                if isinstance(pattern, Doc):
-                    self.fuzzy_patterns[label].append(pattern)
-                else:
-                    raise ValueError
