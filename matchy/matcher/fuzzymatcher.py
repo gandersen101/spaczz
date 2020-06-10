@@ -1,9 +1,10 @@
+from __future__ import annotations
 import warnings
 from collections import defaultdict
-from typing import Dict, Iterable, List, Tuple, Generator
+from typing import Dict, Iterable, List, Tuple, Generator, Callable, Optional
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
-from ..fuzzy import FuzzySearch
+from .. import FuzzySearch
 
 
 class FuzzyMatcher(FuzzySearch):
@@ -16,13 +17,18 @@ class FuzzyMatcher(FuzzySearch):
         self.vocab = vocab
         self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
         self.defaults = defaults
+        self._callbacks = {}
 
     def __len__(self) -> int:
-        """The number of labels added to the matcher."""
+        """
+        The number of labels added to the matcher.
+        """
         return len(self.fuzzy_patterns)
 
     def __contains__(self, label: str) -> bool:
-        """Whether the matcher contains patterns for a label."""
+        """
+        Whether the matcher contains patterns for a label.
+        """
         return label in self.fuzzy_patterns
 
     def __call__(self, doc: Doc) -> Doc:
@@ -46,18 +52,25 @@ class FuzzyMatcher(FuzzySearch):
                     ]
                     for match in matches_w_label:
                         matches.add(match)
-        return sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
+        matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
+        for i, (label, start, end) in enumerate(matches):
+            on_match = self._callbacks.get(label)
+            if on_match:
+                on_match(self, doc, i, matches)
+        return matches
 
     @property
     def labels(self) -> Tuple:
-        """All labels present in the matcher.
+        """
+        All labels present in the matcher.
         RETURNS (set): The string labels.
         """
         return self.fuzzy_patterns.keys()
 
     @property
     def patterns(self) -> List:
-        """Get all patterns and kwargs that were added to the matcher.
+        """
+        Get all patterns and kwargs that were added to the matcher.
         RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
         """
         all_patterns = []
@@ -67,8 +80,24 @@ class FuzzyMatcher(FuzzySearch):
                 all_patterns.append(p)
         return all_patterns
 
-    def add(self, label: str, patterns: Iterable[Doc], kwargs: Dict = None) -> None:
-        """Add a rule to the matcher, consisting of a label and one or more patterns.
+    @property
+    def kwargs(self) -> List:
+        all_kwargs = []
+        for _, patterns in self.fuzzy_patterns.items():
+            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+                k = {"pattern": pattern.text, "kwargs": kwargs}
+                all_kwargs.append(k)
+        return all_kwargs
+
+    def add(
+        self,
+        label: str,
+        patterns: Iterable[Doc],
+        kwargs: Optional[Dict] = None,
+        on_match: Optional[Callable[[FuzzyMatcher, Doc, int, List], None]] = None,
+    ) -> None:
+        """
+        Add a rule to the matcher, consisting of a label and one or more patterns.
         patterns must be lists of Doc object and if kwargs is not None,
         kwargs must be a list of dictionaries.
         """
@@ -92,6 +121,7 @@ class FuzzyMatcher(FuzzySearch):
                 self.fuzzy_patterns[label]["kwargs"].append(kwarg)
             else:
                 raise ValueError("Kwargs must be dictionary objects.")
+        self._callbacks[label] = on_match
 
     def remove(self, label: str) -> None:
         """
@@ -100,6 +130,7 @@ class FuzzyMatcher(FuzzySearch):
         """
         try:
             del self.fuzzy_patterns[label]
+            del self._callbacks[label]
         except KeyError:
             raise KeyError(
                 f"The match ID: {label} does not exist within the matcher rules."

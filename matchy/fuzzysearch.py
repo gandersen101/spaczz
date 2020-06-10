@@ -5,11 +5,10 @@ from collections import defaultdict
 from functools import partial
 from itertools import chain
 from operator import itemgetter
-from types import FunctionType
-from typing import Union, Tuple, List, Dict, Iterable, Set
+from typing import Union, Tuple, List, Dict, Iterable, Set, Callable, Optional
 import spacy
 from fuzzywuzzy import fuzz
-from spacy.tokens import Span, Doc
+from spacy.tokens import Doc, Span, Token
 
 
 class FuzzySearch:
@@ -38,7 +37,9 @@ class FuzzySearch:
             "u_weighted": fuzz.UWRatio,
         }
 
-    def _get_fuzzy_alg(self, fuzz: str, case_sensitive: bool) -> FunctionType:
+    def _get_fuzzy_alg(
+        self, fuzz: str, case_sensitive: bool
+    ) -> Callable[[str, str], int]:
         """
         Returns a FuzzyWuzzy algorithm based on it's string, key name.
         Will return a ValueError if the string does not match any of the included keys.
@@ -98,9 +99,9 @@ class FuzzySearch:
         min_r1: int = 50,
         min_r2: int = 80,
         case_sensitive: bool = False,
-        ignores: Iterable[str] = None,
-        left_ignores: Iterable[str] = None,
-        right_ignores: Iterable[str] = None,
+        ignores: Optional[Iterable[str]] = None,
+        left_ignores: Optional[Iterable[str]] = None,
+        right_ignores: Optional[Iterable[str]] = None,
         flex: Union[str, int] = "default",
         step: int = 1,
         verbose: bool = False,
@@ -112,7 +113,6 @@ class FuzzySearch:
         """
         query = self._preprocess_query(query, ignores, left_ignores, right_ignores)
         flex = self._calc_flex(flex, query)
-        fuzzy_alg = self._get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
             doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
         )
@@ -149,9 +149,9 @@ class FuzzySearch:
         min_r1: int = 50,
         min_r2: int = 80,
         case_sensitive: bool = False,
-        ignores: Iterable[str] = None,
-        left_ignores: Iterable[str] = None,
-        right_ignores: Iterable[str] = None,
+        ignores: Optional[Iterable[str]] = None,
+        left_ignores: Optional[Iterable[str]] = None,
+        right_ignores: Optional[Iterable[str]] = None,
         flex: Union[str, int] = "default",
         step: int = 1,
         verbose: bool = False,
@@ -165,7 +165,6 @@ class FuzzySearch:
             n = int(len(doc) / len(query) + 2)
         query = self._preprocess_query(query, ignores, left_ignores, right_ignores)
         flex = self._calc_flex(flex, query)
-        fuzzy_alg = self._get_fuzzy_alg(fuzzy_alg, case_sensitive)
         match_values = self._scan_doc(
             doc, query, fuzzy_alg, min_r1, case_sensitive, step, verbose
         )
@@ -202,12 +201,8 @@ class FuzzySearch:
             matches = self._filter_overlapping_matches(matches, verbose)
             return matches
 
-    @staticmethod
     def match(
-        a: str,
-        b: str,
-        fuzzy_alg: FunctionType = fuzz.ratio,
-        case_sensitive: bool = False,
+        self, a: str, b: str, fuzzy_alg: str = "simple", case_sensitive: bool = False,
     ) -> int:
         """
         Applies the given fuzzy matching algorithm to two strings and
@@ -216,7 +211,7 @@ class FuzzySearch:
         if not case_sensitive:
             a = a.lower()
             b = b.lower()
-        return fuzzy_alg(a, b)
+        return self._get_fuzzy_alg(fuzzy_alg, case_sensitive)(a, b)
 
     @staticmethod
     def _calc_flex(flex: Union[str, int], query: Doc) -> int:
@@ -310,7 +305,7 @@ class FuzzySearch:
         query: Doc,
         match_values: Dict[int, int],
         pos: int,
-        fuzzy_alg: FunctionType,
+        fuzzy_alg: str,
         min_r2: int,
         case_sensitive: bool,
         ignores: Iterable[str],
@@ -417,7 +412,7 @@ class FuzzySearch:
         ignores: Iterable[str],
         left_ignores: Iterable[str] = None,
         right_ignores: Iterable[str] = None,
-    ) -> Tuple[Set[FunctionType], Set[str]]:
+    ) -> Tuple[Set[Callable[[Token], bool]], Set[str]]:
         """
         Gets the direction agnostic and specific direction ignore rules functions matching their respective string keys.
         """
