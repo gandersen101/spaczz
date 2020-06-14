@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Dict, Iterable, List, Tuple, Generator, Callable, Optional
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
-from .. import FuzzySearch
+from ..fuzzysearch import FuzzySearch
 
 
 class FuzzyMatcher(FuzzySearch):
