@@ -108,7 +108,7 @@ class FuzzyMatcher(FuzzySearch):
                 "There are more patterns then there are kwargs. Patterns not matched to a kwarg dict will have default settings."
             )
             kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
-        else:
+        elif len(kwargs) > len(patterns):
             warnings.warn(
                 "There are more kwargs dicts than patterns. The extra kwargs will be ignored."
             )
