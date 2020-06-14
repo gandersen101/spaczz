@@ -1,4 +1,4 @@
-#spaczz
+# spaczz
 Provides fuzzy matching functionality for spaCy. A very early work in progress.
 
 Fuzzy matching provided by [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy).
