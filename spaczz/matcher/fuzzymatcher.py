@@ -68,26 +68,23 @@ class FuzzyMatcher(FuzzySearch):
         return self.fuzzy_patterns.keys()
 
     @property
-    def patterns(self) -> List:
+    def patterns(self) -> List[Dict[str, str, str, Optional[str]]]:
         """
         Get all patterns and kwargs that were added to the matcher.
         RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
         """
         all_patterns = []
         for label, patterns in self.fuzzy_patterns.items():
-            for pattern in patterns["patterns"]:
-                p = {"label": label, "pattern": pattern.text}
+            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+                p = {
+                    "label": label,
+                    "pattern": pattern.text,
+                    "type": "fuzzy",
+                }
+                if kwargs:
+                    p["kwargs"] = kwargs
                 all_patterns.append(p)
         return all_patterns
-
-    @property
-    def kwargs(self) -> List:
-        all_kwargs = []
-        for _, patterns in self.fuzzy_patterns.items():
-            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
-                k = {"pattern": pattern.text, "kwargs": kwargs}
-                all_kwargs.append(k)
-        return all_kwargs
 
     def add(
         self,

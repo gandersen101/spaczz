@@ -1,3 +1,3 @@
-from .matchyruler import MatchyRuler
+from .spaczzruler import SpaczzRuler
 
-__all__ = ["FuzzySearch"]
+__all__ = ["SpaczzRuler"]

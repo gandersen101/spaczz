@@ -1,5 +1,5 @@
 from collections import defaultdict, OrderedDict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import srsly
 from spacy.language import Language
 from spacy.tokens import Span, Doc
@@ -7,30 +7,30 @@ from ..matcher import FuzzyMatcher
 from ..util import ensure_path, write_to_disk, read_from_disk
 
 
-class MatchyRuler:
-    name = "matchy_ruler"
+class SpaczzRuler:
+    name = "spaczz_ruler"
 
     def __init__(
         self, nlp: Language, **cfg,
     ):
         self.nlp = nlp
         self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
-        self.overwrite = cfg.get("matchy_overwrite_ents", False)
-        default_names = ("matchy_fuzzy_defaults", "matchy_regex_defaults")
+        self.overwrite = cfg.get("spaczz_overwrite_ents", False)
+        default_names = ("spaczz_fuzzy_defaults", "spaczz_regex_defaults")
         self.defaults = {}
         for name in default_names:
             if name in cfg:
                 self.defaults[name] = cfg[name]
         self.fuzzy_matcher = FuzzyMatcher(
-            nlp.vocab, **self.defaults.get("matchy_fuzzy_defaults", {})
+            nlp.vocab, **self.defaults.get("spaczz_fuzzy_defaults", {})
         )
-        patterns = cfg.get("matchy_patterns")
+        patterns = cfg.get("spaczz_patterns")
         if patterns is not None:
             self.add_patterns(patterns)
 
     def __len__(self) -> int:
         """
-        The number of all patterns added to the matchy ruler.
+        The number of all patterns added to the spaczz ruler.
         """
         n_fuzzy_patterns = sum(len(p["patterns"]) for p in self.fuzzy_patterns.values())
         return n_fuzzy_patterns
@@ -73,15 +73,15 @@ class MatchyRuler:
     def labels(self) -> Tuple[str, ...]:
         """
         All labels present in the match patterns.
-        RETURNS (set): The string labels.
+        RETURNS (tuple): The string labels without repeats - set as a tuple.
         """
         keys = set(self.fuzzy_patterns.keys())
         return tuple(keys)
 
     @property
-    def patterns(self) -> List[Dict[str, str]]:
+    def patterns(self) -> List[Dict[str, str, str, Optional[str]]]:
         """
-        Get all patterns that were added to the fuzzy ruler.
+        Get all patterns that were added to the spaczz ruler.
         RETURNS (list): The original patterns, one dictionary per pattern.
         """
         all_patterns = []
@@ -99,7 +99,7 @@ class MatchyRuler:
 
     def add_patterns(self, patterns) -> None:
         """
-        Add patterns to the fuzzy ruler. A pattern must be a matchy pattern:
+        Add patterns to the spaczz ruler. A pattern must be a spaczz pattern:
         (label (str), pattern (str), type (str), and optional kwargs (dict)).
         For example: {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
         patterns (list): The patterns to add.
@@ -125,7 +125,7 @@ class MatchyRuler:
                         fuzzy_pattern_kwargs.append(entry.get("kwargs", {}))
                 except KeyError:
                     raise TypeError(
-                        "One or more patterns do not conform to matchy pattern structure."
+                        "One or more patterns do not conform to spaczz pattern structure."
                     )
             fuzzy_patterns = []
             for label, pattern, kwargs in zip(
@@ -146,49 +146,49 @@ class MatchyRuler:
 
     def to_bytes(self, **kwargs):
         """
-        Serialize the matchy ruler patterns to a bytestring.
+        Serialize the spaczz ruler patterns to a bytestring.
         **kwargs: Other config paramters, mostly for consistency.
         RETURNS (bytes): The serialized patterns.
         """
         serial = OrderedDict(
             (
-                ("matchy_overwrite", self.overwrite),
-                ("matchy_patterns", self.patterns),
-                ("matchy_defaults", self.defaults),
+                ("spaczz_overwrite", self.overwrite),
+                ("spaczz_patterns", self.patterns),
+                ("spaczz_defaults", self.defaults),
             )
         )
         return srsly.msgpack_dumps(serial)
 
     def from_bytes(self, patterns_bytes, **kwargs):
         """
-        Load the matchy ruler from a bytestring.
+        Load the spaczz ruler from a bytestring.
         patterns_bytes (bytes): The bytestring to load.
         **kwargs: Other config paramters, mostly for consistency.
-        RETURNS (EntityRuler): The loaded entity ruler.
+        RETURNS (SpaczzRuler): The loaded spaczz ruler.
         """
         cfg = srsly.msgpack_loads(patterns_bytes)
-        self.defaults = cfg.get("matchy_defaults", {})
-        self.overwrite = cfg.get("matchy_overwrite", False)
+        self.defaults = cfg.get("spaczz_defaults", {})
+        self.overwrite = cfg.get("spaczz_overwrite", False)
         try:
-            self.add_patterns(cfg["matchy_patterns"])
+            self.add_patterns(cfg["spaczz_patterns"])
         except KeyError:
             pass
         return self
 
     def to_disk(self, path, **kwargs):
         """
-        Save the matchy ruler patterns to a directory. The patterns will be
+        Save the spaczz ruler patterns to a directory. The patterns will be
         saved as newline-delimited JSON (JSONL).
         path (unicode / Path): The JSONL file to save.
         **kwargs: Other config paramters, mostly for consistency.
         """
         path = ensure_path(path)
         cfg = {
-            "matchy_overwrite": self.overwrite,
-            "matchy_defaults": self.defaults,
+            "spaczz_overwrite": self.overwrite,
+            "spaczz_defaults": self.defaults,
         }
         serializers = {
-            "matchy_patterns": lambda p: srsly.write_jsonl(
+            "spaczz_patterns": lambda p: srsly.write_jsonl(
                 p.with_suffix(".jsonl"), self.patterns
             ),
             "cfg": lambda p: srsly.write_json(p, cfg),
@@ -200,11 +200,11 @@ class MatchyRuler:
 
     def from_disk(self, path, **kwargs):
         """
-        Load the matchy ruler from a file. Expects a file containing
+        Load the spaczz ruler from a file. Expects a file containing
         newline-delimited JSON (JSONL) with one entry per line.
         path (unicode / Path): The JSONL file to load.
         **kwargs: Other config paramters, mostly for consistency.
-        RETURNS (EntityRuler): The loaded entity ruler.
+        RETURNS (SpaczzRuler): The loaded spaczz ruler.
         """
         path = ensure_path(path)
         depr_patterns_path = path.with_suffix(".jsonl")
@@ -214,13 +214,13 @@ class MatchyRuler:
         else:
             cfg = {}
             deserializers_patterns = {
-                "matchy_patterns": lambda p: self.add_patterns(
+                "spaczz_patterns": lambda p: self.add_patterns(
                     srsly.read_jsonl(p.with_suffix(".jsonl"))
                 )
             }
             deserializers_cfg = {"cfg": lambda p: cfg.update(srsly.read_json(p))}
             read_from_disk(path, deserializers_cfg, {})
-            self.overwrite = cfg.get("matchy_overwrite", False)
-            self.defaults = cfg.get("matchy_defaults", {})
+            self.overwrite = cfg.get("spaczz_overwrite", False)
+            self.defaults = cfg.get("spaczz_defaults", {})
             read_from_disk(path, deserializers_patterns, {})
         return self
