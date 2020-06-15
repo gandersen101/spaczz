@@ -376,7 +376,7 @@ class FuzzySearch:
         )
         if None not in (bp_l, bp_r):
             r = self.match(query.text, doc[bp_l:bp_r].text, fuzzy_alg, case_sensitive)
-            if r > min_r2:
+            if r >= min_r2:
                 return (
                     bp_l,
                     bp_r,
