@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Optional
 import srsly
 from spacy.language import Language
 from spacy.tokens import Span, Doc
-from ..matcher import FuzzyMatcher
+from ..matcher import FuzzyMatcher, RegexMatcher
 from ..util import ensure_path, write_to_disk, read_from_disk
 
 
@@ -15,6 +15,7 @@ class SpaczzRuler:
     ):
         self.nlp = nlp
         self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
+        self.regex_patterns = defaultdict(lambda: defaultdict(list))
         self.overwrite = cfg.get("spaczz_overwrite_ents", False)
         default_names = ("spaczz_fuzzy_defaults", "spaczz_regex_defaults")
         self.defaults = {}
@@ -23,6 +24,9 @@ class SpaczzRuler:
                 self.defaults[name] = cfg[name]
         self.fuzzy_matcher = FuzzyMatcher(
             nlp.vocab, **self.defaults.get("spaczz_fuzzy_defaults", {})
+        )
+        self.regex_matcher = RegexMatcher(
+            nlp.vocab, **self.defaults.get("spaczz_regex_defaults", {})
         )
         patterns = cfg.get("spaczz_patterns")
         if patterns is not None:
@@ -33,13 +37,14 @@ class SpaczzRuler:
         The number of all patterns added to the spaczz ruler.
         """
         n_fuzzy_patterns = sum(len(p["patterns"]) for p in self.fuzzy_patterns.values())
-        return n_fuzzy_patterns
+        n_regex_patterns = sum(len(p["patterns"]) for p in self.regex_patterns.values())
+        return n_fuzzy_patterns + n_regex_patterns
 
     def __contains__(self, label: str) -> bool:
         """
         Whether a label is present in the patterns.
         """
-        return label in self.fuzzy_patterns
+        return label in self.fuzzy_patterns or label in self.regex_patterns
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -47,7 +52,7 @@ class SpaczzRuler:
         doc (Doc): The Doc object in the pipeline.
         RETURNS (Doc): The Doc with added entities, if available.
         """
-        matches = list(self.fuzzy_matcher(doc))
+        matches = list(self.fuzzy_matcher(doc) + self.regex_matcher(doc))
         matches = set(
             [(m_id, start, end) for m_id, start, end in matches if start != end]
         )
@@ -76,10 +81,11 @@ class SpaczzRuler:
         RETURNS (tuple): The string labels without repeats - set as a tuple.
         """
         keys = set(self.fuzzy_patterns.keys())
+        keys.update(self.regex_patterns.keys())
         return tuple(keys)
 
     @property
-    def patterns(self) -> List[Dict[str, str, str, Optional[str]]]:
+    def patterns(self,) -> List[Dict[str, str]]:
         """
         Get all patterns that were added to the spaczz ruler.
         RETURNS (list): The original patterns, one dictionary per pattern.
@@ -91,6 +97,16 @@ class SpaczzRuler:
                     "label": label,
                     "pattern": pattern.text,
                     "type": "fuzzy",
+                }
+                if kwargs:
+                    p["kwargs"] = kwargs
+                all_patterns.append(p)
+        for label, patterns in self.regex_patterns.items():
+            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+                p = {
+                    "label": label,
+                    "pattern": pattern,
+                    "type": "regex",
                 }
                 if kwargs:
                     p["kwargs"] = kwargs
@@ -117,12 +133,19 @@ class SpaczzRuler:
             fuzzy_pattern_labels = []
             fuzzy_pattern_texts = []
             fuzzy_pattern_kwargs = []
+            regex_pattern_labels = []
+            regex_pattern_texts = []
+            regex_pattern_kwargs = []
             for entry in patterns:
                 try:
                     if entry["type"] == "fuzzy":
                         fuzzy_pattern_labels.append(entry["label"])
                         fuzzy_pattern_texts.append(entry["pattern"])
                         fuzzy_pattern_kwargs.append(entry.get("kwargs", {}))
+                    if entry["type"] == "regex":
+                        regex_pattern_labels.append(entry["label"])
+                        regex_pattern_texts.append(entry["pattern"])
+                        regex_pattern_kwargs.append(entry.get("kwargs", {}))
                 except KeyError:
                     raise TypeError(
                         "One or more patterns do not conform to spaczz pattern structure."
@@ -136,13 +159,21 @@ class SpaczzRuler:
                 fuzzy_pattern = {"label": label, "pattern": pattern, "kwargs": kwargs}
                 fuzzy_patterns.append(fuzzy_pattern)
             for entry in fuzzy_patterns:
-                label = entry["label"]
-                pattern = entry["pattern"]
-                kwargs = entry["kwargs"]
-                self.fuzzy_patterns[label]["patterns"].append(pattern)
-                self.fuzzy_patterns[label]["kwargs"].append(kwargs)
+                self.fuzzy_patterns[entry["label"]]["patterns"].append(entry["pattern"])
+                self.fuzzy_patterns[entry["label"]]["kwargs"].append(entry["kwargs"])
+            regex_patterns = []
+            for label, pattern, kwargs in zip(
+                regex_pattern_labels, regex_pattern_texts, regex_pattern_kwargs
+            ):
+                regex_pattern = {"label": label, "pattern": pattern, "kwargs": kwargs}
+                regex_patterns.append(regex_pattern)
+            for entry in regex_patterns:
+                self.regex_patterns[entry["label"]]["patterns"].append(entry["pattern"])
+                self.regex_patterns[entry["label"]]["kwargs"].append(entry["kwargs"])
             for label, patterns in self.fuzzy_patterns.items():
                 self.fuzzy_matcher.add(label, patterns["patterns"], patterns["kwargs"])
+            for label, patterns in self.regex_patterns.items():
+                self.regex_matcher.add(label, patterns["patterns"], patterns["kwargs"])
 
     def to_bytes(self, **kwargs):
         """

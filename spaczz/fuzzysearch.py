@@ -12,11 +12,9 @@ from spacy.tokens import Doc, Span, Token
 
 
 class FuzzySearch:
-    """
-    Class for fuzzy searching by tokens via spaCy tokenization.
-    Uses custom search algorithm and boundary rules
-    along with FuzzyWuzzy algorithms for scoring potential matches.
-    """
+    """Class for fuzzy searching by tokens via spaCy tokenization.
+    Uses custom search algorithm and boundary rules,
+    along with FuzzyWuzzy algorithms for scoring potential matches."""
 
     def __init__(self):
         self.ignore_rules = {
@@ -40,10 +38,8 @@ class FuzzySearch:
     def _get_fuzzy_alg(
         self, fuzz: str, case_sensitive: bool
     ) -> Callable[[str, str], int]:
-        """
-        Returns a FuzzyWuzzy algorithm based on it's string, key name.
-        Will return a ValueError if the string does not match any of the included keys.
-        """
+        """Returns a FuzzyWuzzy algorithm based on it's string, key name.
+        Will return a ValueError if the string does not match any of the included keys."""
         if case_sensitive and fuzz in [
             "token_sort",
             "token_set",
@@ -61,7 +57,8 @@ class FuzzySearch:
             return self.fuzzy_algs[fuzz]
         except KeyError:
             raise ValueError(
-                f"No fuzzy matching algorithm called {fuzz}, algorithm must be in the following: {list(self.fuzzy_algs.keys())}"
+                f"""No fuzzy matching algorithm called {fuzz}. Algorithm must be in the following:
+                {list(self.fuzzy_algs.keys())}"""
             )
 
     def _preprocess_query(
@@ -71,9 +68,7 @@ class FuzzySearch:
         left_ignores: Iterable[str],
         right_ignores: Iterable[str],
     ) -> Doc:
-        """
-        Ensures the query is a doc object and will raise a warning if any of the ignore functions affect the query.
-        """
+        """Ensures the query is a doc object and will raise a warning if any of the ignore functions affect the query."""
         if not isinstance(query, Doc):
             raise TypeError("The query must be a Doc object.")
         left_ignore_funcs, _ = self._populate_ignores("left", ignores, left_ignores)
@@ -84,10 +79,8 @@ class FuzzySearch:
             [func(query[-1]) for func in right_ignore_funcs]
         ):
             warnings.warn(
-                (
-                    "One or more ignore rules will affect the query string, which will likely lead to unexpected "
-                    "fuzzy matching behavior. Either change the query string or ignore rules to remedy this."
-                )
+                """One or more ignore rules will affect the query string, which will likely lead to unexpected
+                fuzzy matching behavior. Either change the query string or ignore rules to remedy this."""
             )
         return query
 
@@ -105,12 +98,10 @@ class FuzzySearch:
         flex: Union[str, int] = "default",
         step: int = 1,
         verbose: bool = False,
-    ) -> Union[Tuple[str, int, int, int], None]:
-        """
-        Returns the single best match meeting the minimum ratio in a
+    ) -> Union[Tuple[Span, int, int, int], None]:
+        """Returns the single best match meeting the minimum ratio in a
         spaCy tokenized doc based on the search string given.
-        If more than one match has the same ratio, the earliest match will be returned.
-        """
+        If more than one match has the same ratio, the earliest match will be returned."""
         query = self._preprocess_query(query, ignores, left_ignores, right_ignores)
         flex = self._calc_flex(flex, query)
         match_values = self._scan_doc(
@@ -155,12 +146,10 @@ class FuzzySearch:
         flex: Union[str, int] = "default",
         step: int = 1,
         verbose: bool = False,
-    ) -> List[Tuple[str, int, int, int]]:
-        """
-        Returns the n best matches meeting the minimum ratio in a
+    ) -> Union[List[Tuple[Span, int, int, int]], List]:
+        """Returns the n best matches meeting the minimum ratio in a
         spaCy tokenized doc based on the search string given.
-        Will be sorted by matching score, then start token position.
-        """
+        Will be sorted by matching score, then start token position."""
         if not n:
             n = int(len(doc) / len(query) + 2)
         query = self._preprocess_query(query, ignores, left_ignores, right_ignores)
@@ -204,10 +193,8 @@ class FuzzySearch:
     def match(
         self, a: str, b: str, fuzzy_alg: str = "simple", case_sensitive: bool = False,
     ) -> int:
-        """
-        Applies the given fuzzy matching algorithm to two strings and
-        gives the resulting fuzzy ratio.
-        """
+        """Applies the given fuzzy matching algorithm to two strings and
+        gives the resulting fuzzy ratio."""
         if not case_sensitive:
             a = a.lower()
             b = b.lower()
@@ -215,11 +202,9 @@ class FuzzySearch:
 
     @staticmethod
     def _calc_flex(flex: Union[str, int], query: Doc) -> int:
-        """
-        By default flex is set to the token legth of a the query string.
+        """By default flex is set to the token legth of a the query string.
         If flex is a value greater than the token length of the query string,
-        flex will be set to 1 instead.
-        """
+        flex will be set to 1 instead."""
         if flex == "default":
             flex = len(query)
         elif type(flex) == int:
@@ -242,13 +227,11 @@ class FuzzySearch:
         step: int,
         verbose: bool,
     ) -> Dict[int, int]:
-        """
-        Iterates through the doc spans of size len(query) by step size
+        """Iterates through the doc spans of size len(query) by step size
         and fuzzy matches all token sequences.
         If a matches fuzzy ratio is greater than or equal to the
         min_r1 it is added to a dict with it's token index
-        as the key and it's ratio as the value.
-        """
+        as the key and it's ratio as the value."""
         if verbose:
             print(f"Scanning doc for: {query.text}")
             print(f"\nScanning doc spans of length: {len(query)}, by step size: {step}")
@@ -279,10 +262,8 @@ class FuzzySearch:
 
     @staticmethod
     def _index_max(match_values: Dict[int, int]) -> int:
-        """
-        Returns the token start index of the highest ratio fuzzy match.
-        If the max value applies to multiple indices the lowest index will be returned.
-        """
+        """Returns the token start index of the highest ratio fuzzy match.
+        If the max value applies to multiple indices the lowest index will be returned."""
         try:
             return sorted(match_values, key=lambda x: (-match_values[x], x))[0]
         except IndexError:
@@ -290,10 +271,8 @@ class FuzzySearch:
 
     @staticmethod
     def _indice_maxes(match_values: Dict[int, int], n: int) -> List[int]:
-        """
-        Returns the token start indices of the n highest ratio fuzzy matches.
-        If more than n matches are found the n lowest indices will be returned.
-        """
+        """Returns the token start indices of the n highest ratio fuzzy matches.
+        If more than n matches are found the n lowest indices will be returned."""
         if n:
             return sorted(match_values, key=lambda x: (-match_values[x], x))[:n]
         else:
@@ -315,12 +294,10 @@ class FuzzySearch:
         step: int,
         verbose: bool,
     ) -> Tuple[int, int, int]:
-        """
-        For all span matches from _scan_doc that are greater than or equal to min_r1 the spans will be extended
+        """For all span matches from _scan_doc that are greater than or equal to min_r1 the spans will be extended
         both left and right by flex number tokens and fuzzy matched to the original query string.
         The optimal start and end token position for each span are then run through optional rules enforcement
-        before being returned along with the span's fuzzy ratio.
-        """
+        before being returned along with the span's fuzzy ratio."""
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
         bmv_l = match_values[p_l // step]
@@ -393,11 +370,9 @@ class FuzzySearch:
         right_ignores: Iterable[str],
         verbose: bool,
     ) -> Tuple[Union[int, None], Union[int, None]]:
-        """
-        After finding the best fuzzy match, any left-only, right-only,
+        """After finding the best fuzzy match, any left-only, right-only,
         or direction agnostic rules are applied to the left and right sides
-        of the match span to prevent unwanted tokens from populating the span.
-        """
+        of the match span to prevent unwanted tokens from populating the span."""
         bp_l = self._enforce_left(doc, bp_l, bp_r, ignores, left_ignores, verbose)
         if bp_l:
             if bp_r > bp_l:
@@ -413,9 +388,8 @@ class FuzzySearch:
         left_ignores: Iterable[str] = None,
         right_ignores: Iterable[str] = None,
     ) -> Tuple[Set[Callable[[Token], bool]], Set[str]]:
-        """
-        Gets the direction agnostic and specific direction ignore rules functions matching their respective string keys.
-        """
+        """Gets the direction agnostic and specific direction ignore rules
+        functions matching their respective string keys."""
         ignore_funcs = set()
         ignore_keys = set()
         if ignores:
@@ -446,10 +420,8 @@ class FuzzySearch:
         left_ignores: Iterable[str],
         verbose: bool,
     ) -> Union[int, None]:
-        """
-        Enforces any left-only and direction agnostic rules to the
-        left side of the match span.
-        """
+        """Enforces any left-only and direction agnostic rules
+        to the left side of the match span."""
         ignore_funcs, ignore_keys = self._populate_ignores(
             "left", ignores, left_ignores
         )
@@ -477,10 +449,8 @@ class FuzzySearch:
         right_ignores: Iterable[str],
         verbose: bool,
     ) -> Union[int, None]:
-        """
-        Enforces any right-only and direction agnostic rules to the
-        right side of the match span.
-        """
+        """Enforces any right-only and direction agnostic rules
+        to the right side of the match span."""
         ignore_funcs, ignore_keys = self._populate_ignores(
             "right", ignores, right_ignores=right_ignores
         )
@@ -502,12 +472,10 @@ class FuzzySearch:
     @staticmethod
     def _filter_overlapping_matches(
         matches, verbose,
-    ) -> List[Tuple[str, int, int, int]]:
-        """
-        If more than one match spans encompass the same tokens the match span with
+    ) -> Union[List[Tuple[Span, int, int, int]], List]:
+        """If more than one match spans encompass the same tokens the match span with
         the highest ratio will be kept. If multiple match spans have the same ratio,
-        the span that includes the earliest token by index will be kept.
-        """
+        the span that includes the earliest token by index will be kept."""
         filtered_matches = []
         if verbose:
             print("\nFiltering the following matches:", matches, sep="\n")

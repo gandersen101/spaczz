@@ -1,7 +1,7 @@
 from __future__ import annotations
 import warnings
 from collections import defaultdict
-from typing import Dict, Iterable, List, Tuple, Generator, Callable, Optional
+from typing import Dict, Iterable, List, Tuple, Generator, Callable, Optional, Union
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 from ..fuzzysearch import FuzzySearch
@@ -15,7 +15,7 @@ class FuzzyMatcher(FuzzySearch):
     ):
         super().__init__()
         self.vocab = vocab
-        self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
+        self._patterns = defaultdict(lambda: defaultdict(list))
         self.defaults = defaults
         self._callbacks = {}
 
@@ -23,15 +23,15 @@ class FuzzyMatcher(FuzzySearch):
         """
         The number of labels added to the matcher.
         """
-        return len(self.fuzzy_patterns)
+        return len(self._patterns)
 
     def __contains__(self, label: str) -> bool:
         """
         Whether the matcher contains patterns for a label.
         """
-        return label in self.fuzzy_patterns
+        return label in self._patterns
 
-    def __call__(self, doc: Doc) -> Doc:
+    def __call__(self, doc: Doc) -> Union[List[Tuple[str, int, int]], List]:
         """
         Find all sequences matching the supplied patterns on the `Doc`.
         doc (Doc): The document to match over.
@@ -40,7 +40,7 @@ class FuzzyMatcher(FuzzySearch):
         `doc[start:end]`.
         """
         matches = set()
-        for label, patterns in self.fuzzy_patterns.items():
+        for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
                 if not kwargs:
                     kwargs = self.defaults
@@ -65,7 +65,7 @@ class FuzzyMatcher(FuzzySearch):
         All labels present in the matcher.
         RETURNS (set): The string labels.
         """
-        return self.fuzzy_patterns.keys()
+        return self._patterns.keys()
 
     @property
     def patterns(self) -> List[Dict[str, str, str, Optional[str]]]:
@@ -74,7 +74,7 @@ class FuzzyMatcher(FuzzySearch):
         RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
         """
         all_patterns = []
-        for label, patterns in self.fuzzy_patterns.items():
+        for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
                 p = {
                     "label": label,
@@ -90,12 +90,12 @@ class FuzzyMatcher(FuzzySearch):
         self,
         label: str,
         patterns: Iterable[Doc],
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[List[Dict]] = None,
         on_match: Optional[Callable[[FuzzyMatcher, Doc, int, List], None]] = None,
     ) -> None:
         """
         Add a rule to the matcher, consisting of a label and one or more patterns.
-        patterns must be lists of Doc object and if kwargs is not None,
+        patterns must be a list of Doc object and if kwargs is not None,
         kwargs must be a list of dictionaries.
         """
         if kwargs is None:
@@ -111,11 +111,11 @@ class FuzzyMatcher(FuzzySearch):
             )
         for pattern, kwarg in zip(patterns, kwargs):
             if isinstance(pattern, Doc):
-                self.fuzzy_patterns[label]["patterns"].append(pattern)
+                self._patterns[label]["patterns"].append(pattern)
             else:
                 raise ValueError("Patterns must be Doc objects.")
             if isinstance(kwarg, dict):
-                self.fuzzy_patterns[label]["kwargs"].append(kwarg)
+                self._patterns[label]["kwargs"].append(kwarg)
             else:
                 raise ValueError("Kwargs must be dictionary objects.")
         self._callbacks[label] = on_match
@@ -126,11 +126,11 @@ class FuzzyMatcher(FuzzySearch):
         A KeyError is raised if the key does not exist.
         """
         try:
-            del self.fuzzy_patterns[label]
+            del self._patterns[label]
             del self._callbacks[label]
         except KeyError:
             raise KeyError(
-                f"The match ID: {label} does not exist within the matcher rules."
+                f"The label: {label} does not exist within the matcher rules."
             )
 
     def pipe(

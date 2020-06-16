@@ -143,4 +143,5 @@ cython_debug/
 
 # Personal
 ideas.py
-tests/test.py
+tests/fuzzy_test.py
+tests/regex_test.py
