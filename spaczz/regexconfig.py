@@ -6,40 +6,33 @@ from typing import Iterable, Union
 
 _commonregexes = {
     "dates": re.compile(
-        r"""
-        (?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?
+        r"""(?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?
         (?:jan\.?|january|feb\.?|february|mar\.?|march|apr\.?|april|may|jun\.?
         |june|jul\.?|july|aug\.?|august|sep\.?|september|oct\.?|october|nov\.?
         |november|dec\.?|december)|(?:jan\.?|january|feb\.?|february|mar\.?|march|apr\.?|april|may|jun\.?
         |june|jul\.?|july|aug\.?|august|sep\.?|september|oct\.?|october|nov\.?|november|dec\.?|december)
-        \s+(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?)(?:\,)?\s*(?:\d{4})?|[0-3]?\d[-\./][0-3]?\d[-\./]\d{2,4}
-        """,
+        \s+(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?)(?:\,)?\s*(?:\d{4})?|[0-3]?\d[-\./][0-3]?\d[-\./]\d{2,4}""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "times": re.compile(
         r"\d{1,2}:\d{2} ?(?:[ap]\.?m\.?)?|\d[ap]\.?m\.?", re.IGNORECASE
     ),
     "phones": re.compile(
-        r"""
-        ((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d
+        r"""((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d
         {3}[-.\s*]?\d{4}(?![\d-]))|(?:(?<![\d-])(?:(?:\(\+?\d{2}\))|(?:\+?\d
-        {2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))
-        """,
+        {2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))""",
         re.VERBOSE,
     ),
     "phones_with_exts": re.compile(
-        r"""
-        ((?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*(?:[2-9]1[02-9]|[2-9][02-8]1
+        r"""((?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*(?:[2-9]1[02-9]|[2-9][02-8]1
         |[2-9][02-8][02-9])\s*\)|(?:[2-9]1[02-9]|[2-9][02-8]1
         |[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?(?:[2-9]1[02-9]|[2-9][02-9]1
         |[2-9][02-9]{2})\s*(?:[.-]\s*)?(?:[0-9]{4})
-        (?:\s*(?:\#|x\.?|ext\.?|extension)\s*(?:\d+)?))
-        """,
+        (?:\s*(?:\#|x\.?|ext\.?|extension)\s*(?:\d+)?))""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "links": re.compile(
-        r"""
-        (?i)((?:https?://|www\d{0,3}[.])?[a-z0-9.\-]+[.](?:(?:international)|
+        r"""(?i)((?:https?://|www\d{0,3}[.])?[a-z0-9.\-]+[.](?:(?:international)|
         (?:construction)|(?:contractors)|(?:enterprises)|(?:photography)|(?:immobilien)
         |(?:management)|(?:technology)|(?:directory)|(?:education)|(?:equipment)|
         (?:institute)|(?:marketing)|(?:solutions)|(?:builders)|(?:clothing)|(?:computer)
@@ -76,31 +69,24 @@ _commonregexes = {
         |(?:tj)|(?:tk)|(?:tl)|(?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)
         |(?:ua)|(?:ug)|(?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)
         |(?:vu)|(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))
-        (?:/[^\s()<>]+[^\s`!()\[\]{};:'\".,<>?\xab\xbb\u201c\u201d\u2018\u2019])?)
-        """,
+        (?:/[^\s()<>]+[^\s`!()\[\]{};:'\".,<>?\xab\xbb\u201c\u201d\u2018\u2019])?)""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "emails": re.compile(
-        r"""
-        ([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]
-        *[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)
-        """,
+        r"""([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]
+        *[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "ips": re.compile(
-        r"""
-        (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
-        \.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
-        """,
+        r"""(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+        \.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "ipv6s": re.compile(
-        r"""
-        \s*(?!.*::.*::)(?:(?!:)|:(?=:))(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):))
+        r"""\s*(?!.*::.*::)(?:(?!:)|:(?=:))(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):))
         {6}(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):)[0-9a-f]{0,4}(?:(?<=::)|(?<!:)
         |(?<=:)(?<!::):)|(?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-4]
-        |2[0-4]\d|1\d\d|[1-9]?\d)){3})\s*
-        """,
+        |2[0-4]\d|1\d\d|[1-9]?\d)){3})\s*""",
         re.VERBOSE | re.IGNORECASE | re.DOTALL,
     ),
     "prices": re.compile(r"[$]\s?[+-]?[0-9]{1,3}(?:(?:,?[0-9]{3}))*(?:\.[0-9]{1,2})?"),
@@ -110,19 +96,15 @@ _commonregexes = {
         r"(?<![a-km-zA-HJ-NP-Z0-9])[13][a-km-zA-HJ-NP-Z0-9]{26,33}(?![a-km-zA-HJ-NP-Z0-9])"
     ),
     "street_addresses": re.compile(
-        r"""
-        \d{1,4} [\w\s]{1,20}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail
-        |trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\W?(?=\s|$)
-        """,
+        r"""\d{1,4} [\w\s]{1,20}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail
+        |trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\W?(?=\s|$)""",
         re.IGNORECASE | re.VERBOSE,
     ),
     "zip_codes": re.compile(r"\b\d{5}(?:[-\s]\d{4})?\b"),
     "po_boxes": re.compile(r"P\.? ?O\.? Box \d+", re.IGNORECASE),
     "ssn_number": re.compile(
-        r"""
-        (?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]
-        |[0-7][0-7][0-2])[- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}
-        """,
+        r"""?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]
+        |[0-7][0-7][0-2])[- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}""",
         re.VERBOSE,
     ),
 }

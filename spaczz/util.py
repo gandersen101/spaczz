@@ -2,11 +2,9 @@ from pathlib import Path
 
 
 def ensure_path(path):
-    """
-    Ensure string is converted to a Path.
+    """Ensure string is converted to a Path.
     path: Anything. If string, it's converted to Path.
-    RETURNS: Path or original argument.
-    """
+    RETURNS: Path or original argument."""
     if isinstance(path, str):
         return Path(path)
     else:

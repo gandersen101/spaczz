@@ -2,7 +2,17 @@ from __future__ import annotations
 import re
 import warnings
 from collections import defaultdict
-from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 from ..process import map_chars_to_tokens
@@ -19,25 +29,19 @@ class RegexMatcher:
         self.defaults = defaults
 
     def __len__(self) -> int:
-        """
-        The number of labels added to the matcher.
-        """
+        """The number of labels added to the matcher."""
         return len(self._patterns)
 
     def __contains__(self, label: str) -> bool:
-        """
-        Whether the matcher contains patterns for a label.
-        """
+        """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
     def __call__(self, doc: Doc) -> Union[List[Tuple[str, int, int]], List]:
-        """
-        Find all sequences matching the supplied patterns on the `Doc`.
+        """Find all sequences matching the supplied patterns on the `Doc`.
         doc (Doc): The document to match over.
         RETURNS (list): A list of `(key, start, end)` tuples,
         describing the matches. A match tuple describes a span
-        `doc[start:end]`.
-        """
+        `doc[start:end]`."""
         matches = set()
         for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
@@ -60,18 +64,14 @@ class RegexMatcher:
 
     @property
     def labels(self) -> Tuple:
-        """
-        All labels present in the matcher.
-        RETURNS (set): The string labels.
-        """
+        """All labels present in the matcher.
+        RETURNS (set): The string labels."""
         return self._patterns.keys()
 
     @property
-    def patterns(self) -> List[Dict[str, str, str, Optional[str]]]:
-        """
-        Get all patterns and kwargs that were added to the matcher.
-        RETURNS (list): The original patterns and kwargs, one dictionary for each combination.
-        """
+    def patterns(self) -> List[Dict[str, Any]]:
+        """Get all patterns and kwargs that were added to the matcher.
+        RETURNS (list): The original patterns and kwargs, one dictionary for each combination."""
         all_patterns = []
         for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
@@ -89,14 +89,12 @@ class RegexMatcher:
         self,
         label: str,
         patterns: Iterable[Union[str, re.Pattern]],
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
         on_match: Optional[Callable[[RegexMatcher, Doc, int, List], None]] = None,
     ) -> None:
-        """
-        Add a rule to the matcher, consisting of a label and one or more patterns.
+        """Add a rule to the matcher, consisting of a label and one or more patterns.
         patterns must be a list of regex strings and if kwargs is not None,
-        kwargs must be a list of dictionaries.
-        """
+        kwargs must be a list of dictionaries."""
         if kwargs is None:
             kwargs = [{} for p in patterns]
         elif len(kwargs) < len(patterns):
@@ -120,10 +118,8 @@ class RegexMatcher:
         self._callbacks[label] = on_match
 
     def remove(self, label: str) -> None:
-        """
-        Remove a label and its respective patterns from the matcher by label.
-        A KeyError is raised if the key does not exist.
-        """
+        """Remove a label and its respective patterns from the matcher by label.
+        A KeyError is raised if the key does not exist."""
         try:
             del self._patterns[label]
             del self._callbacks[label]
@@ -139,8 +135,7 @@ class RegexMatcher:
         return_matches: bool = False,
         as_tuples: bool = False,
     ) -> Generator:
-        """
-        Match a stream of documents, yielding them in turn.
+        """Match a stream of documents, yielding them in turn.
         docs (iterable): A stream of documents.
         batch_size (int): Number of documents to accumulate into a working set.
         return_matches (bool): Yield the match lists along with the docs, making
@@ -149,8 +144,7 @@ class RegexMatcher:
             and yield (result, context) tuples out.
             If both return_matches and as_tuples are True, the output will
             be a sequence of ((doc, matches), context) tuples.
-        YIELDS (Doc): Documents, in order.
-        """
+        YIELDS (Doc): Documents, in order."""
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)

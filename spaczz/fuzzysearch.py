@@ -38,7 +38,7 @@ class FuzzySearch:
     def _get_fuzzy_alg(
         self, fuzz: str, case_sensitive: bool
     ) -> Callable[[str, str], int]:
-        """Returns a FuzzyWuzzy algorithm based on it's string, key name.
+        """Returns a FuzzyWuzzy algorithm based on it's key name.
         Will return a ValueError if the string does not match any of the included keys."""
         if case_sensitive and fuzz in [
             "token_sort",
