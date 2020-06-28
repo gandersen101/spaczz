@@ -1,5 +1,8 @@
 [flake8]
-ignore = E501, F401, E203, W503
-max-line-length = 88
+select = B,B9,BLK,C,E,F,I,S,W
+ignore = E203, E501, W503
+max-line-length = 80
 max-complexity = 18
-select = B,C,E,F,W,T4,B9
+application-import-names = spaczz,tests
+import-order-style = google
+per-file-ignores = tests/*:S101

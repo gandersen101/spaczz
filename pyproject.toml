@@ -1,15 +1,47 @@
-  
-[tool.black]
-line-length = 88
-target-version = ['py36', 'py37']
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.pytest_cache
-    | build
-    | dist
-  )/
-)
-'''
+[tool.poetry]
+name = "spaczz"
+version = "0.1.0"
+description = "Adds fuzzy matching and additional regex matching support to spaCy."
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/<gandersen101/spaczz"
+repository = "https://github.com/gandersen101/spaczz"
+keywords = ["fuzzy matching", "spacy", "fuzzywuzzy"]
+authors = ["Grant Andersen <30376815+gandersen101@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+spacy = "^2.2.0"
+fuzzywuzzy = "^0.18.0"
+python-Levenshtein = {version = "^0.12.0", optional = true}
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.8.3"
+black = "^19.10b0"
+pytest = "^5.4.3"
+coverage = {version = "^5.1", extras = ["toml"]}
+pytest-cov = "^2.10.0"
+pytest-mock = "^3.1.1"
+flake8-black = "^0.2.0"
+flake8-bugbear = "^20.1.4"
+flake8-bandit = "^2.1.2"
+safety = "^1.9.0"
+flake8-import-order = "^0.18.1"
+
+[tool.poetry.extras]
+python-Levenshtein = ["python-Levenshtein"]
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+[tool.coverage.run]
+branch = true
+source = ["spaczz"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 70
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

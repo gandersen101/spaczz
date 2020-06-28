@@ -1,18 +1,18 @@
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, List, Tuple, Optional
-import srsly
+from typing import Any, Dict, List, Tuple
+
 from spacy.language import Language
-from spacy.tokens import Span, Doc
+from spacy.tokens import Doc, Span
+import srsly
+
 from ..matcher import FuzzyMatcher, RegexMatcher
-from ..util import ensure_path, write_to_disk, read_from_disk
+from ..util import ensure_path, read_from_disk, write_to_disk
 
 
 class SpaczzRuler:
     name = "spaczz_ruler"
 
-    def __init__(
-        self, nlp: Language, **cfg,
-    ):
+    def __init__(self, nlp: Language, **cfg: Any):
         self.nlp = nlp
         self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
         self.regex_patterns = defaultdict(lambda: defaultdict(list))
@@ -21,12 +21,24 @@ class SpaczzRuler:
         self.defaults = {}
         for name in default_names:
             if name in cfg:
-                self.defaults[name] = cfg[name]
+                if isinstance(cfg[name], dict):
+                    self.defaults[name] = cfg[name]
+                else:
+                    raise TypeError(
+                        (
+                            "Defaults must be a dictionary of keyword arguments,",
+                            f"not {type(cfg[name])}.",
+                        )
+                    )
         self.fuzzy_matcher = FuzzyMatcher(
-            nlp.vocab, **self.defaults.get("spaczz_fuzzy_defaults", {})
+            nlp.vocab,
+            cfg.get("spaczz_fuzzy_config", "default"),
+            **self.defaults.get("spaczz_fuzzy_defaults", {}),
         )
         self.regex_matcher = RegexMatcher(
-            nlp.vocab, **self.defaults.get("spaczz_regex_defaults", {})
+            nlp.vocab,
+            cfg.get("spaczz_fuzzy_config", "default"),
+            **self.defaults.get("spaczz_regex_defaults", {}),
         )
         patterns = cfg.get("spaczz_patterns")
         if patterns is not None:
@@ -83,21 +95,13 @@ class SpaczzRuler:
         all_patterns = []
         for label, patterns in self.fuzzy_patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
-                p = {
-                    "label": label,
-                    "pattern": pattern.text,
-                    "type": "fuzzy",
-                }
+                p = {"label": label, "pattern": pattern.text, "type": "fuzzy"}
                 if kwargs:
                     p["kwargs"] = kwargs
                 all_patterns.append(p)
         for label, patterns in self.regex_patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
-                p = {
-                    "label": label,
-                    "pattern": pattern,
-                    "type": "regex",
-                }
+                p = {"label": label, "pattern": pattern, "type": "regex"}
                 if kwargs:
                     p["kwargs"] = kwargs
                 all_patterns.append(p)
@@ -106,10 +110,12 @@ class SpaczzRuler:
     def add_patterns(self, patterns) -> None:
         """Add patterns to the spaczz ruler. A pattern must be a spaczz pattern:
         (label (str), pattern (str), type (str), and optional kwargs (dict)).
-        For example: {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
+        For example:
+        {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
         patterns (list): The patterns to add."""
 
-        # disable the nlp components after this one in case they haven't been initialized / deserialised yet
+        # disable the nlp components after this one
+        # in case they haven't been initialized / deserialised yet
         try:
             current_index = self.nlp.pipe_names.index(self.name)
             subsequent_pipes = [
@@ -136,7 +142,10 @@ class SpaczzRuler:
                         regex_pattern_kwargs.append(entry.get("kwargs", {}))
                 except KeyError:
                     raise TypeError(
-                        "One or more patterns do not conform to spaczz pattern structure."
+                        (
+                            "One or more patterns do not conform",
+                            "to spaczz pattern structure.",
+                        )
                     )
             fuzzy_patterns = []
             for label, pattern, kwargs in zip(
@@ -196,10 +205,7 @@ class SpaczzRuler:
         path (unicode / Path): The JSONL file to save.
         **kwargs: Other config paramters, mostly for consistency."""
         path = ensure_path(path)
-        cfg = {
-            "spaczz_overwrite": self.overwrite,
-            "spaczz_defaults": self.defaults,
-        }
+        cfg = {"spaczz_overwrite": self.overwrite, "spaczz_defaults": self.defaults}
         serializers = {
             "spaczz_patterns": lambda p: srsly.write_jsonl(
                 p.with_suffix(".jsonl"), self.patterns
