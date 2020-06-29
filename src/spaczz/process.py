@@ -1,4 +1,11 @@
-def map_chars_to_tokens(doc):
+"""Module for various text processing functions."""
+from typing import Dict
+
+from spacy.tokens import Doc
+
+
+def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
+    """Maps characters in doc to tokens."""
     chars_to_tokens = {}
     for token in doc:
         for i in range(token.idx, token.idx + len(token.text)):

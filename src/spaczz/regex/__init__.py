@@ -1,3 +1,4 @@
+"""Module for regex components."""
 from .regexsearch import RegexConfig, RegexSearch
 
 

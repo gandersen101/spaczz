@@ -28,24 +28,6 @@ class FuzzyMatcher(FuzzySearch):
     Fuzzy matches added patterns against the Doc object it is called on.
     Accepts labeled fuzzy patterns in the form of Doc objects.
 
-    Args:
-        vocab: A spacy Vocab object.
-            Purely for consistency between spaCy
-            and spaczz matcher APIs for now.
-            spaczz matchers are currently pure
-            Python and do not share vocabulary
-            with spacy pipelines.
-        config: Provides the class with predefind fuzzy matching
-            and span trimming functions.
-            Uses the default config if "default", an empty config if "empty",
-            or a custom config by passing a FuzzyConfig object.
-            Default is "default".
-        defaults: Keyword arguments that will
-            be passed to the fuzzy matching function
-            (the inherited multi_match() method).
-            These arguments will become the new defaults for
-            fuzzy matching in the created FuzzyMatcher instance.
-
     Attributes:
         name (str): Class attribute - the name of the matcher.
         defaults (Dict[str, Any]): Kwargs to be used as
@@ -67,7 +49,27 @@ class FuzzyMatcher(FuzzySearch):
 
     def __init__(
         self, vocab: Vocab, config: Union[str, FuzzyConfig] = "default", **defaults: Any
-    ):
+    ) -> None:
+        """Initializes the fuzzy matcher with the given config and defaults.
+
+        Args:
+            vocab: A spacy Vocab object.
+                Purely for consistency between spaCy
+                and spaczz matcher APIs for now.
+                spaczz matchers are currently pure
+                Python and do not share vocabulary
+                with spacy pipelines.
+            config: Provides the class with predefind fuzzy matching
+                and span trimming functions.
+                Uses the default config if "default", an empty config if "empty",
+                or a custom config by passing a FuzzyConfig object.
+                Default is "default".
+            **defaults: Keyword arguments that will
+                be passed to the fuzzy matching function
+                (the inherited multi_match() method).
+                These arguments will become the new defaults for
+                fuzzy matching in the created FuzzyMatcher instance.
+        """
         super().__init__(config)
         self.defaults = defaults
         self._callbacks = {}
@@ -90,7 +92,7 @@ class FuzzyMatcher(FuzzySearch):
             >>> doc = nlp("Ridly Scot was the director of Alien.")
             >>> fm.add("NAME", [nlp.make_doc("Ridley Scott")])
             >>> fm(doc)
-            [("NAME", 0, 2)]
+            [('NAME', 0, 2)]
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -130,10 +132,11 @@ class FuzzyMatcher(FuzzySearch):
         Example:
             >>> import spacy
             >>> from spaczz.matcher import FuzzyMatcher
-            >>> fm = FuzzyMatcher()
+            >>> nlp = spacy.blank("en")
+            >>> fm = FuzzyMatcher(nlp.vocab)
             >>> fm.add("AUTHOR", [nlp.make_doc("Kerouac")])
             >>> fm.labels
-            ("AUTHOR",)
+            ('AUTHOR',)
         """
         return tuple(self._patterns.keys())
 
@@ -148,18 +151,19 @@ class FuzzyMatcher(FuzzySearch):
         Example:
             >>> import spacy
             >>> from spaczz.matcher import FuzzyMatcher
-            >>> fm = FuzzyMatcher()
+            >>> nlp = spacy.blank("en")
+            >>> fm = FuzzyMatcher(nlp.vocab)
             >>> fm.add("AUTHOR", [nlp.make_doc("Kerouac")],
                 [{"case_sensitive": True}])
-            >>> fm.patterns
-            [
+            >>> fm.patterns == [
                 {
                     "label": "AUTHOR",
                     "pattern": "Kerouac",
                     "type": "fuzzy",
                     "kwargs": {"case_sensitive": True}
-                },
-            ]
+                    },
+                    ]
+            True
         """
         all_patterns = []
         for label, patterns in self._patterns.items():
@@ -192,18 +196,17 @@ class FuzzyMatcher(FuzzySearch):
                 Doc objec the matcher is called on after matching.
                 Default is None.
 
-        Returns:
-            None
-
         Raises:
             TypeError: If patterns is not an iterable of Doc objects.
             TypeError: If kwargs is not an iterable dictionaries.
 
         Warnings:
-            UserWarning: If there are more patterns than kwargs
+            UserWarning:
+                If there are more patterns than kwargs
                 default fuzzy matching settings will be used
                 for extra patterns.
-            UserWarning: If there are more kwargs dicts than patterns,
+            UserWarning:
+                If there are more kwargs dicts than patterns,
                 the extra kwargs will be ignored.
 
         Example:
@@ -211,7 +214,7 @@ class FuzzyMatcher(FuzzySearch):
             >>> from spaczz.matcher import FuzzyMatcher
             >>> nlp = spacy.blank("en")
             >>> fm = FuzzyMatcher(nlp.vocab)
-            >>> fm.add("SOUNDS", [nlp.make_doc("mooo")])
+            >>> fm.add("SOUND", [nlp.make_doc("mooo")])
             >>> "SOUND" in fm
             True
         """
@@ -249,9 +252,6 @@ class FuzzyMatcher(FuzzySearch):
         Args:
             label: Name of the rule added to the matcher.
 
-        Returns:
-            None
-
         Raises:
             ValueError: If label does not exist in the matcher.
 
@@ -279,11 +279,11 @@ class FuzzyMatcher(FuzzySearch):
         batch_size: int = 1000,
         return_matches: bool = False,
         as_tuples: bool = False,
-    ) -> Generator[Any]:
+    ) -> Generator[Any, None, None]:
         """Match a stream of Doc objects, yielding them in turn.
 
         Args:
-            docs: A stream of Doc objects.
+            stream: A stream of Doc objects.
             batch_size: Number of documents to accumulate into a working set.
                 Default is 1000.
             return_matches: Yield the match lists along with the docs,
@@ -300,7 +300,8 @@ class FuzzyMatcher(FuzzySearch):
         Example:
             >>> import spacy
             >>> from spaczz.matcher import FuzzyMatcher
-            >>> fm = FuzzyMatcher()
+            >>> nlp = spacy.blank("en")
+            >>> fm = FuzzyMatcher(nlp.vocab)
             >>> doc_stream = (
                     nlp.make_doc("test doc1: Corvold"),
                     nlp.make_doc("test doc2: Prosh"),
@@ -308,7 +309,7 @@ class FuzzyMatcher(FuzzySearch):
             >>> fm.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
             >>> output = fm.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[("DRAGON"), 4, 5], [("DRAGON"), 4, 5]]
+            [[('DRAGON', 3, 4)], [('DRAGON', 3, 4)]]
         """
         if as_tuples:
             for doc, context in stream:

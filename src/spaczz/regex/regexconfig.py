@@ -18,17 +18,19 @@ class RegexConfig:
 
     Will eventually includes methods for adding/removing user patterns/flags.
 
-    Args:
-        empty: Whether to initialize the instance without predefined
-            flags and patterns or not. Will be more useful later once API
-            is extended. Default is False.
-
     Attributes:
         _flags (Dict[str, re.RegexFlag]): Regex flags available.
         _predef (Dict[str, re.Pattern]): Regex patterns available.
     """
 
-    def __init__(self, empty: bool = False):
+    def __init__(self, empty: bool = False) -> None:
+        """Initializes the regex config.
+
+        Args:
+            empty: Whether to initialize the instance without predefined
+                flags and patterns or not. Will be more useful later once API
+                is extended. Default is False.
+        """
         if not empty:
             self._flags = {
                 "ignore_case": re.IGNORECASE,
@@ -52,7 +54,7 @@ class RegexConfig:
         """Parses a string with optional flag parameters into a regex pattern.
 
         Args:
-            regex: String to compile into a regex pattern.
+            regex_str: String to compile into a regex pattern.
             predef: Whether regex should be interpreted as a key to
                 a predefined regex pattern or not. Default is False.
             ignore_case: Whether the IGNORECASE flag should be part
@@ -72,6 +74,7 @@ class RegexConfig:
             RegexParseError: If regex compilation produces any errors.
 
         Example:
+            >>> import re
             >>> from spaczz.regex import RegexConfig
             >>> rc = RegexConfig()
             >>> pattern = rc.parse_regex("Test", ignore_case=True)
@@ -92,7 +95,7 @@ class RegexConfig:
                 raise RegexParseError(e)
         return compiled_regex
 
-    def _get_flags(self, **kwargs: bool) -> re.RegexFlag:
+    def _get_flags(self, **kwargs: bool) -> Union[re.RegexFlag, int]:
         """Returns regex flags based on kwargs passed.
 
         Args:
@@ -108,9 +111,10 @@ class RegexConfig:
                 parameters is not a boolean value.
 
         Example:
+            >>> import re
             >>> from spaczz.regex import RegexConfig
             >>> rc = RegexConfig()
-            >>> flags = rc.get_flags(ignore_case=True)
+            >>> flags = rc._get_flags(ignore_case=True)
             >>> isinstance(flags, re.RegexFlag)
             True
         """
@@ -130,7 +134,7 @@ class RegexConfig:
                 )
         return reduce(or_, flags, 0)
 
-    def _get_predef(self, predef: str) -> Union[re.Pattern, None]:
+    def _get_predef(self, predef: str) -> re.Pattern:
         """Returns a regex pattern from the predefined patterns available.
 
         Args:
@@ -145,7 +149,7 @@ class RegexConfig:
         Example:
             >>> from spaczz.regex import RegexConfig
             >>> rc = RegexConfig()
-            >>> pattern = rc.get_pred("phones")
+            >>> pattern = rc._get_predef("phones")
             >>> isinstance(pattern, re.Pattern)
             True
         """

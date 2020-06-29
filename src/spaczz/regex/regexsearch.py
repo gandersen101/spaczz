@@ -14,21 +14,23 @@ class RegexSearch:
     Regex matching is done on the character level and then
     mapped back to tokens.
 
-    Args:
-        config: Provides the class with predefind regex patterns and flags.
-            Uses the default config if "default", an empty config if "empty",
-            or a custom config by passing a RegexConfig object.
-            Default is "default".
-
     Attributes:
         _config (RegexConfig): The RegexConfig object tied to an instance
             of RegexSearch.
-
-    Raises:
-        TypeError: If config is not a RegexConfig object.
     """
 
-    def __init__(self, config: Union[str, RegexConfig] = "default"):
+    def __init__(self, config: Union[str, RegexConfig] = "default") -> None:
+        """Initializes regex search with the given config.
+
+        Args:
+            config: Provides the class with predefind regex patterns and flags.
+                Uses the default config if "default", an empty config if "empty",
+                or a custom config by passing a RegexConfig object.
+                Default is "default".
+
+        Raises:
+            TypeError: If config is not a RegexConfig object.
+        """
         if config == "default":
             self._config = RegexConfig(empty=False)
         elif config == "empty":
@@ -53,6 +55,7 @@ class RegexSearch:
         predef: bool = False,
         ignore_case: bool = False,
         use_ascii: bool = False,
+        verbose: bool = False,
         **kwargs: bool,
     ) -> List[Tuple[Span, int, int]]:
         """Returns all the regex matches within doc.

@@ -19,12 +19,20 @@ class FuzzySearch:
     Attributes:
         _config (FuzzyConfig): The FuzzyConfig object tied to an instance
             of FuzzySearch.
-
-    Raises:
-        TypeError: If config is not a RegexConfig object.
     """
 
-    def __init__(self, config: Union[str, FuzzyConfig] = "default"):
+    def __init__(self, config: Union[str, FuzzyConfig] = "default") -> None:
+        """Initializes fuzzy search with the given config.
+
+        Args:
+            config: Provides predefind fuzzy matching and span trimming functions.
+                Uses the default config if "default", an empty config if "empty",
+                or a custom config by passing a FuzzyConfig object.
+                Default is "default".
+
+        Raises:
+            TypeError: If config is not a FuzzyConfig object.
+        """
         if config == "default":
             self._config = FuzzyConfig(empty=False)
         elif config == "empty":
@@ -101,11 +109,11 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch:
+            >>> from spaczz.fuzz import FuzzySearch
             >>> nlp = spacy.blank("en")
             >>> fs = FuzzySearch()
-            >>> doc = nlp("G-rant Anderson lives in TN.")
-            >>> query = nlp("Grant Andersen")
+            >>> doc = nlp.make_doc("G-rant Anderson lives in TN.")
+            >>> query = nlp.make_doc("Grant Andersen")
             >>> fs.best_match(doc, query)
             (0, 4, 90)
         """
@@ -130,6 +138,8 @@ class FuzzySearch:
                 end_trimmers,
             )
             return match
+        else:
+            return None
 
     def match(
         self, str1: str, str2: str, fuzzy_func: str = "simple", ignore_case: bool = True
@@ -151,7 +161,7 @@ class FuzzySearch:
             The fuzzy ratio between a and b.
 
         Example:
-            >>> from spaczz.fuzz import Fuzzysearch
+            >>> from spaczz.fuzz import FuzzySearch
             >>> fs = FuzzySearch()
             >>> fs.match("spaczz", "spacy")
             73
@@ -174,7 +184,7 @@ class FuzzySearch:
         trimmers: Optional[Iterable[str]] = None,
         start_trimmers: Optional[Iterable[str]] = None,
         end_trimmers: Optional[Iterable[str]] = None,
-    ) -> List[Tuple[int, int, int]]:
+    ) -> List[Optional[Tuple[int, int, int]]]:
         """Returns the n best fuzzy matches in a Doc.
 
         Finds the n best fuzzy matches in doc based on the query,
@@ -184,11 +194,11 @@ class FuzzySearch:
         Args:
             doc: Doc object to search over.
             query: Doc object to fuzzy match against doc.
-            fuzzy_func: Key name of fuzzy matching function to use.
-                Default is "simple".
-            n = Max number of matches to return.
+            n: Max number of matches to return.
                 If n is 0 all matches will be returned.
                 Defualt is 0.
+            fuzzy_func: Key name of fuzzy matching function to use.
+                Default is "simple".
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general
@@ -224,11 +234,13 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch:
+            >>> from spaczz.fuzz import FuzzySearch
             >>> nlp = spacy.blank("en")
             >>> fs = FuzzySearch()
-            >>> doc = nlp("chiken from Popeyes is better than chken from Chick-fil-A")
-            >>> query = nlp("chicken")
+            >>> doc = nlp.make_doc(
+                "chiken from Popeyes is better than chken from Chick-fil-A"
+                )
+            >>> query = nlp.make_doc("chicken")
             >>> fs.multi_match(doc, query, ignore_case=False)
             [(0, 1, 92), (6, 7, 83)]
         """
@@ -361,6 +373,7 @@ class FuzzySearch:
             r = self.match(query.text, doc[bp_l:bp_r].text, fuzzy_func, ignore_case)
             if r >= min_r2:
                 return (bp_l, bp_r, r)
+        return None
 
     def _enforce_end_trimmers(
         self,
@@ -382,7 +395,7 @@ class FuzzySearch:
             doc: The Doc object being searched over.
             bp_l: Span start index.
             bp_r: Span end index.
-            ignores: Optional iterable of direction agnostic
+            trimmers: Optional iterable of direction agnostic
                 span trimmer key names.
             end_trimmers: Optional iterable of end index
                 span trimmer key names.
@@ -429,7 +442,7 @@ class FuzzySearch:
             doc: The Doc object being searched over.
             bp_l: Span start index.
             bp_r: Span end index.
-            ignores: Optional iterable of direction agnostic
+            trimmers: Optional iterable of direction agnostic
                 span trimmer key names.
             start_trimmers: Optional iterable of start index
                 span trimmer key names.
@@ -536,7 +549,8 @@ class FuzzySearch:
             TypeError: The query is not a Doc object.
 
         Warnings:
-            UserWarning: If trimmer rules will affect the query.
+            UserWarning:
+                If trimmer rules will affect the query.
 
         Example:
             >>> import spacy
@@ -642,7 +656,8 @@ class FuzzySearch:
             TypeError: If flex is not "default" or an int.
 
         Warnings:
-            UserWarning: If flex is > len(query).
+            UserWarning:
+                If flex is > len(query).
 
         Example:
             >>> import spacy
@@ -669,8 +684,8 @@ class FuzzySearch:
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: List[Tuple[int, int, int]]
-    ) -> List[Tuple[int, int, int]]:
+        matches: List[Optional[Tuple[int, int, int]]]
+    ) -> List[Optional[Tuple[int, int, int]]]:
         """Prevents multiple fuzzy match spans from overlapping.
 
         Expects matches to be pre-sorted by descending ratio
@@ -688,11 +703,11 @@ class FuzzySearch:
         Example:
             >>> from spaczz.fuzz import FuzzySearch
             >>> fs = FuzzySearch()
-            >>> matches = [(1, 2, 70), (1, 3, 80)]
+            >>> matches = [(1, 3, 80), (1, 2, 70)]
             >>> fs._filter_overlapping_matches(matches)
             [(1, 3, 80)]
         """
-        filtered_matches = []
+        filtered_matches: List[Optional[Tuple[int, int, int]]] = []
         for match in matches:
             if not set(range(match[0], match[1])).intersection(
                 chain(*[set(range(n[0], n[1])) for n in filtered_matches])
@@ -701,7 +716,9 @@ class FuzzySearch:
         return filtered_matches
 
     @staticmethod
-    def _indice_maxes(match_values: Union[Dict[int, int], Dict], n: int) -> List[int]:
+    def _indice_maxes(
+        match_values: Dict[int, int], n: int
+    ) -> Union[List[int], Dict[int, int]]:
         """Returns the start indices of the n highest ratio fuzzy matches.
 
         If more than n matches are found the matches will be sorted by
@@ -711,7 +728,7 @@ class FuzzySearch:
 
         Args:
             match_values: Dict of unoptimized fuzzy matches in
-            start index, fuzzy ratio pairs, or an empty dict.
+                start index, fuzzy ratio pairs, or an empty dict.
             n: The maximum number of values to return.
                 If 0 all matches are returned unordered.
 
@@ -721,7 +738,7 @@ class FuzzySearch:
         Example:
             >>> from spaczz.fuzz import FuzzySearch
             >>> fs = FuzzySearch()
-            >>> fs._index_max({1: 30, 4: 50, 5: 50, 9: 100}, 3)
+            >>> fs._indice_maxes({1: 30, 4: 50, 5: 50, 9: 100}, 3)
             [9, 4, 5]
         """
         if n:
@@ -753,4 +770,4 @@ class FuzzySearch:
         try:
             return sorted(match_values, key=lambda x: (-match_values[x], x))[0]
         except IndexError:
-            pass
+            return None

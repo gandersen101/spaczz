@@ -7,7 +7,7 @@ readme = "README.md"
 homepage = "https://github.com/<gandersen101/spaczz"
 repository = "https://github.com/gandersen101/spaczz"
 keywords = ["fuzzy matching", "spacy", "fuzzywuzzy"]
-authors = ["Grant Andersen <30376815+gandersen101@users.noreply.github.com>"]
+authors = ["Grant Andersen <gandersen.codes@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -27,6 +27,16 @@ flake8-bugbear = "^20.1.4"
 flake8-bandit = "^2.1.2"
 safety = "^1.9.0"
 flake8-import-order = "^0.18.1"
+mypy = "^0.782"
+typeguard = "^2.9.1"
+flake8-annotations = "^2.1.0"
+flake8-docstrings = "^1.5.0"
+darglint = "^1.4.1"
+xdoctest = "^0.12.0"
+sphinx = "^3.1.1"
+rstcheck = "^3.3.1"
+sphinx-autodoc-typehints = "^1.11.0"
+sphinx-autobuild = "^0.7.1"
 
 [tool.poetry.extras]
 python-Levenshtein = ["python-Levenshtein"]
@@ -40,7 +50,7 @@ source = ["spaczz"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 70
+fail_under = 90
 
 [build-system]
 requires = ["poetry>=0.12"]

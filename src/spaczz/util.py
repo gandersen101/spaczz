@@ -1,17 +1,25 @@
+"""Module for various utility functions."""
 from pathlib import Path
+from typing import Union
 
 
-def ensure_path(path):
+def ensure_path(path: Union[str, Path]) -> Path:
     """Ensure string is converted to a Path.
-    path: Anything. If string, it's converted to Path.
-    RETURNS: Path or original argument."""
+
+    Args:
+        path: Anything. If string, it's converted to Path.
+
+    Returns:
+        Path or original argument.
+    """
     if isinstance(path, str):
         return Path(path)
     else:
         return path
 
 
-def write_to_disk(path, writers, exclude):
+def write_to_disk(path: Union[str, Path], writers, exclude) -> Path:
+    """Writes a pipeline component to disk."""
     path = ensure_path(path)
     if not path.exists():
         path.mkdir()
@@ -22,7 +30,8 @@ def write_to_disk(path, writers, exclude):
     return path
 
 
-def read_from_disk(path, readers, exclude):
+def read_from_disk(path: Union[str, Path], readers, exclude) -> Path:
+    """Reads a pipeline component from disk."""
     path = ensure_path(path)
     for key, reader in readers.items():
         # Split to support file names like meta.json

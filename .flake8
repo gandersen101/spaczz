@@ -1,8 +1,9 @@
 [flake8]
-select = B,B9,BLK,C,E,F,I,S,W
-ignore = E203, E501, W503
+select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
+ignore = ANN101, E203, E501, W503
 max-line-length = 80
 max-complexity = 18
 application-import-names = spaczz,tests
 import-order-style = google
-per-file-ignores = tests/*:S101
+docstring-convention = google
+per-file-ignores = tests/*:S101, src/spaczz/util.py:ANN

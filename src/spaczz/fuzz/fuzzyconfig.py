@@ -12,12 +12,6 @@ class FuzzyConfig:
 
     Will eventually includes methods for adding/removing user matchers/trimmers.
 
-    Args:
-        empty: Whether to initialize the instance without predefined
-            fuzzy matchers and trimmers or not.
-            Will be more useful later once API is extended.
-            Default is False.
-
     Attributes:
         _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
             Fuzzy matching functions accessible
@@ -34,7 +28,15 @@ class FuzzyConfig:
             and stop words are currently available.
     """
 
-    def __init__(self, empty: bool = False):
+    def __init__(self, empty: bool = False) -> None:
+        """Initilaizes the fuzzy config.
+
+        Args:
+            empty: Whether to initialize the instance without predefined
+                fuzzy matchers and trimmers or not.
+                Will be more useful later once API is extended.
+                Default is False.
+        """
         if not empty:
             self._fuzzy_funcs = {
                 "simple": fuzz.ratio,
@@ -74,7 +76,8 @@ class FuzzyConfig:
             ValueError: fuzzy_func was not a valid key name.
 
         Warnings:
-            UserWarning: If the fuzzy matching function will automatically
+            UserWarning:
+                If the fuzzy matching function will automatically
                 lower-case the input but case_sensitive is set to True.
 
         Example:
@@ -141,11 +144,13 @@ class FuzzyConfig:
         Example:
             >>> from spaczz.fuzz import FuzzyConfig
             >>> fc = FuzzyConfig()
-            >>> fc.get_trimmers("end", ["space"], end_trimmers=["punct"])
-            (
-                {fc._span_trimmers["space"], fs._span_trimmers["punct"]},
+            >>> trimmers = fc.get_trimmers("end", ["space"], end_trimmers=["punct"])
+            >>> trimmers == (
+                {fc._span_trimmers["space"], fc._span_trimmers["punct"]},
                 {"space", "punct"}
-            )
+                )
+            True
+
         """
         trimmer_funcs = set()
         trimmer_keys = set()

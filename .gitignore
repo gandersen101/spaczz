@@ -141,7 +141,5 @@ cython_debug/
 .vscode
 *.code-workspace
 
-# Personal
-ideas.py
-tests/fuzzy_test.py
-tests/regex_test.py
+# Mac
+.DS_Store
