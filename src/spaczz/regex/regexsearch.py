@@ -57,7 +57,7 @@ class RegexSearch:
         use_ascii: bool = False,
         verbose: bool = False,
         **kwargs: bool,
-    ) -> List[Tuple[Span, int, int]]:
+    ) -> List[Tuple[int, int]]:
         """Returns all the regex matches within doc.
 
         Matches on the character level and then maps matches back

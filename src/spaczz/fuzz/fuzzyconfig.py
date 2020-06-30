@@ -6,6 +6,8 @@ import warnings
 from fuzzywuzzy import fuzz
 from spacy.tokens import Token
 
+from ..exceptions import CaseConflictWarning
+
 
 class FuzzyConfig:
     """Class for housing predefined fuzzy matching and span trimming functions.
@@ -76,7 +78,7 @@ class FuzzyConfig:
             ValueError: fuzzy_func was not a valid key name.
 
         Warnings:
-            UserWarning:
+            CaseConflictWarning:
                 If the fuzzy matching function will automatically
                 lower-case the input but case_sensitive is set to True.
 
@@ -98,17 +100,16 @@ class FuzzyConfig:
             "u_weighted",
         ]:
             warnings.warn(
-                (
-                    f"{fuzzy_func} algorithm lower cases input by default.",
-                    "This overrides case_sensitive setting.",
-                )
+                f"""{fuzzy_func} algorithm lower cases input by default.\n
+                    This overrides case_sensitive setting.""",
+                CaseConflictWarning,
             )
         try:
             return self._fuzzy_funcs[fuzzy_func]
         except KeyError:
             raise ValueError(
                 (
-                    f"No fuzzy matching algorithm called {fuzzy_func}.",
+                    f"No fuzzy matching function called {fuzzy_func}.",
                     "Algorithm must be in the following:",
                     f"{list(self._fuzzy_funcs.keys())}",
                 )

@@ -6,6 +6,7 @@ import warnings
 from spacy.tokens import Doc
 
 from .fuzzyconfig import FuzzyConfig
+from ..exceptions import FlexWarning, FuzzyPrecheckWarning
 
 
 class FuzzySearch:
@@ -575,11 +576,10 @@ class FuzzySearch:
             [func(query[-1]) for func in end_trimmer_funcs]
         ):
             warnings.warn(
-                (
-                    "One or more trimmer rules will affect the query,",
-                    "which will likely lead to unexpected fuzzy matching behavior.",
-                    "Either change the query or trimmer rules to remedy this.",
-                )
+                """One or more trimmer rules will affect the query,\n
+                    which will likely lead to unexpected fuzzy matching behavior.\n
+                    Either change the query or trimmer rules to remedy this.""",
+                FuzzyPrecheckWarning,
             )
         return query
 
@@ -672,10 +672,9 @@ class FuzzySearch:
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    (
-                        f"Flex of size {flex} is greater than len(query).",
-                        "Setting flex to the default flex = len(query)",
-                    )
+                    f"""Flex of size {flex} is greater than len(query).\n
+                        Setting flex to the default flex = len(query)""",
+                    FlexWarning,
                 )
                 flex = len(query)
         else:

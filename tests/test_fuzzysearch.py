@@ -3,6 +3,7 @@ import pytest
 import spacy
 from spacy.tokens import Doc
 
+from spaczz.exceptions import FlexWarning, FuzzyPrecheckWarning
 from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 from spaczz.fuzz.fuzzysearch import FuzzySearch
 
@@ -50,9 +51,9 @@ def test__precheck_query_passes_doc() -> None:
 
 
 def test__precheck_query_warns_if_trimmers_affect_query() -> None:
-    """It provides a UserWarning if trimmer rules will affect the query."""
+    """It provides a FuzzyPrecheckWarning if trimmer rules will affect the query."""
     query = nlp("Query with punctuation!")
-    with pytest.warns(UserWarning):
+    with pytest.warns(FuzzyPrecheckWarning):
         fs._precheck_query(query, trimmers=["punct"])
 
 
@@ -81,7 +82,7 @@ def test__calc_flex_passes_through_valid_value() -> None:
 def test__calc_flex_warns_if_flex_longer_than_query() -> None:
     """It provides UserWarning if flex > len(query)."""
     query = nlp("Test query.")
-    with pytest.warns(UserWarning):
+    with pytest.warns(FlexWarning):
         fs._calc_flex(query, 5)
 
 

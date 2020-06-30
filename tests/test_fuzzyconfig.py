@@ -2,6 +2,7 @@
 from fuzzywuzzy import fuzz
 import pytest
 
+from spaczz.exceptions import CaseConflictWarning
 from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 
 # Global Variables
@@ -28,8 +29,8 @@ def test__get_fuzzy_alg_raises_error_with_unknown_name() -> None:
 
 
 def test__get_fuzzy_alg_warns_with_case_conflict() -> None:
-    """It provides a UserWarning if the fuzzy func lower-cases but ignore_case=False."""
-    with pytest.warns(UserWarning):
+    """It warns-CaseConflictWarning if fuzzy func lower-cases but not ignore_case."""
+    with pytest.warns(CaseConflictWarning):
         fc.get_fuzzy_func("u_weighted", ignore_case=False)
 
 
