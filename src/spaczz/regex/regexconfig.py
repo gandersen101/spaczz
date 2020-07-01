@@ -5,12 +5,7 @@ import re
 from typing import Union
 
 from ._commonregex import _commonregex
-
-
-class RegexParseError(Exception):
-    """General error for errors that may happen during regex compilation."""
-
-    pass
+from ..exceptions import RegexParseError
 
 
 class RegexConfig:

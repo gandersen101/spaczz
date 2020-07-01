@@ -99,22 +99,16 @@ def test__index_max_returns_key_with_max_value() -> None:
     assert fs._index_max(d) == 8
 
 
-def test__index_max_with_empty_dict_returns_none() -> None:
-    """It returns an empty Dict if passed an empty Dict."""
-    d = {}
-    assert fs._index_max(d) is None
-
-
 def test__indice_maxes_returns_n_keys_with_max_values() -> None:
     """It returns the n keys correctly sorted."""
     d = {1: 30, 4: 50, 5: 50, 9: 100}
     assert fs._indice_maxes(d, 3) == [9, 4, 5]
 
 
-def test__indice_maxes_returns_input_if_n_is_0() -> None:
+def test__indice_maxes_returns_all_keys_if_n_is_0() -> None:
     """It returns input unchanged if n is 0."""
     d = {1: 30, 4: 50, 5: 50, 9: 100}
-    assert fs._indice_maxes(d, 0) == d
+    assert fs._indice_maxes(d, 0) == [1, 4, 5, 9]
 
 
 def test__indice_maxes_with_empty_dict_returns_empty_list() -> None:
@@ -142,11 +136,12 @@ def test__scan_doc_returns_all_matches_with_no_min_r1() -> None:
 
 
 def test__scan_doc_with_no_matches() -> None:
-    """It returns an empty Dict if no matches >= min_r1."""
+    """It returns None if no matches >= min_r1."""
     doc = nlp.make_doc("Don't call me Sh1rley")
     query = nlp.make_doc("xenomorph")
     assert (
-        fs._scan_doc(doc, query, fuzzy_func="simple", min_r1=50, ignore_case=True) == {}
+        fs._scan_doc(doc, query, fuzzy_func="simple", min_r1=50, ignore_case=True)
+        is None
     )
 
 
@@ -205,11 +200,11 @@ def test__enforce_trimming_rules_unchanged_boundaries_without_trimmers() -> None
 
 
 def test__enforce_trimming_rules_returns_none_if_trimmers_squash_match() -> None:
-    """If start index runs into end index, start index will be None."""
+    """If start index runs into end index, Nones will be returned."""
     doc = nlp("The token we are looking for is: the.")
     assert fs._enforce_trimming_rules(doc, 7, 10, trimmers=["stop", "punct"]) == (
         None,
-        10,
+        None,
     )
 
 

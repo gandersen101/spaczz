@@ -123,8 +123,8 @@ class FuzzySearch:
         query = self._precheck_query(query, trimmers, start_trimmers, end_trimmers)
         flex = self._calc_flex(query, flex)
         match_values = self._scan_doc(doc, query, fuzzy_func, min_r1, ignore_case)
-        pos = self._index_max(match_values)
-        if pos is not None:
+        if match_values:
+            pos = self._index_max(match_values)
             match = self._adjust_left_right_positions(
                 doc,
                 query,
@@ -185,12 +185,13 @@ class FuzzySearch:
         trimmers: Optional[Iterable[str]] = None,
         start_trimmers: Optional[Iterable[str]] = None,
         end_trimmers: Optional[Iterable[str]] = None,
-    ) -> List[Optional[Tuple[int, int, int]]]:
+    ) -> Union[List[Tuple[int, int, int]], List]:
         """Returns the n best fuzzy matches in a Doc.
 
         Finds the n best fuzzy matches in doc based on the query,
         assuming the minimum match ratios (r1 and r2) are met.
-        Matches will be sorted by matching score, then start index.
+        Matches will be sorted by descendingmatching score,
+        then ascending start index.
 
         Args:
             doc: Doc object to search over.
@@ -252,27 +253,40 @@ class FuzzySearch:
         query = self._precheck_query(query, trimmers, start_trimmers, end_trimmers)
         flex = self._calc_flex(query, flex)
         match_values = self._scan_doc(doc, query, fuzzy_func, min_r1, ignore_case)
-        positions = self._indice_maxes(match_values, n)
-        matches = [
-            self._adjust_left_right_positions(
-                doc,
-                query,
-                match_values,
-                pos,
-                fuzzy_func,
-                min_r2,
-                ignore_case,
-                flex,
-                trimmers,
-                start_trimmers,
-                end_trimmers,
-            )
-            for pos in positions
-        ]
-        matches = [match for match in matches if match]
-        matches = sorted(matches, key=lambda x: (-x[2], x[0]))
-        matches = self._filter_overlapping_matches(matches)
-        return matches
+        if match_values:
+            positions = self._indice_maxes(match_values, n)
+            matches_w_nones = [
+                self._adjust_left_right_positions(
+                    doc,
+                    query,
+                    match_values,
+                    pos,
+                    fuzzy_func,
+                    min_r2,
+                    ignore_case,
+                    flex,
+                    trimmers,
+                    start_trimmers,
+                    end_trimmers,
+                )
+                for pos in positions
+            ]
+            matches = [match for match in matches_w_nones if match]
+            if matches:
+                sorted_matches = self._sort_matches(matches)
+                filtered_matches = self._filter_overlapping_matches(sorted_matches)
+                return filtered_matches
+            else:
+                return []
+        else:
+            return []
+
+    @staticmethod
+    def _sort_matches(
+        matches: List[Tuple[int, int, int]]
+    ) -> List[Tuple[int, int, int]]:
+        sorted_matches = sorted(matches, key=lambda x: (-x[2], x[0]))
+        return sorted_matches
 
     def _adjust_left_right_positions(
         self,
@@ -367,19 +381,21 @@ class FuzzySearch:
                 if rr > bmv_r and (p_r + f <= len(doc)):
                     bmv_r = rr
                     bp_r = p_r + f
-        bp_l, bp_r = self._enforce_trimming_rules(
+        new_bp_l, new_bp_r = self._enforce_trimming_rules(
             doc, bp_l, bp_r, trimmers, start_trimmers, end_trimmers
         )
-        if None not in (bp_l, bp_r):
-            r = self.match(query.text, doc[bp_l:bp_r].text, fuzzy_func, ignore_case)
+        if new_bp_l is not None and new_bp_r is not None:
+            r = self.match(
+                query.text, doc[new_bp_l:new_bp_r].text, fuzzy_func, ignore_case
+            )
             if r >= min_r2:
-                return (bp_l, bp_r, r)
+                return (new_bp_l, new_bp_r, r)
         return None
 
     def _enforce_end_trimmers(
         self,
         doc: Doc,
-        bp_l: int,
+        bp_l: Union[int, None],
         bp_r: int,
         trimmers: Optional[Iterable[str]] = None,
         end_trimmers: Optional[Iterable[str]] = None,
@@ -413,15 +429,18 @@ class FuzzySearch:
             >>> fs._enforce_end_trimmers(doc, 5, 7, end_trimmers=["punct"])
             6
         """
-        trimmer_funcs, trimmer_keys = self._config.get_trimmers(
-            "end", trimmers, end_trimmers=end_trimmers
-        )
-        if trimmer_funcs:
-            while any([func(doc[bp_r - 1]) for func in trimmer_funcs]):
-                if bp_r - 1 <= bp_l:
-                    return None
-                bp_r -= 1
-        return bp_r
+        if bp_l is not None:
+            trimmer_funcs, trimmer_keys = self._config.get_trimmers(
+                "end", trimmers, end_trimmers=end_trimmers
+            )
+            if trimmer_funcs:
+                while any([func(doc[bp_r - 1]) for func in trimmer_funcs]):
+                    if bp_r - 1 <= bp_l:
+                        return None
+                    bp_r -= 1
+            return bp_r
+        else:
+            return None
 
     def _enforce_start_trimmers(
         self,
@@ -517,10 +536,13 @@ class FuzzySearch:
             >>> fs._enforce_trimming_rules(doc, 7, 10, trimmers=["punct"])
             (8, 9)
         """
-        bp_l = self._enforce_start_trimmers(doc, bp_l, bp_r, trimmers, start_trimmers)
-        if bp_l:
-            bp_r = self._enforce_end_trimmers(doc, bp_l, bp_r, trimmers, end_trimmers)
-        return bp_l, bp_r
+        new_bp_l = self._enforce_start_trimmers(
+            doc, bp_l, bp_r, trimmers, start_trimmers
+        )
+        new_bp_r = self._enforce_end_trimmers(
+            doc, new_bp_l, bp_r, trimmers, end_trimmers
+        )
+        return new_bp_l, new_bp_r
 
     def _precheck_query(
         self,
@@ -585,7 +607,7 @@ class FuzzySearch:
 
     def _scan_doc(
         self, doc: Doc, query: Doc, fuzzy_func: str, min_r1: int, ignore_case: bool
-    ) -> Dict[int, int]:
+    ) -> Union[Dict[int, int], None]:
         """Returns a Dict of potential match start indices and fuzzy ratios.
 
         Iterates through the doc by spans of query length,
@@ -626,7 +648,7 @@ class FuzzySearch:
                 ignore_case=True)
             {4: 86}
         """
-        match_values = dict()
+        match_values: Dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
             match = self.match(
@@ -635,7 +657,10 @@ class FuzzySearch:
             if match >= min_r1:
                 match_values[i] = match
             i += 1
-        return match_values
+        if match_values:
+            return match_values
+        else:
+            return None
 
     @staticmethod
     def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
@@ -683,8 +708,8 @@ class FuzzySearch:
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: List[Optional[Tuple[int, int, int]]]
-    ) -> List[Optional[Tuple[int, int, int]]]:
+        matches: List[Tuple[int, int, int]]
+    ) -> List[Tuple[int, int, int]]:
         """Prevents multiple fuzzy match spans from overlapping.
 
         Expects matches to be pre-sorted by descending ratio
@@ -706,18 +731,18 @@ class FuzzySearch:
             >>> fs._filter_overlapping_matches(matches)
             [(1, 3, 80)]
         """
-        filtered_matches: List[Optional[Tuple[int, int, int]]] = []
+        filtered_matches: List[Tuple[int, int, int]] = []
+        # filtered_matches: List[Optional[Tuple[int, int, int]]] = []
         for match in matches:
             if not set(range(match[0], match[1])).intersection(
                 chain(*[set(range(n[0], n[1])) for n in filtered_matches])
             ):
                 filtered_matches.append(match)
+                # filtered_matches.append(match)
         return filtered_matches
 
     @staticmethod
-    def _indice_maxes(
-        match_values: Dict[int, int], n: int
-    ) -> Union[List[int], Dict[int, int]]:
+    def _indice_maxes(match_values: Dict[int, int], n: int) -> List[int]:
         """Returns the start indices of the n highest ratio fuzzy matches.
 
         If more than n matches are found the matches will be sorted by
@@ -743,10 +768,10 @@ class FuzzySearch:
         if n:
             return sorted(match_values, key=lambda x: (-match_values[x], x))[:n]
         else:
-            return match_values
+            return list(match_values.keys())
 
     @staticmethod
-    def _index_max(match_values: Union[Dict[int, int], Dict]) -> Union[int, None]:
+    def _index_max(match_values: Dict[int, int]) -> int:
         """Returns the start index of the highest ratio fuzzy match or None.
 
         If the max ratio applies to multiple indices
@@ -766,7 +791,4 @@ class FuzzySearch:
             >>> fs._index_max({1:30, 9:100})
             9
         """
-        try:
-            return sorted(match_values, key=lambda x: (-match_values[x], x))[0]
-        except IndexError:
-            return None
+        return sorted(match_values, key=lambda x: (-match_values[x], x))[0]

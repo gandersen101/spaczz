@@ -1,6 +1,12 @@
 """Module for custom exceptions and warnings."""
 
 
+class RegexParseError(Exception):
+    """General error for errors that may happen during regex compilation."""
+
+    pass
+
+
 class CaseConflictWarning(Warning):
     """It warns if case ignored but user specified case sensitive."""
 
