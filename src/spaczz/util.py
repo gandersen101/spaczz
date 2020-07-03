@@ -1,6 +1,6 @@
 """Module for various utility functions."""
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 
 def ensure_path(path: Union[str, Path]) -> Path:
@@ -18,7 +18,7 @@ def ensure_path(path: Union[str, Path]) -> Path:
         return path
 
 
-def write_to_disk(path: Union[str, Path], writers, exclude) -> Path:
+def write_to_disk(path: Union[str, Path], writers: Any, exclude: Any) -> Path:
     """Writes a pipeline component to disk."""
     path = ensure_path(path)
     if not path.exists():
@@ -30,7 +30,7 @@ def write_to_disk(path: Union[str, Path], writers, exclude) -> Path:
     return path
 
 
-def read_from_disk(path: Union[str, Path], readers, exclude) -> Path:
+def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:
     """Reads a pipeline component from disk."""
     path = ensure_path(path)
     for key, reader in readers.items():

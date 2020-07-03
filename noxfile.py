@@ -7,7 +7,7 @@ from nox.sessions import Session
 
 
 package = "spaczz"
-nox.options.sessions = "lint", "safety", "tests"
+nox.options.sessions = "lint", "mypy", "safety", "tests", "typeguard"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 
 
@@ -74,7 +74,7 @@ def lint(session: Session) -> None:
 
 @nox.session(python=["3.8", "3.7"])
 def mypy(session: Session) -> None:
-    """Type-check using mypy - not working yet."""
+    """Type-check using mypy."""
     args = session.posargs or locations
     install_with_constraints(session, "mypy")
     session.run("mypy", *args)
@@ -101,9 +101,7 @@ def safety(session: Session) -> None:
 def tests(session: Session) -> None:
     """Run the test suite."""
     args = session.posargs or ["--cov"]
-    session.run(
-        "poetry", "install", "-E", "python-Levenshtein", "--no-dev", external=True
-    )
+    session.run("poetry", "install", "-E", "fast", "--no-dev", external=True)
     install_with_constraints(
         session, "coverage[toml]", "pytest", "pytest-cov", "pytest-mock"
     )
@@ -114,7 +112,7 @@ def tests(session: Session) -> None:
 def typeguard(session: Session) -> None:
     """Runtime type checking using Typeguard - not working yet."""
     args = session.posargs or ["-m", "not e2e"]
-    session.run("poetry", "install", "--no-dev", external=True)
+    session.run("poetry", "install", "-E", "fast", "--no-dev", external=True)
     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
     session.run("pytest", f"--typeguard-packages={package}", *args)
 

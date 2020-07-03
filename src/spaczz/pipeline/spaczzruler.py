@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict, OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Set, Tuple, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -14,7 +14,7 @@ from ..util import ensure_path, read_from_disk, write_to_disk
 
 
 class SpaczzRuler:
-    """The SpaczzRuler lets you add fuzzy and multi-token regex matches to the Doc.ents.
+    """The SpaczzRuler adds fuzzy and multi-token regex matches to spaCy Doc.ents.
 
     It can be combined with other spaCy NER components like the statistical
     EntityRecognizer and/or the EntityRuler to boost accuracy.
@@ -22,23 +22,21 @@ class SpaczzRuler:
     using nlp.add_pipe.
 
     Attributes:
-        nlp (Language): The shared nlp object to pass the vocab to the matchers
+        nlp: The shared nlp object to pass the vocab to the matchers
             (not currently used by spaczz matchers) and process fuzzy patterns.
-        fuzzy_patterns (DefaultDict[str, DefaultDict[str,
-            Union[List[Doc], List[Dict[str, Any]]]]]):
+        fuzzy_patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
             for each labels added.
-        regex_patterns (DefaultDict[str, DefaultDict[str,
-            Union[List[str], List[Dict[str, Any]]]]]):
+        regex_patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
             for each labels added.
-        defaults (Dict[str, Dict[str, Any]]): Kwargs to be used as
+        defaults: Kwargs to be used as
             defualt matching settings for the matchers.
-        fuzzy_matcher (FuzzyMatcher): The FuzzyMatcher instance
+        fuzzy_matcher: The FuzzyMatcher instance
             the SpaczzRuler will use for fuzzy matching.
-        regex_matcher (RegexMatcher): The RegexMatcher instance
+        regex_matcher: The RegexMatcher instance
             the SpaczzRuler will use for regex matching.
     """
 
@@ -83,8 +81,13 @@ class SpaczzRuler:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
         self.nlp = nlp
-        self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
-        self.regex_patterns = defaultdict(lambda: defaultdict(list))
+        self.fuzzy_patterns: DefaultDict[
+            str,
+            DefaultDict[str, Union[List[Doc], List[Dict[str, Union[bool, int, str]]]]],
+        ] = defaultdict(lambda: defaultdict(list))
+        self.regex_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+            lambda: defaultdict(list)
+        )  # Not sure why mypy complains when this is typed like fuzzy_patterns.
         self.overwrite = cfg.get("spaczz_overwrite_ents", False)
         default_names = ("spaczz_fuzzy_defaults", "spaczz_regex_defaults")
         self.defaults = {}
@@ -123,14 +126,16 @@ class SpaczzRuler:
             The Doc with added entities, if available.
         """
         matches = list(self.fuzzy_matcher(doc) + self.regex_matcher(doc))
-        matches = set(
+        unique_matches = set(
             [(m_id, start, end) for m_id, start, end in matches if start != end]
         )
-        matches = sorted(matches, key=lambda m: (m[2] - m[1], m[1]), reverse=True)
+        sorted_matches = sorted(
+            unique_matches, key=lambda m: (m[2] - m[1], m[1]), reverse=True
+        )
         entities = list(doc.ents)
         new_entities = []
-        seen_tokens = set()
-        for match_id, start, end in matches:
+        seen_tokens: Set[int] = set()
+        for match_id, start, end in sorted_matches:
             if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
                 continue
             # check for end - 1 here because boundaries are inclusive
@@ -188,13 +193,15 @@ class SpaczzRuler:
                 all_patterns.append(p)
         return all_patterns
 
-    def add_patterns(self, patterns: Iterable[Dict[str, Any]]) -> None:
+    def add_patterns(self, patterns: Iterable[Dict[str, Any]],) -> None:
         """Add patterns to the ruler.
 
         A pattern must be a spaczz pattern:
         {label (str), pattern (str), type (str), and optional kwargs (Dict[str, Any])}.
         For example:
         {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
+
+        To utilize regex flags, use inline flags.
 
         Args:
             patterns: The spaczz patterns to add.
@@ -264,10 +271,10 @@ class SpaczzRuler:
             for entry in regex_patterns:
                 self.regex_patterns[entry["label"]]["patterns"].append(entry["pattern"])
                 self.regex_patterns[entry["label"]]["kwargs"].append(entry["kwargs"])
-            for label, patterns in self.fuzzy_patterns.items():
-                self.fuzzy_matcher.add(label, patterns["patterns"], patterns["kwargs"])
-            for label, patterns in self.regex_patterns.items():
-                self.regex_matcher.add(label, patterns["patterns"], patterns["kwargs"])
+            for label, pattern in self.fuzzy_patterns.items():
+                self.fuzzy_matcher.add(label, pattern["patterns"], pattern["kwargs"])
+            for label, pattern in self.regex_patterns.items():
+                self.regex_matcher.add(label, pattern["patterns"], pattern["kwargs"])
 
     def from_bytes(self, patterns_bytes: bytes, **kwargs: Any) -> SpaczzRuler:
         """Load the spaczz ruler from a bytestring.
@@ -280,12 +287,12 @@ class SpaczzRuler:
             The loaded spaczz ruler.
         """
         cfg = srsly.msgpack_loads(patterns_bytes)
-        self.defaults = cfg.get("spaczz_defaults", {})
-        self.overwrite = cfg.get("spaczz_overwrite", False)
-        try:
-            self.add_patterns(cfg["spaczz_patterns"])
-        except KeyError:
-            pass
+        if isinstance(cfg, dict):
+            self.add_patterns(cfg.get("spaczz_patterns", cfg))
+            self.defaults = cfg.get("spaczz_defaults", {})
+            self.overwrite = cfg.get("spaczz_overwrite", False)
+        else:
+            self.add_patterns(cfg)
         return self
 
     def to_bytes(self, **kwargs: Any) -> bytes:
