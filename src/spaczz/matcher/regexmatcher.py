@@ -5,11 +5,13 @@ from collections import defaultdict
 from typing import (
     Any,
     Callable,
+    DefaultDict,
     Dict,
     Generator,
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -18,6 +20,7 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from ..exceptions import KwargsWarning
 from ..regex import RegexConfig, RegexSearch
 
 
@@ -28,17 +31,16 @@ class RegexMatcher(RegexSearch):
     Accepts labeled regex patterns in the form of strings.
 
     Attributes:
-        name (str): Class attribute - the name of the matcher.
-        defaults (Dict[str, Any]): Kwargs to be used as
+        name: Class attribute - the name of the matcher.
+        defaults: Kwargs to be used as
             defualt regex matching settings for the
             instance of RegexMatcher.
-        _callbacks (Dict[str, Callable[[RegexMatcher, Doc, int, List], None]]):
+        _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the regex matches identified.
-        _config (RegexConfig): The RegexConfig object tied to an instance
+        _config: The RegexConfig object tied to an instance
             of RegexMatcher.
-        _patterns (DefaultDict[str, DefaultDict[str,
-            Union[List[str], List[Dict[str, Any]]]]]):
+        _patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
             for each labels added.
@@ -70,10 +72,14 @@ class RegexMatcher(RegexSearch):
         """
         super().__init__(config)
         self.defaults = defaults
-        self._callbacks = {}
-        self._patterns = defaultdict(lambda: defaultdict(list))
+        self._callbacks: Dict[
+            str, Union[Callable[[RegexMatcher, Doc, int, List], None], None]
+        ] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+            lambda: defaultdict(list)
+        )  # Not sure why mypy complains when this is typed like fuzzymatcher._patterns.
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
+    def __call__(self, doc: Doc) -> Union[List[Tuple[str, int, int]], List]:
         r"""Find all sequences matching the supplied patterns in the Doc.
 
         Args:
@@ -105,12 +111,15 @@ class RegexMatcher(RegexSearch):
                     ]
                     for match in matches_w_label:
                         matches.add(match)
-        matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
-        for i, (label, _start, _end) in enumerate(matches):
-            on_match = self._callbacks.get(label)
-            if on_match:
-                on_match(self, doc, i, matches)
-        return matches
+        if matches:
+            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
+            for i, (label, _start, _end) in enumerate(sorted_matches):
+                on_match = self._callbacks.get(label)
+                if on_match:
+                    on_match(self, doc, i, sorted_matches)
+            return sorted_matches
+        else:
+            return []
 
     def __contains__(self, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
@@ -174,8 +183,8 @@ class RegexMatcher(RegexSearch):
     def add(
         self,
         label: str,
-        patterns: Iterable[str],
-        kwargs: Optional[Dict[str, Any]] = None,
+        patterns: Sequence[str],
+        kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[Callable[[RegexMatcher, Doc, int, List], None]] = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -219,18 +228,16 @@ class RegexMatcher(RegexSearch):
             kwargs = [{} for p in patterns]
         elif len(kwargs) < len(patterns):
             warnings.warn(
-                (
-                    "There are more patterns then there are kwargs.",
-                    "Patterns not matched to a kwarg dict will have default settings.",
-                )
+                """There are more patterns then there are kwargs.\n
+                    Patterns not matched to a kwarg dict will have default settings.""",
+                KwargsWarning,
             )
             kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
             warnings.warn(
-                (
-                    "There are more kwargs dicts than patterns.",
-                    "The extra kwargs will be ignored.",
-                )
+                """There are more kwargs dicts than patterns.\n
+                    The extra kwargs will be ignored.""",
+                KwargsWarning,
             )
         if isinstance(patterns, str):
             raise TypeError("Patterns must be a non-string iterable of strings.")
