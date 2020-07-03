@@ -7,7 +7,7 @@ from spaczz.regex.regexconfig import RegexConfig, RegexParseError
 
 
 @pytest.fixture
-def default_rc() -> RegexConfig:
+def config() -> RegexConfig:
     """It returns a default regex config."""
     return RegexConfig(empty=False)
 
@@ -18,28 +18,28 @@ def test_empty_regex_config() -> None:
     assert empty_rc._predefs == {}
 
 
-def test__get_predef_returns_existing_regex(default_rc: RegexConfig) -> None:
+def test__get_predef_returns_existing_regex(config: RegexConfig) -> None:
     """It returns a predefined compiled regex pattern."""
-    assert default_rc._get_predef("times") == _commonregex["times"]
+    assert config._get_predef("times") == _commonregex["times"]
 
 
-def test__get_predef_raises_error_with_undefined_regex(default_rc: RegexConfig) -> None:
+def test__get_predef_raises_error_with_undefined_regex(config: RegexConfig) -> None:
     """It raises a ValueError if predef is not actually predefined."""
     with pytest.raises(ValueError):
-        default_rc._get_predef("unknown")
+        config._get_predef("unknown")
 
 
-def test_parse_regex_with_predef(default_rc: RegexConfig) -> None:
+def test_parse_regex_with_predef(config: RegexConfig) -> None:
     """It returns a predefined regex pattern."""
-    assert default_rc.parse_regex("phones", predef=True) == _commonregex["phones"]
+    assert config.parse_regex("phones", predef=True) == _commonregex["phones"]
 
 
-def test_parse_regex_with_new_regex(default_rc: RegexConfig) -> None:
+def test_parse_regex_with_new_regex(config: RegexConfig) -> None:
     """It turns the string into a regex pattern."""
-    assert default_rc.parse_regex("(?i)Test",) == regex.compile("(?i)Test")
+    assert config.parse_regex("(?i)Test",) == regex.compile("(?i)Test")
 
 
-def test_incorrect_type_for_regex_compile_raises_error(default_rc: RegexConfig) -> None:
+def test_invalid_regexfor_regex_compile_raises_error(config: RegexConfig) -> None:
     """Using an invalid type raises a RegexParseError."""
     with pytest.raises(RegexParseError):
-        default_rc.parse_regex(1)
+        config.parse_regex("[")

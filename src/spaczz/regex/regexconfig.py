@@ -1,4 +1,6 @@
 """Module for RegexConfig class."""
+from typing import Any
+
 import regex
 
 from ._commonregex import _commonregex
@@ -11,7 +13,7 @@ class RegexConfig:
     Will eventually includes methods for adding/removing user patterns.
 
     Attributes:
-        _predef (Dict[str, re.Pattern]): Regex patterns available.
+        _predef: Regex patterns available.
     """
 
     def __init__(self, empty: bool = False) -> None:
@@ -27,7 +29,7 @@ class RegexConfig:
         else:
             self._predefs = {}
 
-    def parse_regex(self, regex_str: str, predef: bool = False,) -> regex.Regex:
+    def parse_regex(self, regex_str: str, predef: bool = False,) -> Any:
         """Parses a string into a regex pattern.
 
         Will treat string as a key name for a predefined regex
@@ -45,11 +47,11 @@ class RegexConfig:
             RegexParseError: If regex compilation produces any errors.
 
         Example:
-            >>> import re
+            >>> import regex
             >>> from spaczz.regex import RegexConfig
             >>> rc = RegexConfig()
             >>> pattern = rc.parse_regex("Test")
-            >>> isinstance(pattern, re.Pattern)
+            >>> isinstance(pattern, type(regex.compile("type")))
             True
         """
         if predef:
@@ -57,11 +59,11 @@ class RegexConfig:
         else:
             try:
                 compiled_regex = regex.compile(regex_str,)
-            except (regex.error, TypeError, ValueError) as e:
+            except (regex._regex_core.error, TypeError, ValueError) as e:
                 raise RegexParseError(e)
         return compiled_regex
 
-    def _get_predef(self, predef: str) -> regex.Regex:
+    def _get_predef(self, predef: str) -> Any:
         """Returns a regex pattern from the predefined patterns available.
 
         Args:
@@ -74,10 +76,11 @@ class RegexConfig:
             ValueError: If the key does not exist in the predefined regex patterns.
 
         Example:
+            >>> import regex
             >>> from spaczz.regex import RegexConfig
             >>> rc = RegexConfig()
             >>> pattern = rc._get_predef("phones")
-            >>> isinstance(pattern, re.Pattern)
+            >>> isinstance(pattern, type(regex.compile("type")))
             True
         """
         predef_regex = self._predefs.get(predef)

@@ -1,4 +1,4 @@
-"""Module for FuzzySearch class. A framework for fuzzy matching in spaCy Doc objects."""
+"""Module for FuzzySearcher class. Does fuzzy matching in spaCy Docs."""
 from itertools import chain
 from typing import Dict, List, Tuple, Union
 import warnings
@@ -9,7 +9,7 @@ from .fuzzyconfig import FuzzyConfig
 from ..exceptions import FlexWarning
 
 
-class FuzzySearch:
+class FuzzySearcher:
     """Class for fuzzy matching in spacy Docs.
 
     Fuzzy matching is done on the token level.
@@ -18,12 +18,11 @@ class FuzzySearch:
     and fuzzy matching between any two given strings.
 
     Attributes:
-        _config (FuzzyConfig): The FuzzyConfig object tied to an instance
-            of FuzzySearch.
+        _config (FuzzyConfig): The fuzzy config used with the fuzzy searcher.
     """
 
     def __init__(self, config: Union[str, FuzzyConfig] = "default") -> None:
-        """Initializes fuzzy search with the given config.
+        """Initializes a fuzzy searcher with the given config.
 
         Args:
             config: Provides predefind fuzzy matching functions.
@@ -102,9 +101,9 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch
+            >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearch()
+            >>> fs = FuzzySearcher()
             >>> doc = nlp.make_doc("G-rant Anderson lives in TN.")
             >>> query = nlp.make_doc("Grant Andersen")
             >>> fs.best_match(doc, query)
@@ -145,8 +144,8 @@ class FuzzySearch:
             The fuzzy ratio between a and b.
 
         Example:
-            >>> from spaczz.fuzz import FuzzySearch
-            >>> fs = FuzzySearch()
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> fs = FuzzySearcher()
             >>> fs.match("spaczz", "spacy")
             73
         """
@@ -165,7 +164,7 @@ class FuzzySearch:
         min_r2: int = 75,
         ignore_case: bool = True,
         flex: Union[str, int] = "default",
-    ) -> Union[List[Tuple[int, int, int]], List]:
+    ) -> List[Tuple[int, int, int]]:
         """Returns the n best fuzzy matches in a Doc.
 
         Finds the n best fuzzy matches in doc based on the query,
@@ -211,9 +210,9 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch
+            >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearch()
+            >>> fs = FuzzySearcher()
             >>> doc = nlp.make_doc(
                 "chiken from Popeyes is better than chken from Chick-fil-A"
                 )
@@ -296,9 +295,9 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch
+            >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearch()
+            >>> fs = FuzzySearcher()
             >>> doc = nlp.make_doc("Patient was prescribed Zithromax tablets.")
             >>> query = nlp.make_doc("zithromax tablet")
             >>> match_values = {3: 100}
@@ -375,8 +374,8 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearch
-            >>> fs = FuzzySearch()
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> fs = FuzzySearcher()
             >>> nlp = spacy.blank("en")
             >>> doc = nlp.make_doc("Don't call me Sh1rley.")
             >>> query = nlp.make_doc("Shirley")
@@ -423,9 +422,10 @@ class FuzzySearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.fuzz import fuzzysearch
-            >>> fs = fuzzysearch.FuzzySearch()
-            >>> query = spacy.blank("en")("Test query.")
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> nlp = spacy.blank("en")
+            >>> fs = FuzzySearcher()
+            >>> query = nlp.make_doc("Test query.")
             >>> fs._calc_flex(query, "default")
             3
         """
@@ -462,8 +462,8 @@ class FuzzySearch:
             The filtered list of match span tuples.
 
         Example:
-            >>> from spaczz.fuzz import FuzzySearch
-            >>> fs = FuzzySearch()
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> fs = FuzzySearcher()
             >>> matches = [(1, 3, 80), (1, 2, 70)]
             >>> fs._filter_overlapping_matches(matches)
             [(1, 3, 80)]
@@ -495,8 +495,8 @@ class FuzzySearch:
             List of integer values of the best matches start indices.
 
         Example:
-            >>> from spaczz.fuzz import FuzzySearch
-            >>> fs = FuzzySearch()
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> fs = FuzzySearcher()
             >>> fs._indice_maxes({1: 30, 4: 50, 5: 50, 9: 100}, 3)
             [9, 4, 5]
         """
@@ -520,8 +520,8 @@ class FuzzySearch:
             Integer value of the best matches' start index.
 
         Example:
-            >>> from spaczz.fuzz import FuzzySearch
-            >>> fs = FuzzySearch()
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> fs = FuzzySearcher()
             >>> fs._index_max({1:30, 9:100})
             9
         """

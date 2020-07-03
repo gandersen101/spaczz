@@ -19,7 +19,7 @@ def add_name_ent(
 
 
 @pytest.fixture
-def test_doc(nlp: Language) -> Doc:
+def doc(nlp: Language) -> Doc:
     """Doc for testing."""
     return nlp.make_doc(
         "The Heffer, 'mooooo, I'm a cow.' There's also a chken named Stephen."
@@ -27,25 +27,25 @@ def test_doc(nlp: Language) -> Doc:
 
 
 @pytest.fixture
-def matcher_with_patterns(nlp: Language,) -> FuzzyMatcher:
+def matcher(nlp: Language,) -> FuzzyMatcher:
     """Fuzzy matcher with patterns added."""
     animals = ["Heifer", "chicken"]
     sounds = ["mooo"]
     names = ["Steven"]
-    fm = FuzzyMatcher(nlp.vocab)
-    fm.add(
+    matcher = FuzzyMatcher(nlp.vocab)
+    matcher.add(
         "ANIMAL",
         [nlp.make_doc(animal) for animal in animals],
         kwargs=[{"ignore_case": False}, {}],
     )
-    fm.add("SOUND", [nlp.make_doc(sound) for sound in sounds])
-    fm.add("NAME", [nlp.make_doc(name) for name in names], on_match=add_name_ent)
-    return fm
+    matcher.add("SOUND", [nlp.make_doc(sound) for sound in sounds])
+    matcher.add("NAME", [nlp.make_doc(name) for name in names], on_match=add_name_ent)
+    return matcher
 
 
-def test_adding_patterns(matcher_with_patterns: FuzzyMatcher) -> None:
+def test_adding_patterns(matcher: FuzzyMatcher) -> None:
     """It adds the "ANIMAL" label and some patterns with kwargs to the matcher."""
-    assert matcher_with_patterns.patterns == [
+    assert matcher.patterns == [
         {
             "label": "ANIMAL",
             "pattern": "Heifer",
@@ -59,11 +59,11 @@ def test_adding_patterns(matcher_with_patterns: FuzzyMatcher) -> None:
 
 
 def test_add_with_more_patterns_than_explicit_kwargs_warns(
-    matcher_with_patterns: FuzzyMatcher, nlp: Language
+    matcher: FuzzyMatcher, nlp: Language
 ) -> None:
     """It will warn when more patterns are added than explicit kwargs."""
     with pytest.warns(KwargsWarning):
-        matcher_with_patterns.add(
+        matcher.add(
             "TEST",
             [nlp.make_doc("Test1"), nlp.make_doc("Test2")],
             [{"ignore_case": False}],
@@ -71,75 +71,65 @@ def test_add_with_more_patterns_than_explicit_kwargs_warns(
 
 
 def test_add_with_more_explicit_kwargs_than_patterns_warns(
-    matcher_with_patterns: FuzzyMatcher, nlp: Language
+    matcher: FuzzyMatcher, nlp: Language
 ) -> None:
     """It will warn when more explicit kwargs are added than patterns."""
     with pytest.warns(KwargsWarning):
-        matcher_with_patterns.add(
+        matcher.add(
             "TEST",
             [nlp.make_doc("Test1")],
             [{"ignore_case": False}, {"ignore_case": False}],
         )
 
 
-def test_add_without_doc_objects_raises_error(
-    matcher_with_patterns: FuzzyMatcher,
-) -> None:
+def test_add_without_doc_objects_raises_error(matcher: FuzzyMatcher,) -> None:
     """Trying to add non Doc objects as patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher_with_patterns.add("TEST", ["Test1"])
+        matcher.add("TEST", ["Test1"])
 
 
 def test_add_where_kwargs_are_not_dicts_raises_error(
-    matcher_with_patterns: FuzzyMatcher, nlp: Language
+    matcher: FuzzyMatcher, nlp: Language
 ) -> None:
     """Trying to add non Dict objects as kwargs raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher_with_patterns.add("TEST", [nlp.make_doc("Test1")], ["ignore_case"])
+        matcher.add("TEST", [nlp.make_doc("Test1")], ["ignore_case"])
 
 
-def test_len_returns_count_of_labels_in_matcher(
-    matcher_with_patterns: FuzzyMatcher,
-) -> None:
+def test_len_returns_count_of_labels_in_matcher(matcher: FuzzyMatcher,) -> None:
     """It returns the sum of unique labels in the matcher."""
-    assert len(matcher_with_patterns) == 3
+    assert len(matcher) == 3
 
 
-def test_in_returns_bool_of_label_in_matcher(
-    matcher_with_patterns: FuzzyMatcher,
-) -> None:
+def test_in_returns_bool_of_label_in_matcher(matcher: FuzzyMatcher,) -> None:
     """It returns whether a label is in the matcher."""
-    assert "ANIMAL" in matcher_with_patterns
+    assert "ANIMAL" in matcher
 
 
-def test_labels_returns_label_names(matcher_with_patterns: FuzzyMatcher) -> None:
+def test_labels_returns_label_names(matcher: FuzzyMatcher) -> None:
     """It returns a tuple of all unique label names."""
-    assert all(
-        label in matcher_with_patterns.labels for label in ("SOUND", "ANIMAL", "NAME")
-    )
+    assert all(label in matcher.labels for label in ("SOUND", "ANIMAL", "NAME"))
 
 
-def test_remove_label(matcher_with_patterns: FuzzyMatcher, nlp: Language) -> None:
+def test_remove_label(matcher: FuzzyMatcher, nlp: Language) -> None:
     """It removes a label from the matcher."""
-    matcher_with_patterns.add("TEST", [nlp.make_doc("test")])
-    assert "TEST" in matcher_with_patterns
-    matcher_with_patterns.remove("TEST")
-    assert "TEST" not in matcher_with_patterns
+    matcher.add("TEST", [nlp.make_doc("test")])
+    assert "TEST" in matcher
+    matcher.remove("TEST")
+    assert "TEST" not in matcher
 
 
 def test_remove_label_raises_error_if_label_not_in_matcher(
-    matcher_with_patterns: FuzzyMatcher,
+    matcher: FuzzyMatcher,
 ) -> None:
     """It raises a ValueError if trying to remove a label not present."""
     with pytest.raises(ValueError):
-        matcher_with_patterns.remove("TEST")
+        matcher.remove("TEST")
 
 
-def test_matcher_returns_matches(
-    matcher_with_patterns: FuzzyMatcher, test_doc: Doc
-) -> None:
+def test_matcher_returns_matches(matcher: FuzzyMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
-    assert matcher_with_patterns(test_doc) == [
+    assert matcher(doc) == [
         ("ANIMAL", 1, 2),
         ("SOUND", 4, 5),
         ("ANIMAL", 16, 17),
@@ -148,19 +138,19 @@ def test_matcher_returns_matches(
 
 
 def test_matcher_returns_empty_list_if_no_matches(
-    matcher_with_patterns: FuzzyMatcher, nlp: Language
+    matcher: FuzzyMatcher, nlp: Language
 ) -> None:
     """Calling the matcher on a Doc object with no viable matches returns empty list."""
     temp_doc = nlp.make_doc("No matches here.")
-    assert matcher_with_patterns(temp_doc) == []
+    assert matcher(temp_doc) == []
 
 
 def test_matcher_uses_on_match_callback(
-    matcher_with_patterns: FuzzyMatcher, test_doc: Doc, nlp: Language
+    matcher: FuzzyMatcher, doc: Doc, nlp: Language
 ) -> None:
     """It utilizes callback on match functions passed when called on a Doc object."""
-    matcher_with_patterns(test_doc)
-    ent_text = [ent.text for ent in test_doc.ents]
+    matcher(doc)
+    ent_text = [ent.text for ent in doc.ents]
     assert "Stephen" in ent_text
 
 
@@ -170,8 +160,8 @@ def test_matcher_pipe(nlp: Language) -> None:
         nlp.make_doc("test doc 1: Corvold"),
         nlp.make_doc("test doc 2: Prosh"),
     )
-    fm = FuzzyMatcher(nlp.vocab)
-    output = fm.pipe(doc_stream)
+    matcher = FuzzyMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream)
     assert list(output) == list(doc_stream)
 
 
@@ -181,8 +171,8 @@ def test_matcher_pipe_with_context(nlp: Language) -> None:
         (nlp.make_doc("test doc 1: Corvold"), "Jund"),
         (nlp.make_doc("test doc 2: Prosh"), "Jund"),
     )
-    fm = FuzzyMatcher(nlp.vocab)
-    output = fm.pipe(doc_stream, as_tuples=True)
+    matcher = FuzzyMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream, as_tuples=True)
     assert list(output) == list(doc_stream)
 
 
@@ -192,9 +182,9 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
         nlp.make_doc("test doc 1: Corvold"),
         nlp.make_doc("test doc 2: Prosh"),
     )
-    fm = FuzzyMatcher(nlp.vocab)
-    fm.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = fm.pipe(doc_stream, return_matches=True)
+    matcher = FuzzyMatcher(nlp.vocab)
+    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
+    output = matcher.pipe(doc_stream, return_matches=True)
     matches = [entry[1] for entry in output]
     assert matches == [[("DRAGON", 4, 5)], [("DRAGON", 4, 5)]]
 
@@ -205,8 +195,8 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
         (nlp.make_doc("test doc 1: Corvold"), "Jund"),
         (nlp.make_doc("test doc 2: Prosh"), "Jund"),
     )
-    fm = FuzzyMatcher(nlp.vocab)
-    fm.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = fm.pipe(doc_stream, return_matches=True, as_tuples=True)
+    matcher = FuzzyMatcher(nlp.vocab)
+    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
+    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
     matches = [(entry[0][1], entry[1]) for entry in output]
     assert matches == [([("DRAGON", 4, 5)], "Jund"), ([("DRAGON", 4, 5)], "Jund")]

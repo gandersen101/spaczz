@@ -21,10 +21,10 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning
-from ..regex import RegexConfig, RegexSearch
+from ..regex import RegexConfig, RegexSearcher
 
 
-class RegexMatcher(RegexSearch):
+class RegexMatcher(RegexSearcher):
     """spaCy-like matcher for finding multi-token regex matches in Doc objects.
 
     Matches added patterns against the Doc object it is called on.
@@ -32,9 +32,8 @@ class RegexMatcher(RegexSearch):
 
     Attributes:
         name: Class attribute - the name of the matcher.
-        defaults: Kwargs to be used as
-            defualt regex matching settings for the
-            instance of RegexMatcher.
+        defaults: Kwargs to be used as default regex matching settings
+            for the regex matcher. Apply to inherited multi_match method.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the regex matches identified.
@@ -73,13 +72,17 @@ class RegexMatcher(RegexSearch):
         super().__init__(config)
         self.defaults = defaults
         self._callbacks: Dict[
-            str, Union[Callable[[RegexMatcher, Doc, int, List], None], None]
+            str,
+            Union[
+                Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None],
+                None,
+            ],
         ] = {}
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )  # Not sure why mypy complains when this is typed like fuzzymatcher._patterns.
 
-    def __call__(self, doc: Doc) -> Union[List[Tuple[str, int, int]], List]:
+    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
         r"""Find all sequences matching the supplied patterns in the Doc.
 
         Args:
@@ -185,19 +188,24 @@ class RegexMatcher(RegexSearch):
         label: str,
         patterns: Sequence[str],
         kwargs: Optional[List[Dict[str, Any]]] = None,
-        on_match: Optional[Callable[[RegexMatcher, Doc, int, List], None]] = None,
+        on_match: Optional[
+            Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+        ] = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
         Patterns must be a list of strings and if kwargs is not None,
         kwargs must be a list of dictionaries.
 
+        To utilize regex flags, use inline flags.
+
         Args:
             label: Name of the rule added to the matcher.
             patterns: Strings that will be matched against
                 the Doc object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior
-                of the regex matching. Default is None.
+            kwargs: Optional arguments to modify the behavior of the regex matching.
+                Apply to inherited multi_match method.
+                Default is None.
             on_match: Optional callback function to modify the
                 Doc objec the matcher is called on after matching.
                 Default is None.

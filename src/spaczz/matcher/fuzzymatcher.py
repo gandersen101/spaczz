@@ -21,11 +21,10 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning
-from ..fuzz.fuzzyconfig import FuzzyConfig
-from ..fuzz.fuzzysearch import FuzzySearch
+from ..fuzz import FuzzyConfig, FuzzySearcher
 
 
-class FuzzyMatcher(FuzzySearch):
+class FuzzyMatcher(FuzzySearcher):
     """spaCy-like matcher for finding fuzzy matches in Doc objects.
 
     Fuzzy matches added patterns against the Doc object it is called on.
@@ -33,9 +32,8 @@ class FuzzyMatcher(FuzzySearch):
 
     Attributes:
         name: Class attribute - the name of the matcher.
-        defaults: Kwargs to be used as
-            defualt fuzzy matching settings for the
-            instance of FuzzyMatcher.
+        defaults: Kwargs to be used as default fuzzy matching settings
+            for the fuzzy matcher. Apply to inherited multi_match method.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the fuzzy matches identified.
@@ -75,14 +73,18 @@ class FuzzyMatcher(FuzzySearch):
         super().__init__(config)
         self.defaults = defaults
         self._callbacks: Dict[
-            str, Union[Callable[[FuzzyMatcher, Doc, int, List], None], None]
+            str,
+            Union[
+                Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int]]], None],
+                None,
+            ],
         ] = {}
         self._patterns: DefaultDict[
             str,
-            DefaultDict[str, Union[List[Doc], List[Dict[str, Union[str, int, bool]]]]],
+            DefaultDict[str, Union[List[Doc], List[Dict[str, Union[bool, int, str]]]]],
         ] = defaultdict(lambda: defaultdict(list))
 
-    def __call__(self, doc: Doc) -> Union[List[Tuple[str, int, int]], List]:
+    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
         """Find all sequences matching the supplied patterns in the Doc.
 
         Args:
@@ -189,7 +191,9 @@ class FuzzyMatcher(FuzzySearch):
         label: str,
         patterns: Sequence[Doc],
         kwargs: Optional[List[Dict[str, Any]]] = None,
-        on_match: Optional[Callable[[FuzzyMatcher, Doc, int, List], None]] = None,
+        on_match: Optional[
+            Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+        ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -200,8 +204,9 @@ class FuzzyMatcher(FuzzySearch):
             label: Name of the rule added to the matcher.
             patterns: Doc objects that will be fuzzy matched
                 against the Doc object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior
-                of the fuzzy matching. Default is None.
+            kwargs: Optional arguments to modify the behavior of the fuzzy matching.
+                Apply to inherited multi_match method.
+                Default is None.
             on_match: Optional callback function to modify the
                 Doc objec the matcher is called on after matching.
                 Default is None.

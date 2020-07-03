@@ -7,7 +7,7 @@ from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 
 
 @pytest.fixture
-def default_fc() -> FuzzyConfig:
+def config() -> FuzzyConfig:
     """It returns a default fuzzy config."""
     return FuzzyConfig()
 
@@ -25,19 +25,19 @@ def test_get_fuzzy_alg_raises_error_if__fuzzy_funcs_empty() -> None:
         empty_fc.get_fuzzy_func("simple")
 
 
-def test__get_fuzzy_alg_returns_alg(default_fc: FuzzyConfig) -> None:
+def test__get_fuzzy_alg_returns_alg(config: FuzzyConfig) -> None:
     """It returns the expected fuzzy matching function."""
-    func = default_fc.get_fuzzy_func("simple")
+    func = config.get_fuzzy_func("simple")
     assert func == fuzz.ratio
 
 
-def test__get_fuzzy_alg_raises_error_with_unknown_name(default_fc: FuzzyConfig) -> None:
+def test__get_fuzzy_alg_raises_error_with_unknown_name(config: FuzzyConfig) -> None:
     """It raises a ValueError if fuzzy_func does not match a predefined key name."""
     with pytest.raises(ValueError):
-        default_fc.get_fuzzy_func("unkown")
+        config.get_fuzzy_func("unkown")
 
 
-def test__get_fuzzy_alg_warns_with_case_conflict(default_fc: FuzzyConfig) -> None:
+def test__get_fuzzy_alg_warns_with_case_conflict(config: FuzzyConfig) -> None:
     """It warns-CaseConflictWarning if fuzzy func lower-cases but not ignore_case."""
     with pytest.warns(CaseConflictWarning):
-        default_fc.get_fuzzy_func("u_weighted", ignore_case=False)
+        config.get_fuzzy_func("u_weighted", ignore_case=False)

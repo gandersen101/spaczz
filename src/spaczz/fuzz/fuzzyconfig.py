@@ -1,5 +1,5 @@
 """Module for FuzzyConfig class."""
-from typing import Callable
+from typing import Callable, Dict
 import warnings
 
 from fuzzywuzzy import fuzz
@@ -16,9 +16,8 @@ class FuzzyConfig:
     Attributes:
         _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
             Fuzzy matching functions accessible
-            by their given key name. All FuzzyWuzzy.fuzz
-            functions with default settings are currently
-            available.
+            by their given key name. All fuzzywuzzy matchers
+            with default settings are currently available.
     """
 
     def __init__(self, empty: bool = False) -> None:
@@ -30,7 +29,7 @@ class FuzzyConfig:
                 Default is False.
         """
         if not empty:
-            self._fuzzy_funcs = {
+            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
                 "simple": fuzz.ratio,
                 "partial": fuzz.partial_ratio,
                 "token_set": fuzz.token_set_ratio,
@@ -51,7 +50,7 @@ class FuzzyConfig:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:
-            fuzzy_func: Key name of the fuzzy matching algorithm.
+            fuzzy_func: Key name of the fuzzy matching function.
             ignore_case: If fuzzy matching will be executed
                 with case sensitivity or not.
 
@@ -59,7 +58,7 @@ class FuzzyConfig:
             A fuzzy matching function.
 
         Raises:
-            EmptyConfigError: If the config has no fuzzy functions available.
+            EmptyConfigError: If the config has no fuzzy matchers available.
             ValueError: fuzzy_func was not a valid key name.
 
         Warnings:
@@ -92,8 +91,8 @@ class FuzzyConfig:
         if not self._fuzzy_funcs:
             raise EmptyConfigError(
                 (
-                    "The config has no fuzzy functions available to it.",
-                    "Please add any functions you intend to use",
+                    "The config has no fuzzy matchers available to it.",
+                    "Please add any matching functions you intend to use",
                     "or do not initialize the config as empty.",
                 )
             )
@@ -103,7 +102,7 @@ class FuzzyConfig:
             raise ValueError(
                 (
                     f"No fuzzy matching function called {fuzzy_func}.",
-                    "Algorithm must be in the following:",
+                    "Matcher must be in the following:",
                     f"{list(self._fuzzy_funcs.keys())}",
                 )
             )

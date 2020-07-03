@@ -1,4 +1,4 @@
-"""Module for the RegexSearch class."""
+"""Module for the RegexSearcher class. Does multi-token regex matching in spaCy Docs."""
 from typing import List, Tuple, Union
 
 import regex
@@ -8,14 +8,14 @@ from .regexconfig import RegexConfig
 from ..process import map_chars_to_tokens
 
 
-class RegexSearch:
+class RegexSearcher:
     """Class for multi-token regex matching in spacy Docs.
 
     Regex matching is done on the character level and then
     mapped back to tokens.
 
     Attributes:
-        _config (RegexConfig): The regex config tied to the
+        _config (RegexConfig): The regex config used with the
             regex searcher.
     """
 
@@ -53,7 +53,7 @@ class RegexSearch:
         regex_str: Union[str, regex.Regex],
         partial: bool = True,
         predef: bool = False,
-    ) -> Union[List[Tuple[int, int]], List]:
+    ) -> List[Tuple[int, int]]:
         """Returns all the regex matches within doc.
 
         Matches on the character level and then maps matches back
@@ -81,9 +81,9 @@ class RegexSearch:
 
         Example:
             >>> import spacy
-            >>> from spaczz.regex import RegexSearch
+            >>> from spaczz.regex import RegexSearcher
             >>> nlp = spacy.blank("en")
-            >>> rs = RegexSearch()
+            >>> rs = RegexSearcher()
             >>> doc = nlp.make_doc("My phone number is (555) 555-5555.")
             >>> rs.multi_match(doc, "phones", predef=True)
             [(4, 10)]
