@@ -49,8 +49,8 @@ class RegexConfig:
         Example:
             >>> import regex
             >>> from spaczz.regex import RegexConfig
-            >>> rc = RegexConfig()
-            >>> pattern = rc.parse_regex("Test")
+            >>> config = RegexConfig()
+            >>> pattern = config.parse_regex("Test")
             >>> isinstance(pattern, type(regex.compile("type")))
             True
         """
@@ -78,8 +78,8 @@ class RegexConfig:
         Example:
             >>> import regex
             >>> from spaczz.regex import RegexConfig
-            >>> rc = RegexConfig()
-            >>> pattern = rc._get_predef("phones")
+            >>> config = RegexConfig()
+            >>> pattern = config._get_predef("phones")
             >>> isinstance(pattern, type(regex.compile("type")))
             True
         """

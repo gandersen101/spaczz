@@ -95,10 +95,10 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
+            >>> matcher = RegexMatcher(nlp.vocab)
             >>> doc = nlp.make_doc("I live in the united states, or the US")
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> rm(doc)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> matcher(doc)
             [('GPE', 4, 6), ('GPE', 9, 10)]
         """
         matches = set()
@@ -143,9 +143,9 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("ZIP", ["zip_codes"], [{"predef": True}])
-            >>> rm.labels
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("ZIP", ["zip_codes"], [{"predef": True}])
+            >>> matcher.labels
             ('ZIP',)
         """
         return tuple(self._patterns.keys())
@@ -162,9 +162,9 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("ZIP", ["zip_codes"], [{"predef": True}])
-            >>> rm.patterns == [
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("ZIP", ["zip_codes"], [{"predef": True}])
+            >>> matcher.patterns == [
                 {
                     "label": "ZIP",
                     "pattern": "zip_codes",
@@ -227,9 +227,9 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> "GPE" in rm
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> "GPE" in matcher
             True
         """
         if kwargs is None:
@@ -273,10 +273,10 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> rm.remove("GPE")
-            >>> "GPE" in rm
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> matcher.remove("GPE")
+            >>> "GPE" in matcher
             False
         """
         try:
@@ -315,13 +315,13 @@ class RegexMatcher(RegexSearcher):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
+            >>> matcher = RegexMatcher(nlp.vocab)
             >>> doc_stream = (
                     nlp.make_doc("test doc1: United States"),
                     nlp.make_doc("test doc2: US"),
                 )
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> output = rm.pipe(doc_stream, return_matches=True)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
             [[('GPE', 3, 5)], [('GPE', 3, 4)]]
         """

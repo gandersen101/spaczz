@@ -70,6 +70,18 @@ class FuzzySearcher:
             doc: Doc object to search over.
             query: Doc object to fuzzy match against doc.
             fuzzy_func: Key name of fuzzy matching function to use.
+                All fuzzywuzzy matching functions with default settings
+                are available:
+                "simple" = fuzz.ratio
+                "partial" = fuzz.partial_ratio
+                "token_set" = fuzz.token_set_ratio
+                "token_sort" = fuzz.token_sort_ratio
+                "partial_token_set" = fuzz.partial_token_set_ratio
+                "partial_token_sort" = fuzz.partial_token_sort_ratio
+                "quick" = fuzz.QRatio
+                "u_quick" = fuzz.UQRatio
+                "weighted" = fuzz.WRatio
+                "u_weighted" = fuzz.UWRatio
                 Default is "simple".
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.
@@ -103,10 +115,10 @@ class FuzzySearcher:
             >>> import spacy
             >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> doc = nlp.make_doc("G-rant Anderson lives in TN.")
             >>> query = nlp.make_doc("Grant Andersen")
-            >>> fs.best_match(doc, query)
+            >>> searcher.best_match(doc, query)
             (0, 4, 90)
         """
         if not isinstance(doc, Doc):
@@ -136,7 +148,19 @@ class FuzzySearcher:
             str1: First string for comparison.
             str2: Second string for comparison.
             fuzzy_func: Key name of fuzzy matching function to use.
-                "simple" by default.
+                All fuzzywuzzy matching functions with default settings
+                are available:
+                "simple" = fuzz.ratio
+                "partial" = fuzz.partial_ratio
+                "token_set" = fuzz.token_set_ratio
+                "token_sort" = fuzz.token_sort_ratio
+                "partial_token_set" = fuzz.partial_token_set_ratio
+                "partial_token_sort" = fuzz.partial_token_sort_ratio
+                "quick" = fuzz.QRatio
+                "u_quick" = fuzz.UQRatio
+                "weighted" = fuzz.WRatio
+                "u_weighted" = fuzz.UWRatio
+                Default is "simple".
             ignore_case: Whether to lower-case str1 and str2
                 before comparison or not. Default is True.
 
@@ -145,8 +169,8 @@ class FuzzySearcher:
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
-            >>> fs = FuzzySearcher()
-            >>> fs.match("spaczz", "spacy")
+            >>> searcher = FuzzySearcher()
+            >>> searcher.match("spaczz", "spacy")
             73
         """
         if ignore_case:
@@ -179,6 +203,18 @@ class FuzzySearcher:
                 If n is 0 all matches will be returned.
                 Defualt is 0.
             fuzzy_func: Key name of fuzzy matching function to use.
+                All fuzzywuzzy matching functions with default settings
+                are available:
+                "simple" = fuzz.ratio
+                "partial" = fuzz.partial_ratio
+                "token_set" = fuzz.token_set_ratio
+                "token_sort" = fuzz.token_sort_ratio
+                "partial_token_set" = fuzz.partial_token_set_ratio
+                "partial_token_sort" = fuzz.partial_token_sort_ratio
+                "quick" = fuzz.QRatio
+                "u_quick" = fuzz.UQRatio
+                "weighted" = fuzz.WRatio
+                "u_weighted" = fuzz.UWRatio
                 Default is "simple".
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.
@@ -212,12 +248,12 @@ class FuzzySearcher:
             >>> import spacy
             >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> doc = nlp.make_doc(
                 "chiken from Popeyes is better than chken from Chick-fil-A"
                 )
             >>> query = nlp.make_doc("chicken")
-            >>> fs.multi_match(doc, query, ignore_case=False)
+            >>> searcher.multi_match(doc, query, ignore_case=False)
             [(0, 1, 92), (6, 7, 83)]
         """
         if not isinstance(doc, Doc):
@@ -297,11 +333,11 @@ class FuzzySearcher:
             >>> import spacy
             >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> doc = nlp.make_doc("Patient was prescribed Zithromax tablets.")
             >>> query = nlp.make_doc("zithromax tablet")
-            >>> match_values = {3: 100}
-            >>> fs._adjust_left_right_positions(doc, query, match_values,
+            >>> match_values = {0: 30, 2: 50, 3: 97, 4: 50}
+            >>> searcher._adjust_left_right_positions(doc, query, match_values,
                 pos=3, fuzzy_func="simple", min_r2=70, ignore_case=True,
                 flex=2)
             (3, 5, 97)
@@ -375,11 +411,11 @@ class FuzzySearcher:
         Example:
             >>> import spacy
             >>> from spaczz.fuzz import FuzzySearcher
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> nlp = spacy.blank("en")
             >>> doc = nlp.make_doc("Don't call me Sh1rley.")
             >>> query = nlp.make_doc("Shirley")
-            >>> fs._scan_doc(doc, query,
+            >>> searcher._scan_doc(doc, query,
                 fuzzy_func="simple", min_r1=50,
                 ignore_case=True)
             {4: 86}
@@ -424,9 +460,9 @@ class FuzzySearcher:
             >>> import spacy
             >>> from spaczz.fuzz import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> query = nlp.make_doc("Test query.")
-            >>> fs._calc_flex(query, "default")
+            >>> searcher._calc_flex(query, "default")
             3
         """
         if flex == "default":
@@ -463,9 +499,9 @@ class FuzzySearcher:
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
-            >>> fs = FuzzySearcher()
+            >>> searcher = FuzzySearcher()
             >>> matches = [(1, 3, 80), (1, 2, 70)]
-            >>> fs._filter_overlapping_matches(matches)
+            >>> searcher._filter_overlapping_matches(matches)
             [(1, 3, 80)]
         """
         filtered_matches: List[Tuple[int, int, int]] = []
@@ -496,8 +532,8 @@ class FuzzySearcher:
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
-            >>> fs = FuzzySearcher()
-            >>> fs._indice_maxes({1: 30, 4: 50, 5: 50, 9: 100}, 3)
+            >>> searcher = FuzzySearcher()
+            >>> searcher._indice_maxes({1: 30, 4: 50, 5: 50, 9: 100}, 3)
             [9, 4, 5]
         """
         if n:
@@ -521,8 +557,8 @@ class FuzzySearcher:
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
-            >>> fs = FuzzySearcher()
-            >>> fs._index_max({1:30, 9:100})
+            >>> searcher = FuzzySearcher()
+            >>> searcher._index_max({1:30, 9:100})
             9
         """
         return sorted(match_values, key=lambda x: (-match_values[x], x))[0]

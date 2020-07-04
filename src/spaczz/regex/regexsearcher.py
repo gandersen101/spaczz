@@ -62,6 +62,8 @@ class RegexSearcher:
         produce leading or trailing whitespace. Confirm your regex pattern
         will not do this to avoid this issue.
 
+        To utilize regex flags, use inline flags.
+
         Args:
             doc: Doc object to search over.
             regex_str: A string to be compiled to regex,
@@ -83,9 +85,9 @@ class RegexSearcher:
             >>> import spacy
             >>> from spaczz.regex import RegexSearcher
             >>> nlp = spacy.blank("en")
-            >>> rs = RegexSearcher()
+            >>> searcher = RegexSearcher()
             >>> doc = nlp.make_doc("My phone number is (555) 555-5555.")
-            >>> rs.multi_match(doc, "phones", predef=True)
+            >>> searcher.multi_match(doc, "phones", predef=True)
             [(4, 10)]
         """
         if isinstance(regex_str, str):

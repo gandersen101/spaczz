@@ -68,8 +68,8 @@ class FuzzyConfig:
 
         Example:
             >>> from spaczz.fuzz import FuzzyConfig
-            >>> fc = FuzzyConfig()
-            >>> simple = fc.get_fuzzy_func("simple", False)
+            >>> config = FuzzyConfig()
+            >>> simple = config.get_fuzzy_func("simple", False)
             >>> simple("hi", "hi")
             100
         """

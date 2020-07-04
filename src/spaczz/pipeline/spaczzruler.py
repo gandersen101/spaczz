@@ -4,11 +4,13 @@ from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from pathlib import Path
 from typing import Any, DefaultDict, Dict, Iterable, List, Set, Tuple, Union
+import warnings
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 import srsly
 
+from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher, RegexMatcher
 from ..util import ensure_path, read_from_disk, write_to_disk
 
@@ -33,7 +35,9 @@ class SpaczzRuler:
             and kwargs that should be passed to matching function
             for each labels added.
         defaults: Kwargs to be used as
-            defualt matching settings for the matchers.
+            default matching settings for the matchers.
+            See FuzzySearcher and RegexSearcher documentation
+            for kwarg details.
         fuzzy_matcher: The FuzzyMatcher instance
             the SpaczzRuler will use for fuzzy matching.
         regex_matcher: The RegexMatcher instance
@@ -62,16 +66,19 @@ class SpaczzRuler:
                 SpaczzRuler cfg components include (with "spaczz_" prepended to them):
                 overwrite_ents (bool): Whether to overwrite exisiting Doc.ents
                     with new matches. Default is False.
+                fuzzy_config (Union[str, FuzzyConfig]): Config to use with the
+                    fuzzy matcher. Default is "default". See FuzzyMatcher/FuzzySearcher
+                    documentation for available parameter details.
+                regex_config (Union[str, RegexConfig]): Config to use with the
+                    regex matcher. Default is "default". See RegexMatcher/RegexSearcher
+                    documentation for available parameter details.
                 fuzzy_defaults (Dict[str, Any]): Modified default parameters to use with
                     the fuzzy matcher. Default is an empty dictionary -
                     utilizing defaults.
                 regex_defaults (Dict[str, Any]): Modified default parameters to use with
                     the regex matcher. Default is an empty dictionary -
-                    utilizing defaults.
-                fuzzy_config (Union[str, FuzzyConfig]): Config to use with the
-                    fuzzy matcher. Default is "default".
-                regex_config (Union[str, RegexConfig]): Config to use with the
-                    regex matcher. Default is "default".
+                    utilizing defaults. See RegexMatcher/RegexSearcher documentation
+                    for parameter details.
                 patterns (Iterable[Dict[str, Any]]): Patterns to initialize
                     the ruler with. Default is None.
                 If SpaczzRuler is loaded as part of a model pipeline,
@@ -124,6 +131,18 @@ class SpaczzRuler:
 
         Returns:
             The Doc with added entities, if available.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> doc = nlp.make_doc("My name is Anderson, Grunt")
+            >>> ruler.add_patterns([{"label": "NAME", "pattern": "Grant Andersen",
+                "type": "fuzzy", "kwargs": {"fuzzy_func": "token_sort"}}])
+            >>> doc = ruler(doc)
+            >>> "Anderson, Grunt" in [ent.text for ent in doc.ents]
+            True
         """
         matches = list(self.fuzzy_matcher(doc) + self.regex_matcher(doc))
         unique_matches = set(
@@ -165,6 +184,16 @@ class SpaczzRuler:
 
         Returns:
             The unique string labels as a tuple.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> ruler.labels
+            ('AUTHOR',)
         """
         keys = set(self.fuzzy_patterns.keys())
         keys.update(self.regex_patterns.keys())
@@ -177,6 +206,23 @@ class SpaczzRuler:
         Returns:
             The original patterns and kwargs,
             one dictionary for each combination.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "STREET", "pattern": "street_addresses",
+                "type": "regex", "kwargs": {"predef": True}}])
+            >>> ruler.patterns == [
+                {
+                    "label": "STREET",
+                    "pattern": "street_addresses",
+                    "type": "regex",
+                    "kwargs": {"predef": True},
+                    },
+                    ]
+            True
         """
         all_patterns = []
         for label, patterns in self.fuzzy_patterns.items():
@@ -203,6 +249,9 @@ class SpaczzRuler:
 
         To utilize regex flags, use inline flags.
 
+        See FuzzyMatcher/FuzzySearcher and RegexMatcher/RegexSearcher documentation
+        for details on available kwargs.
+
         Args:
             patterns: The spaczz patterns to add.
 
@@ -210,6 +259,16 @@ class SpaczzRuler:
             TypeError: If patterns is not an iterable of dictionaries.
             ValueError: If one or more patterns do not conform
                 the spaczz pattern structure.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> "AUTHOR" in ruler.labels
+            True
         """
         # disable the nlp components after this one
         # in case they haven't been initialized / deserialised yet
@@ -234,10 +293,16 @@ class SpaczzRuler:
                             fuzzy_pattern_labels.append(entry["label"])
                             fuzzy_pattern_texts.append(entry["pattern"])
                             fuzzy_pattern_kwargs.append(entry.get("kwargs", {}))
-                        if entry["type"] == "regex":
+                        elif entry["type"] == "regex":
                             regex_pattern_labels.append(entry["label"])
                             regex_pattern_texts.append(entry["pattern"])
                             regex_pattern_kwargs.append(entry.get("kwargs", {}))
+                        else:
+                            warnings.warn(
+                                f"""Spaczz pattern "type" must be "fuzzy" or "regex",\n
+                                not {entry["label"]}. Skipping this pattern.""",
+                                PatternTypeWarning,
+                            )
                     else:
                         raise TypeError(
                             f"Patterns must be an iterable of dicts, not type{patterns}"
@@ -285,6 +350,19 @@ class SpaczzRuler:
 
         Returns:
             The loaded spaczz ruler.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> ruler_bytes = ruler.to_bytes()
+            >>> new_ruler = SpaczzRuler(nlp)
+            >>> new_ruler = new_ruler.from_bytes(ruler_bytes)
+            >>> "AUTHOR" in new_ruler
+            True
         """
         cfg = srsly.msgpack_loads(patterns_bytes)
         if isinstance(cfg, dict):
@@ -303,6 +381,17 @@ class SpaczzRuler:
 
         Returns:
             The serialized patterns.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> ruler_bytes = ruler.to_bytes()
+            >>> isinstance(ruler_bytes, bytes)
+            True
         """
         serial = OrderedDict(
             (
@@ -325,6 +414,22 @@ class SpaczzRuler:
 
         Returns:
             The loaded spaczz ruler.
+
+        Example:
+            >>> import os
+            >>> import tempfile
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            >>>     ruler.to_disk(f"{tmpdir}/ruler")
+            >>>     new_ruler = SpaczzRuler(nlp)
+            >>>     new_ruler = new_ruler.from_disk(f"{tmpdir}/ruler")
+            >>> "AUTHOR" in new_ruler
+            True
         """
         path = ensure_path(path)
         depr_patterns_path = path.with_suffix(".jsonl")
@@ -353,6 +458,21 @@ class SpaczzRuler:
         Args:
             path: The JSONL file to save.
             **kwargs: Other config paramters, mostly for consistency.
+
+        Example:
+            >>> import os
+            >>> import tempfile
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy"}])
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            >>>     ruler.to_disk(f"{tmpdir}/ruler")
+            >>>     isdir = os.path.isdir(f"{tmpdir}/ruler")
+            >>> isdir
+            True
         """
         path = ensure_path(path)
         cfg = {"spaczz_overwrite": self.overwrite, "spaczz_defaults": self.defaults}

@@ -19,3 +19,7 @@ class FlexWarning(Warning):
 
 class KwargsWarning(Warning):
     """It warns if there are more kwargs than patterns or vice versa."""
+
+
+class PatternTypeWarning(Warning):
+    """It warns if the spaczz pattern does not have a valid patter type."""

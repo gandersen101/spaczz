@@ -8,6 +8,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from spaczz.exceptions import PatternTypeWarning
 from spaczz.pipeline.spaczzruler import SpaczzRuler
 
 
@@ -86,6 +87,13 @@ def test_add_patterns_raises_error_pattern_not_iter_of_dict(nlp: Language) -> No
         sr.add_patterns({"label": "GPE", "pattern": "Montana"})
 
 
+def test_add_patterns_warns_if_spaczz_type_unrecognized(nlp: Language,) -> None:
+    """It raises a ValueError if patterns not correct format."""
+    sr = SpaczzRuler(nlp)
+    with pytest.warns(PatternTypeWarning):
+        sr.add_patterns([{"label": "GPE", "pattern": "Montana", "type": "invalid"}])
+
+
 def test_add_patterns_with_other_pipeline_components(
     patterns: List[Dict[str, Any]]
 ) -> None:
@@ -129,7 +137,7 @@ def test_entities_that_would_overlap_keeps_longer_earlier_match(
 ) -> None:
     """It matches the longest/earliest entities."""
     sr = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    sr.add_patterns([{"label": "TEST", "pattern": "Fake", "type": "FUZZY"}])
+    sr.add_patterns([{"label": "TEST", "pattern": "Fake", "type": "fuzzy"}])
     doc = sr(doc)
     assert "FAKE" not in [ent.label_ for ent in doc.ents]
 
@@ -200,8 +208,8 @@ def test_spaczz_ruler_to_from_disk(
         ruler.to_disk(f"{tmpdir}/ruler")
         assert os.path.isdir(f"{tmpdir}/ruler")
         new_ruler = SpaczzRuler(nlp)
-        new_ruler.from_disk(f"{tmpdir}/ruler")
-        assert len(new_ruler) == len(patterns)
+        new_ruler = new_ruler.from_disk(f"{tmpdir}/ruler")
+    assert len(new_ruler) == len(patterns)
     assert len(new_ruler.labels) == 4
     assert len(new_ruler.patterns) == len(ruler.patterns)
     for pattern in ruler.patterns:
@@ -221,8 +229,8 @@ def test_spaczz_patterns_to_from_disk(
         ruler.to_disk(f"{tmpfile}.jsonl")
         assert os.path.isfile(f"{tmpfile}.jsonl")
         new_ruler = SpaczzRuler(nlp)
-        new_ruler.from_disk(f"{tmpfile}.jsonl")
-        assert len(new_ruler) == len(patterns)
+        new_ruler = new_ruler.from_disk(f"{tmpfile}.jsonl")
+    assert len(new_ruler) == len(patterns)
     assert len(new_ruler.labels) == 4
     assert len(new_ruler.patterns) == len(ruler.patterns)
     for pattern in ruler.patterns:
