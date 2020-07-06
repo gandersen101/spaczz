@@ -1,13 +1,14 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.1.0"
+version = "0.1.1"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/<gandersen101/spaczz"
+homepage = "https://github.com/gandersen101/spaczz"
 repository = "https://github.com/gandersen101/spaczz"
 keywords = ["fuzzy matching", "spacy", "fuzzywuzzy"]
 authors = ["Grant Andersen <gandersen.codes@gmail.com>"]
+documentation = "https://spaczz.readthedocs.io"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -15,6 +16,7 @@ spacy = "^2.2.0"
 fuzzywuzzy = "^0.18.0"
 python-Levenshtein = {version = "^0.12.0", optional = true}
 regex = "^2020.6.8"
+importlib_metadata = {version = "^1.7.0", python = "<3.8"}
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.3"

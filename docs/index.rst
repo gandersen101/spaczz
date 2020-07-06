@@ -24,7 +24,7 @@ Spaczz can be installed using pip. It is strongly recommended that the
 “fast” extra is installed. This installs the optional python-Levenshtein
 package which speeds up fuzzywuzzy’s fuzzy matching by 4-10x.
 
-.. code:: ipython3
+.. code:: Python
 
     # Basic Install
     pip install spaczz
@@ -35,6 +35,6 @@ package which speeds up fuzzywuzzy’s fuzzy matching by 4-10x.
 If you decide to install the optional python-Levenshtein package later
 simply pip install it when desired.
 
-.. code:: ipython3
+.. code:: Python
 
     pip install python-Levenshtein
