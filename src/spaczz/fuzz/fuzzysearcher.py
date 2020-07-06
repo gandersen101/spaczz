@@ -70,8 +70,9 @@ class FuzzySearcher:
             doc: Doc object to search over.
             query: Doc object to fuzzy match against doc.
             fuzzy_func: Key name of fuzzy matching function to use.
+                The default is "simple".
                 All fuzzywuzzy matching functions with default settings
-                are available:
+                are included:
                 "simple" = fuzz.ratio
                 "partial" = fuzz.partial_ratio
                 "token_set" = fuzz.token_set_ratio
@@ -82,7 +83,6 @@ class FuzzySearcher:
                 "u_quick" = fuzz.UQRatio
                 "weighted" = fuzz.WRatio
                 "u_weighted" = fuzz.UWRatio
-                Default is "simple".
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general

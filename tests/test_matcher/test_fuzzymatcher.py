@@ -12,7 +12,7 @@ from spaczz.matcher.fuzzymatcher import FuzzyMatcher
 def add_name_ent(
     matcher: FuzzyMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
 ) -> None:
-    """Callback on match function for later testing. Adds "NAME" entities to doc."""
+    """Callback on match function. Adds "NAME" entities to doc."""
     match_id, start, end = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)

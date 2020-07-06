@@ -245,7 +245,7 @@ class SpaczzRuler:
         A pattern must be a spaczz pattern:
         {label (str), pattern (str), type (str), and optional kwargs (Dict[str, Any])}.
         For example:
-        {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
+        {"label": "ORG", "pattern": "Apple", "type": "fuzzy", "kwargs": {"min_r2": 90}}
 
         To utilize regex flags, use inline flags.
 

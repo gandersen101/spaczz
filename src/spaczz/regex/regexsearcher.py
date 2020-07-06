@@ -74,6 +74,23 @@ class RegexSearcher:
                 Default is True.
             predef: Whether regex should be interpreted as a key to
                 a predefined regex pattern or not. Default is False.
+                The included regexes are:
+                "dates"
+                "times"
+                "phones"
+                "phones_with_exts"
+                "links"
+                "emails"
+                "ips"
+                "ipv6s"
+                "prices"
+                "hex_colors"
+                "credit_cards"
+                "btc_addresses"
+                "street_addresses"
+                "zip_codes"
+                "po_boxes"
+                "ssn_number".
 
         Returns:
             A list of span start index and end index pairs as tuples.

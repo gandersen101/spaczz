@@ -42,6 +42,9 @@ sphinx-autobuild = "^0.7.1"
 [tool.poetry.extras]
 fast = ["python-Levenshtein"]
 
+[tool.poetry.plugins."spacy_factories"]
+"spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
+
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
 
