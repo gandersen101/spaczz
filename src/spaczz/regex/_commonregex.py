@@ -1,10 +1,10 @@
 """Module for commonly used regex patterns."""
-import re
+import regex
 
 
 _commonregex = {
-    "dates": re.compile(
-        r"""(?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?
+    "dates": regex.compile(
+        r"""(?ix)(?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?
         (?:jan\.?|january|feb\.?|february|mar\.?|march|apr\.?|april|may
         |jun\.?|june|jul\.?|july|aug\.?|august|sep\.?|september|oct\.?
         |october|nov\.?|november|dec\.?|december)|(?:jan\.?|january|feb\.?
@@ -12,27 +12,22 @@ _commonregex = {
         |august|sep\.?|september|oct\.?|october|nov\.?|november|dec\.?|december)
         \s+(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?)(?:\,)?\s*(?:\d{4})?
         |[0-3]?\d[-\./][0-3]?\d[-\./]\d{2,4}""",
-        re.IGNORECASE | re.VERBOSE,
     ),
-    "times": re.compile(
-        r"\d{1,2}:\d{2} ?(?:[ap]\.?m\.?)?|\d[ap]\.?m\.?", re.IGNORECASE
-    ),
-    "phones": re.compile(
-        r"""((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d
+    "times": regex.compile(r"(?i)\d{1,2}:\d{2} ?(?:[ap]\.?m\.?)?|\d[ap]\.?m\.?",),
+    "phones": regex.compile(
+        r"""(?ix)((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d
         {3}[-.\s*]?\d{4}(?![\d-]))|(?:(?<![\d-])(?:(?:\(\+?\d{2}\))|(?:\+?\d
-        {2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))""",
-        re.VERBOSE,
+        {2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))"""
     ),
-    "phones_with_exts": re.compile(
-        r"""((?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*(?:[2-9]1[02-9]|[2-9][02-8]1
+    "phones_with_exts": regex.compile(
+        r"""(?ix)((?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*(?:[2-9]1[02-9]|[2-9][02-8]1
         |[2-9][02-8][02-9])\s*\)|(?:[2-9]1[02-9]|[2-9][02-8]1
         |[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?(?:[2-9]1[02-9]|[2-9][02-9]1
         |[2-9][02-9]{2})\s*(?:[.-]\s*)?(?:[0-9]{4})
         (?:\s*(?:\#|x\.?|ext\.?|extension)\s*(?:\d+)?))""",
-        re.IGNORECASE | re.VERBOSE,
     ),
-    "links": re.compile(
-        r"""(?i)((?:https?://|www\d{0,3}[.])?[a-z0-9.\-]+[.](?:(?:international)|
+    "links": regex.compile(
+        r"""(?ix)((?:https?://|www\d{0,3}[.])?[a-z0-9.\-]+[.](?:(?:international)|
         (?:construction)|(?:contractors)|(?:enterprises)|(?:photography)|(?:immobilien)
         |(?:management)|(?:technology)|(?:directory)|(?:education)|(?:equipment)|
         (?:institute)|(?:marketing)|(?:solutions)|(?:builders)|(?:clothing)|(?:computer)
@@ -74,47 +69,44 @@ _commonregex = {
         |(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)
         |(?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))
         (?:/[^\s()<>]+[^\s`!()\[\]{};:'\".,<>?\xab\xbb\u201c\u201d\u2018\u2019])?)""",
-        re.IGNORECASE | re.VERBOSE,
     ),
-    "emails": re.compile(
-        r"""([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]
+    "emails": regex.compile(
+        r"""(?ix)([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]
         *[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)""",
-        re.IGNORECASE | re.VERBOSE,
     ),
-    "ips": re.compile(
-        r"""(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
+    "ips": regex.compile(
+        r"""(?ix)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
         (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
         \.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.
         (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)""",
-        re.IGNORECASE | re.VERBOSE,
     ),
-    "ipv6s": re.compile(
-        r"""\s*(?!.*::.*::)(?:(?!:)|:(?=:))(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):))
+    "ipv6s": regex.compile(
+        r"""(?isx)\s*(?!.*::.*::)(?:(?!:)|:(?=:))(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):))
         {6}(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):)[0-9a-f]{0,4}(?:(?<=::)|(?<!:)
         |(?<=:)(?<!::):)|(?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-4]
         |2[0-4]\d|1\d\d|[1-9]?\d)){3})\s*""",
-        re.VERBOSE | re.IGNORECASE | re.DOTALL,
     ),
-    "prices": re.compile(r"[$]\s?[+-]?[0-9]{1,3}(?:(?:,?[0-9]{3}))*(?:\.[0-9]{1,2})?"),
-    "hex_colors": re.compile(r"(#(?:[0-9a-fA-F]{8})|#(?:[0-9a-fA-F]{3}){1,2})\\b"),
-    "credit_cards": re.compile(r"((?:(?:\\d{4}[- ]?){3}\\d{4}|\\d{15,16}))(?![\\d])"),
-    "btc_addresses": re.compile(
-        r"""(?<![a-km-zA-HJ-NP-Z0-9])[13][a-km-zA-HJ-NP-Z0-9]
+    "prices": regex.compile(
+        r"[$]\s?[+-]?[0-9]{1,3}(?:(?:,?[0-9]{3}))*(?:\.[0-9]{1,2})?"
+    ),
+    "hex_colors": regex.compile(r"(#(?:[0-9a-fA-F]{8})|#(?:[0-9a-fA-F]{3}){1,2})\\b"),
+    "credit_cards": regex.compile(
+        r"((?:(?:\\d{4}[- ]?){3}\\d{4}|\\d{15,16}))(?![\\d])"
+    ),
+    "btc_addresses": regex.compile(
+        r"""(?x)(?<![a-km-zA-HJ-NP-Z0-9])[13][a-km-zA-HJ-NP-Z0-9]
         {26,33}(?![a-km-zA-HJ-NP-Z0-9])""",
-        re.VERBOSE,
     ),
-    "street_addresses": re.compile(
-        r"""\d{1,4} [\w\s]{1,20}(?:street|st|avenue
+    "street_addresses": regex.compile(
+        r"""(?ix)\d{1,4}[\w\s]{1,20}(?:street|st|avenue
         |ave|road|rd|highway|hwy|square|sq|trail|trl
         |drive|dr|court|ct|park|parkway|pkwy|circle
-        |cir|boulevard|blvd)\W?(?=\s|$)""",
-        re.IGNORECASE | re.VERBOSE,
+        |cir|boulevard|blvd|lane|ln)\W?(?=\s|$)""",
     ),
-    "zip_codes": re.compile(r"\b\d{5}(?:[-\s]\d{4})?\b"),
-    "po_boxes": re.compile(r"P\.? ?O\.? Box \d+", re.IGNORECASE),
-    "ssn_number": re.compile(
-        r"""(?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]
+    "zip_codes": regex.compile(r"\b\d{5}(?:[-\s]\d{4})?\b"),
+    "po_boxes": regex.compile(r"(?i)P\.? ?O\.? Box \d+"),
+    "ssn_number": regex.compile(
+        r"""(?x)(?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]
         |[0-7][0-7][0-2])[- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}""",
-        re.VERBOSE,
     ),
 }

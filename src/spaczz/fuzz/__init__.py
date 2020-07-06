@@ -1,6 +1,6 @@
 """Module for fuzzy matching components."""
 from .fuzzyconfig import FuzzyConfig
-from .fuzzysearch import FuzzySearch
+from .fuzzysearcher import FuzzySearcher
 
 
-__all__ = ["FuzzyConfig", "FuzzySearch"]
+__all__ = ["FuzzyConfig", "FuzzySearcher"]

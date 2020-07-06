@@ -1,5 +1,6 @@
 """Module for regex components."""
-from .regexsearch import RegexConfig, RegexSearch
+from .regexconfig import RegexConfig
+from .regexsearcher import RegexSearcher
 
 
-__all__ = ["RegexConfig", "RegexSearch"]
+__all__ = ["RegexConfig", "RegexSearcher"]

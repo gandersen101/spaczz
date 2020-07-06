@@ -5,11 +5,13 @@ from collections import defaultdict
 from typing import (
     Any,
     Callable,
+    DefaultDict,
     Dict,
     Generator,
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -18,27 +20,26 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..regex import RegexConfig, RegexSearch
+from ..exceptions import KwargsWarning
+from ..regex import RegexConfig, RegexSearcher
 
 
-class RegexMatcher(RegexSearch):
+class RegexMatcher(RegexSearcher):
     """spaCy-like matcher for finding multi-token regex matches in Doc objects.
 
     Matches added patterns against the Doc object it is called on.
     Accepts labeled regex patterns in the form of strings.
 
     Attributes:
-        name (str): Class attribute - the name of the matcher.
-        defaults (Dict[str, Any]): Kwargs to be used as
-            defualt regex matching settings for the
-            instance of RegexMatcher.
-        _callbacks (Dict[str, Callable[[RegexMatcher, Doc, int, List], None]]):
+        name: Class attribute - the name of the matcher.
+        defaults: Kwargs to be used as default regex matching settings
+            for the regex matcher. Apply to inherited multi_match method.
+        _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the regex matches identified.
-        _config (RegexConfig): The RegexConfig object tied to an instance
+        _config: The RegexConfig object tied to an instance
             of RegexMatcher.
-        _patterns (DefaultDict[str, DefaultDict[str,
-            Union[List[str], List[Dict[str, Any]]]]]):
+        _patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
             for each labels added.
@@ -70,8 +71,16 @@ class RegexMatcher(RegexSearch):
         """
         super().__init__(config)
         self.defaults = defaults
-        self._callbacks = {}
-        self._patterns = defaultdict(lambda: defaultdict(list))
+        self._callbacks: Dict[
+            str,
+            Union[
+                Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None],
+                None,
+            ],
+        ] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+            lambda: defaultdict(list)
+        )  # Not sure why mypy complains when this is typed like fuzzymatcher._patterns.
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
         r"""Find all sequences matching the supplied patterns in the Doc.
@@ -86,10 +95,10 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
+            >>> matcher = RegexMatcher(nlp.vocab)
             >>> doc = nlp.make_doc("I live in the united states, or the US")
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> rm(doc)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> matcher(doc)
             [('GPE', 4, 6), ('GPE', 9, 10)]
         """
         matches = set()
@@ -105,12 +114,15 @@ class RegexMatcher(RegexSearch):
                     ]
                     for match in matches_w_label:
                         matches.add(match)
-        matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
-        for i, (label, _start, _end) in enumerate(matches):
-            on_match = self._callbacks.get(label)
-            if on_match:
-                on_match(self, doc, i, matches)
-        return matches
+        if matches:
+            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
+            for i, (label, _start, _end) in enumerate(sorted_matches):
+                on_match = self._callbacks.get(label)
+                if on_match:
+                    on_match(self, doc, i, sorted_matches)
+            return sorted_matches
+        else:
+            return []
 
     def __contains__(self, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
@@ -131,9 +143,9 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("ZIP", ["zip_codes"], [{"predef": True}])
-            >>> rm.labels
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("ZIP", ["zip_codes"], [{"predef": True}])
+            >>> matcher.labels
             ('ZIP',)
         """
         return tuple(self._patterns.keys())
@@ -150,9 +162,9 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("ZIP", ["zip_codes"], [{"predef": True}])
-            >>> rm.patterns == [
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("ZIP", ["zip_codes"], [{"predef": True}])
+            >>> matcher.patterns == [
                 {
                     "label": "ZIP",
                     "pattern": "zip_codes",
@@ -174,21 +186,26 @@ class RegexMatcher(RegexSearch):
     def add(
         self,
         label: str,
-        patterns: Iterable[str],
-        kwargs: Optional[Dict[str, Any]] = None,
-        on_match: Optional[Callable[[RegexMatcher, Doc, int, List], None]] = None,
+        patterns: Sequence[str],
+        kwargs: Optional[List[Dict[str, Any]]] = None,
+        on_match: Optional[
+            Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+        ] = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
         Patterns must be a list of strings and if kwargs is not None,
         kwargs must be a list of dictionaries.
 
+        To utilize regex flags, use inline flags.
+
         Args:
             label: Name of the rule added to the matcher.
             patterns: Strings that will be matched against
                 the Doc object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior
-                of the regex matching. Default is None.
+            kwargs: Optional arguments to modify the behavior of the regex matching.
+                Apply to inherited multi_match method.
+                Default is None.
             on_match: Optional callback function to modify the
                 Doc objec the matcher is called on after matching.
                 Default is None.
@@ -210,27 +227,25 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> "GPE" in rm
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> "GPE" in matcher
             True
         """
         if kwargs is None:
             kwargs = [{} for p in patterns]
         elif len(kwargs) < len(patterns):
             warnings.warn(
-                (
-                    "There are more patterns then there are kwargs.",
-                    "Patterns not matched to a kwarg dict will have default settings.",
-                )
+                """There are more patterns then there are kwargs.\n
+                    Patterns not matched to a kwarg dict will have default settings.""",
+                KwargsWarning,
             )
             kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
             warnings.warn(
-                (
-                    "There are more kwargs dicts than patterns.",
-                    "The extra kwargs will be ignored.",
-                )
+                """There are more kwargs dicts than patterns.\n
+                    The extra kwargs will be ignored.""",
+                KwargsWarning,
             )
         if isinstance(patterns, str):
             raise TypeError("Patterns must be a non-string iterable of strings.")
@@ -258,10 +273,10 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> rm.remove("GPE")
-            >>> "GPE" in rm
+            >>> matcher = RegexMatcher(nlp.vocab)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> matcher.remove("GPE")
+            >>> "GPE" in matcher
             False
         """
         try:
@@ -300,13 +315,13 @@ class RegexMatcher(RegexSearch):
             >>> import spacy
             >>> from spaczz.matcher import RegexMatcher
             >>> nlp = spacy.blank("en")
-            >>> rm = RegexMatcher(nlp.vocab)
+            >>> matcher = RegexMatcher(nlp.vocab)
             >>> doc_stream = (
                     nlp.make_doc("test doc1: United States"),
                     nlp.make_doc("test doc2: US"),
                 )
-            >>> rm.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> output = rm.pipe(doc_stream, return_matches=True)
+            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
+            >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
             [[('GPE', 3, 5)], [('GPE', 3, 4)]]
         """
