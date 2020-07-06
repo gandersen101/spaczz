@@ -4,7 +4,7 @@
 
 # spaczz: Fuzzy matching and more for spaCy
 
-Spaczz provides fuzzy matching and multi-token regex matching functionality to [spaCy](https://spacy.io/).
+Spaczz provides fuzzy matching and multi-token regex matching functionality for [spaCy](https://spacy.io/).
 Spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
 
 Fuzzy matching is currently performed with matchers from [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
@@ -152,7 +152,7 @@ for match_id, start, end in matches:
 
 The full list of keyword arguments available for fuzzy matching rules includes:
 
-- fuzzy_func: Key name of fuzzy matching function to use. All fuzzywuzzy matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
+- *fuzzy_func*: Key name of fuzzy matching function to use. All fuzzywuzzy matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
     - "simple" = fuzz.ratio
     - "partial" = fuzz.partial_ratio
     - "token_set" = fuzz.token_set_ratio
@@ -163,10 +163,10 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "u_quick" = fuzz.UQRatio
     - "weighted" = fuzz.WRatio
     - "u_weighted" = fuzz.UWRatio
-- ignore_case: If strings should be lower-cased before fuzzy matching or not. Default is True.
-- min_r1: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than min_r2 and "low" in general because match span boundaries are not flexed initially. 0 means all spans of query length in doc will have their boundaries flexed and will be recompared during match optimization. Lower min_r1 will result in more fine-grained matching but will run slower. Default is 25.
-- min_r2: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
-- flex: Number of tokens to move match span boundaries left and right during match optimization. Default is "default".
+- *ignore_case*: If strings should be lower-cased before fuzzy matching or not. Default is True.
+- *min_r1*: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than min_r2 and "low" in general because match span boundaries are not flexed initially. 0 means all spans of query length in doc will have their boundaries flexed and will be recompared during match optimization. Lower min_r1 will result in more fine-grained matching but will run slower. Default is 25.
+- *min_r2*: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
+- *flex*: Number of tokens to move match span boundaries left and right during match optimization. Default is "default".
 
 ### Regex Matcher
 
@@ -227,10 +227,10 @@ for match_id, start, end in matches:
 
 The full list of keyword arguments available for regex matching rules includes:
 
-- partial: Whether partial matches should be extended to existing span boundaries in doc or not, i.e. the regex only matches part of a token or span. Default is True.
-- predef: Whether regex should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
+- *partial*: Whether partial matches should be extended to existing span boundaries in doc or not, i.e. the regex only matches part of a token or span. Default is True.
+- *predef*: Whether regex should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
     - "dates"
-    -  "times"
+    - "times"
     - "phones"
     - "phones_with_exts"
     - "links"
@@ -426,7 +426,7 @@ spaczz_ruler.patterns
 
 ## Limitations
 
-Spaczz is written in pure Python which means following it's logic should be easy to those familiar with Python. It's matchers also do not currently utilize spaCy language vocabularies. Overall, this means spaczz components will run slower and consume more memory than their spaCy counterparts, especially as more patterns are added and documents get longer. It is therefore recommended to use spaCy tools like the EntityRuler for entities that will not contain uncertainty like spelling errors. Use spaczz when there are not a viable spaCy alternatives.
+Spaczz is written in pure Python which means following it's logic should be easy to those familiar with Python. It's matchers also do not currently utilize spaCy language vocabularies. Overall, this means spaczz components will run slower and consume more memory than their spaCy counterparts, especially as more patterns are added and documents get longer. It is therefore recommended to use spaCy tools like the EntityRuler for entities that will not contain uncertainty, like spelling errors. Use spaczz when there are not viable spaCy alternatives.
 
 ## Future State
 
@@ -444,7 +444,7 @@ Wishful thinking:
 
 Pull requests and contributors are welcome.
 
-spaczz is linted with [Flake8](https://flake8.pycqa.org/en/latest/), formatted with [Black](https://black.readthedocs.io/en/stable/), type-checked with [MyPy](http://mypy-lang.org/) (although this could benefit from improved specificity), tested with [Pytest](https://docs.pytest.org/en/stable/), automated with [Nox](https://nox.thea.codes/en/stable/), and built/packaged with [Poetry](https://python-poetry.org/). There are a few other development tools detailed in the noxfile.py.
+spaczz is linted with [Flake8](https://flake8.pycqa.org/en/latest/), formatted with [Black](https://black.readthedocs.io/en/stable/), type-checked with [MyPy](http://mypy-lang.org/) (although this could benefit from improved specificity), tested with [Pytest](https://docs.pytest.org/en/stable/), automated with [Nox](https://nox.thea.codes/en/stable/), and built/packaged with [Poetry](https://python-poetry.org/). There are a few other development tools detailed in the noxfile.py, along with Git pre-commit hooks.
 
 To contribute to spaczz's development clone the repository then install spaczz and it's dev dependencies with Poetry.
 
