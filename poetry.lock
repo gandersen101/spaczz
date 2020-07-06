@@ -1119,7 +1119,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 fast = ["python-Levenshtein"]
 
 [metadata]
-content-hash = "a14aa06c96e2b37d977a1cd2ffd8e38443affbc0ae321c0104154bd1ccd28836"
+content-hash = "ad41665cd04200eb981314b5a3c2fdc5216a148d9bfa7ce6e978bdfafa3c53a2"
 python-versions = "^3.7"
 
 [metadata.files]
