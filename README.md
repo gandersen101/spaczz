@@ -186,7 +186,7 @@ doc = nlp(text)
 matcher = RegexMatcher(nlp.vocab)
 # Use inline flags for regex strings as needed
 matcher.add("APT", [r"""(?ix)((?:apartment|apt|building|bldg|floor|fl|suite|ste|unit
-|room|rm|department|dept|row|rw)s?\.?\s?)#?\d{1,4}\s?&?\s?\d{1,4})"""]) # Not the most robust regex.
+|room|rm|department|dept|row|rw)\.?\s?)#?\d{1,4}[a-z]?"""]) # Not the most robust regex.
 matcher.add("GPE", [r"(?i)[U](nited|\.?) ?[S](tates|\.?)"])
 matches = matcher(doc)
 
@@ -273,7 +273,7 @@ patterns = [
     {"label": "NAME", "pattern": "Grant Andersen", "type": "fuzzy", "kwargs": {"fuzzy_func": "token_sort"}},
     {"label": "STREET", "pattern": "street_addresses", "type": "regex", "kwargs": {"predef": True}},
     {"label": "GPE", "pattern": "Nashville", "type": "fuzzy"},
-    {"label": "ZIP", "pattern": r"\b(?:55554){s<=1}(?:[-\s]\d{4})?\b", "type": "regex"}, # fuzzy regex
+    {"label": "ZIP", "pattern": r"\b(?:55554){s<=1}(?:(?:[-\s])?\d{4}\b)", "type": "regex"}, # fuzzy regex
     {"label": "GPE", "pattern": "(?i)[U](nited|\.?) ?[S](tates|\.?)", "type": "regex"}
 ]
 
