@@ -13,7 +13,7 @@ Fuzzy matching is currently performed with matchers from [fuzzywuzzy](https://gi
 Spaczz has been tested on Ubuntu-18.04 and macos-10.15. It has not been tested on Windows yet but it should still work there.
 
 <h1>Table of Contents<span class="tocSkip"></span></h1>
-<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#Fuzzy-Matcher" data-toc-modified-id="Fuzzy-Matcher-2.1">Fuzzy Matcher</a></span></li><li><span><a href="#Regex-Matcher" data-toc-modified-id="Regex-Matcher-2.2">Regex Matcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.3">SpaczzRuler</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.4">Saving/Loading</a></span></li></ul></li><li><span><a href="#Limitations" data-toc-modified-id="Limitations-3">Limitations</a></span></li><li><span><a href="#Future-State" data-toc-modified-id="Future-State-4">Future State</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
+<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#FuzzyMatcher" data-toc-modified-id="FuzzyMatcher-2.1">FuzzyMatcher</a></span></li><li><span><a href="#RegexMatcher" data-toc-modified-id="RegexMatcher-2.2">RegexMatcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.3">SpaczzRuler</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.4">Saving/Loading</a></span></li></ul></li><li><span><a href="#Limitations" data-toc-modified-id="Limitations-3">Limitations</a></span></li><li><span><a href="#Future-State" data-toc-modified-id="Future-State-4">Future State</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
 
 ## Installation
 
@@ -37,9 +37,9 @@ pip install python-Levenshtein
 
 ## Basic Usage
 
-Spaczz's primary features are a fuzzy and regex matcher that function similarily to spaCy's phrase and token matchers and the spaczz ruler that integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
+Spaczz's primary features are a fuzzy and regex matcher that function similarily to spaCy's phrase and token matchers, and the spaczz ruler which integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
 
-### Fuzzy Matcher
+### FuzzyMatcher
 
 The basic usage of the fuzzy matcher is similar to spaCy's phrase matcher.
 
@@ -102,7 +102,7 @@ for ent in doc.ents:
     ('Grint Anderson', 0, 2, 'NAME')
 
 
-Like spaCy's EntityRuler, a very similar logic has been implemented in the SpaczzRuler. The SpaczzRuler also takes care of handling overlapping matches. It is discussed in a later section.
+Like spaCy's EntityRuler, a very similar entity updating logic has been implemented in the SpaczzRuler. The SpaczzRuler also takes care of handling overlapping matches. It is discussed in a later section.
 
 Unlike spaCy's matchers, rules added to spaczz matchers have optional keyword arguments that can modify the matching behavior. Take the below fuzzy matching example:
 
@@ -169,7 +169,7 @@ The full list of keyword arguments available for fuzzy matching rules includes:
 - *min_r2*: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
 - *flex*: Number of tokens to move match span boundaries left and right during match optimization. Default is "default".
 
-### Regex Matcher
+### RegexMatcher
 
 The basic usage of the regex matcher is also fairly similar to spaCy's phrase matcher. It accepts regex patterns as strings so flags must be inline. Regexes are compiled with the [regex](https://github.com/seatgeek/fuzzywuzzy) package so approximate fuzzy matching is supported.
 
@@ -200,7 +200,7 @@ for match_id, start, end in matches:
 
 Spaczz matchers can also make use of on match rules via callback functions. These on match callbacks need to accept the matcher itself, the doc the matcher was called on, the match index and the matches produced by the matcher. See the fuzzy matcher usage example for details.
 
-Like the fuzzy matcher, the regex matcher have optional keyword arguments that can modify matching behavior. Take the below regex matching example.
+Like the fuzzy matcher, the regex matcher has optional keyword arguments that can modify matching behavior. Take the below regex matching example.
 
 
 ```python
@@ -229,7 +229,7 @@ for match_id, start, end in matches:
 The full list of keyword arguments available for regex matching rules includes:
 
 - *partial*: Whether partial matches should be extended to existing span boundaries in doc or not, i.e. the regex only matches part of a token or span. Default is True.
-- *predef*: Whether regex should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
+- *predef*: Whether the regex string should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
     - "dates"
     - "times"
     - "phones"
@@ -253,7 +253,7 @@ The above patterns are the same that the [commonregex](https://github.com/madiso
 
 The spaczz ruler combines the fuzzy matcher and regex matcher into one pipeline component that can update a docs entities similar to spaCy's entity ruler.
 
-Patterns must be added as an iterable of dictionaries in the format of {label (str), pattern(str), type(str), and optional kwargs (dict).
+Patterns must be added as an iterable of dictionaries in the format of {label (str), pattern(str), type(str), and optional kwargs (dict)}.
 
 For example:
 
@@ -320,9 +320,9 @@ for ent in doc.ents:
     ('USA', 25, 26, 'GPE')
 
 
-While spaCy does a decent job of identifying most of the named entities present in this example, we can definitely improve the matches - particularly with the kind of labels applied.
+While spaCy does a decent job of identifying that named entities are present in this example, we can definitely improve the matches - particularly with the kind of labels applied.
 
-Let's add an entity ruler for some rules matches.
+Let's add an entity ruler for some rules-based matches.
 
 
 ```python
@@ -427,7 +427,7 @@ spaczz_ruler.patterns
 
 ## Limitations
 
-Spaczz is written in pure Python which means following it's logic should be easy to those familiar with Python. It's matchers also do not currently utilize spaCy language vocabularies. Overall, this means spaczz components will run slower and consume more memory than their spaCy counterparts, especially as more patterns are added and documents get longer. It is therefore recommended to use spaCy tools like the EntityRuler for entities that will not contain uncertainty, like spelling errors. Use spaczz when there are not viable spaCy alternatives.
+Spaczz is written in pure Python and it's matchers do not currently utilize spaCy lanuage vocabularies, which means following it's logic should be easy to those familiar with Python. However, this means spaczz components will run slower and likely consume more memory than their spaCy counterparts, especially as more patterns are added and documents get longer. It is therefore recommended to use spaCy components like the EntityRuler for entities that with little uncertainty, like spelling errors. Use spaczz components when there are not viable spaCy alternatives.
 
 ## Future State
 
@@ -447,7 +447,7 @@ Pull requests and contributors are welcome.
 
 spaczz is linted with [Flake8](https://flake8.pycqa.org/en/latest/), formatted with [Black](https://black.readthedocs.io/en/stable/), type-checked with [MyPy](http://mypy-lang.org/) (although this could benefit from improved specificity), tested with [Pytest](https://docs.pytest.org/en/stable/), automated with [Nox](https://nox.thea.codes/en/stable/), and built/packaged with [Poetry](https://python-poetry.org/). There are a few other development tools detailed in the noxfile.py, along with Git pre-commit hooks.
 
-To contribute to spaczz's development clone the repository then install spaczz and it's dev dependencies with Poetry.
+To contribute to spaczz's development fork the repository then install spaczz and it's dev dependencies with Poetry. If you're interested in being a regular contributor please contact me directly.
 
 
 ```python
