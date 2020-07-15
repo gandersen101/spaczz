@@ -37,7 +37,7 @@ pip install python-Levenshtein
 
 ## Basic Usage
 
-Spaczz's primary features are a fuzzy and regex matcher that function similarily to spaCy's phrase and token matchers, and the spaczz ruler which integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
+Spaczz's primary features are fuzzy and regex matchers that function similarily to spaCy's phrase and token matchers, and the spaczz ruler which integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
 
 ### FuzzyMatcher
 
@@ -434,7 +434,7 @@ Spaczz is written in pure Python and it's matchers do not currently utilize spaC
 1. API support for adding user-defined regexes to the predefined regex.
     1. Saving these additional predefined regexes as part of the SpaczzRuler will also be supported.
 2. API support for adding user-defined fuzzy matching functions.
-    2. Custom fuzzy matching functions will likely have to be re-added to a loaded SpaczzRuler as saving/loading them will not be straightforward.
+    1. Custom fuzzy matching functions will likely have to be re-added to a loaded SpaczzRuler as saving/loading them will not be straightforward.
 
 Wishful thinking:
 
