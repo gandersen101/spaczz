@@ -8,7 +8,7 @@
 Spaczz provides fuzzy matching and multi-token regex matching functionality for [spaCy](https://spacy.io/).
 Spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
 
-Fuzzy matching is currently performed with matchers from [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
+Fuzzy matching is currently performed with matchers from [raipdfuzz](https://github.com/maxbachmann/rapidfuzz)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
 
 Spaczz has been tested on Ubuntu-18.04 and macos-10.15. It has not been tested on Windows yet but it should still work there.
 
@@ -17,22 +17,11 @@ Spaczz has been tested on Ubuntu-18.04 and macos-10.15. It has not been tested o
 
 ## Installation
 
-Spaczz can be installed using pip. It is strongly recommended that the "fast" extra is installed. This installs the optional python-Levenshtein package which speeds up fuzzywuzzy's fuzzy matching by 4-10x.
+Spaczz can be installed using pip.
 
 
 ```python
-# Basic Install
 pip install spaczz
-
-# Install with python-Levenshtein
-pip install "spaczz[fast]"
-```
-
-If you decide to install the optional python-Levenshtein package later simply pip install it when desired.
-
-
-```python
-pip install python-Levenshtein
 ```
 
 ## Basic Usage
@@ -153,7 +142,7 @@ for match_id, start, end in matches:
 
 The full list of keyword arguments available for fuzzy matching rules includes:
 
-- *fuzzy_func*: Key name of fuzzy matching function to use. All fuzzywuzzy matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
+- *fuzzy_func*: Key name of fuzzy matching function to use. All rapidfuzz matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
     - "simple" = fuzz.ratio
     - "partial" = fuzz.partial_ratio
     - "token_set" = fuzz.token_set_ratio
@@ -161,9 +150,8 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "partial_token_set" = fuzz.partial_token_set_ratio
     - "partial_token_sort" = fuzz.partial_token_sort_ratio
     - "quick" = fuzz.QRatio
-    - "u_quick" = fuzz.UQRatio
     - "weighted" = fuzz.WRatio
-    - "u_weighted" = fuzz.UWRatio
+    - "quick_lev" = fuzz.quick_lev_ratio
 - *ignore_case*: If strings should be lower-cased before fuzzy matching or not. Default is True.
 - *min_r1*: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than min_r2 and "low" in general because match span boundaries are not flexed initially. 0 means all spans of query length in doc will have their boundaries flexed and will be recompared during match optimization. Lower min_r1 will result in more fine-grained matching but will run slower. Default is 25.
 - *min_r2*: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
@@ -457,12 +445,7 @@ poetry install # Within spaczz's root directory.
 ## References
 
 - Spaczz tries to stay as close to [spaCy](https://spacy.io/)'s API as possible. Whenever it made sense to use existing spaCy code within spaczz this was done.
-- Fuzzy matching is currently done using [FuzzyWuzzy](https://github.com/seatgeek/fuzzywuzzy).
+- Fuzzy matching is currently done using [rapidfuzz](https://github.com/maxbachmann/rapidfuzz).
 - The search algorithm for fuzzy matching was heavily influnced by Stack Overflow user *Ulf Aslak*'s answer in this [thread](https://stackoverflow.com/questions/36013295/find-best-substring-match).
 - Spaczz's predefined regex patterns were borrowed from the [commonregex](https://github.com/madisonmay/CommonRegex) package.
 - Spaczz's development and CI/CD patterns were inspired by Claudio Jolowicz's [*Hypermodern Python*](https://cjolowicz.github.io/posts/hypermodern-python-01-setup/) article series.
-
-
-```python
-
-```

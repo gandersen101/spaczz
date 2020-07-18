@@ -1,10 +1,9 @@
 """Module for FuzzyConfig class."""
 from typing import Callable, Dict
-import warnings
 
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 
-from ..exceptions import CaseConflictWarning, EmptyConfigError
+from ..exceptions import EmptyConfigError
 
 
 class FuzzyConfig:
@@ -16,7 +15,7 @@ class FuzzyConfig:
     Attributes:
         _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
             Fuzzy matching functions accessible
-            by their given key name. All fuzzywuzzy matchers
+            by their given key name. All rapidfuzz matchers
             with default settings are currently available.
     """
 
@@ -37,9 +36,8 @@ class FuzzyConfig:
                 "partial_token_set": fuzz.partial_token_set_ratio,
                 "partial_token_sort": fuzz.partial_token_sort_ratio,
                 "quick": fuzz.QRatio,
-                "u_quick": fuzz.UQRatio,
                 "weighted": fuzz.WRatio,
-                "u_weighted": fuzz.UWRatio,
+                "quick_lev": fuzz.quick_lev_ratio,
             }
         else:
             self._fuzzy_funcs = {}
@@ -61,33 +59,13 @@ class FuzzyConfig:
             EmptyConfigError: If the config has no fuzzy matchers available.
             ValueError: fuzzy_func was not a valid key name.
 
-        Warnings:
-            CaseConflictWarning:
-                If the fuzzy matching function will automatically
-                lower-case the input but case_sensitive is set to True.
-
         Example:
             >>> from spaczz.fuzz import FuzzyConfig
             >>> config = FuzzyConfig()
             >>> simple = config.get_fuzzy_func("simple", False)
             >>> simple("hi", "hi")
-            100
+            100.0
         """
-        if not ignore_case and fuzzy_func in [
-            "token_sort",
-            "token_set",
-            "partial_token_set",
-            "partial_token_sort",
-            "quick",
-            "u_quick",
-            "weighted",
-            "u_weighted",
-        ]:
-            warnings.warn(
-                f"""{fuzzy_func} algorithm lower cases input by default.\n
-                    This overrides case_sensitive setting.""",
-                CaseConflictWarning,
-            )
         if not self._fuzzy_funcs:
             raise EmptyConfigError(
                 (
