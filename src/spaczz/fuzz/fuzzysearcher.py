@@ -71,7 +71,7 @@ class FuzzySearcher:
             query: Doc object to fuzzy match against doc.
             fuzzy_func: Key name of fuzzy matching function to use.
                 The default is "simple".
-                All fuzzywuzzy matching functions with default settings
+                All rapidfuzz matching functions with default settings
                 are included:
                 "simple" = fuzz.ratio
                 "partial" = fuzz.partial_ratio
@@ -80,9 +80,8 @@ class FuzzySearcher:
                 "partial_token_set" = fuzz.partial_token_set_ratio
                 "partial_token_sort" = fuzz.partial_token_sort_ratio
                 "quick" = fuzz.QRatio
-                "u_quick" = fuzz.UQRatio
                 "weighted" = fuzz.WRatio
-                "u_weighted" = fuzz.UWRatio
+                "quick_lev" = fuzz.quick_lev_ratio
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general
@@ -148,7 +147,7 @@ class FuzzySearcher:
             str1: First string for comparison.
             str2: Second string for comparison.
             fuzzy_func: Key name of fuzzy matching function to use.
-                All fuzzywuzzy matching functions with default settings
+                All rapidfuzz matching functions with default settings
                 are available:
                 "simple" = fuzz.ratio
                 "partial" = fuzz.partial_ratio
@@ -157,9 +156,8 @@ class FuzzySearcher:
                 "partial_token_set" = fuzz.partial_token_set_ratio
                 "partial_token_sort" = fuzz.partial_token_sort_ratio
                 "quick" = fuzz.QRatio
-                "u_quick" = fuzz.UQRatio
                 "weighted" = fuzz.WRatio
-                "u_weighted" = fuzz.UWRatio
+                "quick_lev" = fuzz.quick_lev_ratio
                 Default is "simple".
             ignore_case: Whether to lower-case str1 and str2
                 before comparison or not. Default is True.
@@ -176,7 +174,7 @@ class FuzzySearcher:
         if ignore_case:
             str1 = str1.lower()
             str2 = str2.lower()
-        return self._config.get_fuzzy_func(fuzzy_func, ignore_case)(str1, str2)
+        return round(self._config.get_fuzzy_func(fuzzy_func, ignore_case)(str1, str2))
 
     def multi_match(
         self,
@@ -203,7 +201,7 @@ class FuzzySearcher:
                 If n is 0 all matches will be returned.
                 Defualt is 0.
             fuzzy_func: Key name of fuzzy matching function to use.
-                All fuzzywuzzy matching functions with default settings
+                All rapidfuzz matching functions with default settings
                 are available:
                 "simple" = fuzz.ratio
                 "partial" = fuzz.partial_ratio
@@ -212,9 +210,8 @@ class FuzzySearcher:
                 "partial_token_set" = fuzz.partial_token_set_ratio
                 "partial_token_sort" = fuzz.partial_token_sort_ratio
                 "quick" = fuzz.QRatio
-                "u_quick" = fuzz.UQRatio
                 "weighted" = fuzz.WRatio
-                "u_weighted" = fuzz.UWRatio
+                "quick_lev" = fuzz.quick_lev_ratio
                 Default is "simple".
             min_r1: Minimum fuzzy match ratio required for
                 selection during the intial search over doc.

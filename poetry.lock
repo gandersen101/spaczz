@@ -322,17 +322,6 @@ version = "1.0.2"
 flake8 = "*"
 
 [[package]]
-category = "main"
-description = "Fuzzy string matching in python"
-name = "fuzzywuzzy"
-optional = false
-python-versions = "*"
-version = "0.18.0"
-
-[package.extras]
-speedup = ["python-levenshtein (>=0.12)"]
-
-[[package]]
 category = "dev"
 description = "Git Object Database"
 name = "gitdb"
@@ -666,17 +655,6 @@ pytest = ">=2.7"
 dev = ["pre-commit", "tox", "pytest-asyncio"]
 
 [[package]]
-category = "main"
-description = "Python extension for computing string edit distances and similarities."
-name = "python-levenshtein"
-optional = true
-python-versions = "*"
-version = "0.12.0"
-
-[package.dependencies]
-setuptools = "*"
-
-[[package]]
 category = "dev"
 description = "World timezone definitions, modern and historical"
 name = "pytz"
@@ -691,6 +669,14 @@ name = "pyyaml"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "5.3.1"
+
+[[package]]
+category = "main"
+description = "rapid fuzzy string matching"
+name = "rapidfuzz"
+optional = false
+python-versions = ">=3.5"
+version = "0.9.1"
 
 [[package]]
 category = "main"
@@ -1116,10 +1102,10 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [extras]
-fast = ["python-Levenshtein"]
+fast = []
 
 [metadata]
-content-hash = "ad41665cd04200eb981314b5a3c2fdc5216a148d9bfa7ce6e978bdfafa3c53a2"
+content-hash = "70199b909b976bb75b19f9c124ad99ac9fef06103a720cf4070169359d3e36ef"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -1286,10 +1272,6 @@ flake8-import-order = [
 flake8-polyfill = [
     {file = "flake8-polyfill-1.0.2.tar.gz", hash = "sha256:e44b087597f6da52ec6393a709e7108b2905317d0c0b744cdca6208e670d8eda"},
     {file = "flake8_polyfill-1.0.2-py2.py3-none-any.whl", hash = "sha256:12be6a34ee3ab795b19ca73505e7b55826d5f6ad7230d31b18e106400169b9e9"},
-]
-fuzzywuzzy = [
-    {file = "fuzzywuzzy-0.18.0-py2.py3-none-any.whl", hash = "sha256:928244b28db720d1e0ee7587acf660ea49d7e4c632569cad4f1cd7e68a5f0993"},
-    {file = "fuzzywuzzy-0.18.0.tar.gz", hash = "sha256:45016e92264780e58972dca1b3d939ac864b78437422beecebb3095f8efd00e8"},
 ]
 gitdb = [
     {file = "gitdb-4.0.5-py3-none-any.whl", hash = "sha256:91f36bfb1ab7949b3b40e23736db18231bf7593edada2ba5c3a174a7b23657ac"},
@@ -1507,9 +1489,6 @@ pytest-mock = [
     {file = "pytest-mock-3.1.1.tar.gz", hash = "sha256:636e792f7dd9e2c80657e174c04bf7aa92672350090736d82e97e92ce8f68737"},
     {file = "pytest_mock-3.1.1-py3-none-any.whl", hash = "sha256:a9fedba70e37acf016238bb2293f2652ce19985ceb245bbd3d7f3e4032667402"},
 ]
-python-levenshtein = [
-    {file = "python-Levenshtein-0.12.0.tar.gz", hash = "sha256:033a11de5e3d19ea25c9302d11224e1a1898fe5abd23c61c7c360c25195e3eb1"},
-]
 pytz = [
     {file = "pytz-2020.1-py2.py3-none-any.whl", hash = "sha256:a494d53b6d39c3c6e44c3bec237336e14305e4f29bbf800b599253057fbb79ed"},
     {file = "pytz-2020.1.tar.gz", hash = "sha256:c35965d010ce31b23eeb663ed3cc8c906275d6be1a34393a1d73a41febf4a048"},
@@ -1526,6 +1505,32 @@ pyyaml = [
     {file = "PyYAML-5.3.1-cp38-cp38-win32.whl", hash = "sha256:06a0d7ba600ce0b2d2fe2e78453a470b5a6e000a985dd4a4e54e436cc36b0e97"},
     {file = "PyYAML-5.3.1-cp38-cp38-win_amd64.whl", hash = "sha256:95f71d2af0ff4227885f7a6605c37fd53d3a106fcab511b8860ecca9fcf400ee"},
     {file = "PyYAML-5.3.1.tar.gz", hash = "sha256:b8eac752c5e14d3eca0e6dd9199cd627518cb5ec06add0de9d32baeee6fe645d"},
+]
+rapidfuzz = [
+    {file = "rapidfuzz-0.9.1-cp35-cp35m-macosx_10_9_x86_64.whl", hash = "sha256:7fd21e5bbf9e76f62be99a85c1ab80c35bd521b381ad0876ab98c394c6d73313"},
+    {file = "rapidfuzz-0.9.1-cp35-cp35m-manylinux2010_i686.whl", hash = "sha256:5ea0b2aa8b776316f28a7e4351fcf866413053154ba7adcde9d96577170f9800"},
+    {file = "rapidfuzz-0.9.1-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:ea5a2ae1ee4ccd974a08966360e746fc77fc3258530973bec253132b27ecf520"},
+    {file = "rapidfuzz-0.9.1-cp35-cp35m-win32.whl", hash = "sha256:7ac9f06cf5509926122d61fbf63c2ff8b2d43f8cc663521e0f99b49bdfaba61f"},
+    {file = "rapidfuzz-0.9.1-cp35-cp35m-win_amd64.whl", hash = "sha256:ff2d3cb7e7f297ec2e78965d371c68378da23c4b2150b3ff19040c554feacc5a"},
+    {file = "rapidfuzz-0.9.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:95ffae9952d1b53163d60fcff1f234ff974272ac4ddaf97c2ab3afe7344aa841"},
+    {file = "rapidfuzz-0.9.1-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:cbb0fec868acf46b6f689736bd244c2bd5125a8a49658db87aa8ca482283f4a9"},
+    {file = "rapidfuzz-0.9.1-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:9e9f840d60824d2bd16703babf05851b928698af7e2587777aba3dbd38cc860a"},
+    {file = "rapidfuzz-0.9.1-cp36-cp36m-win32.whl", hash = "sha256:f95cc38d8a636330c180ba028d1d1dac254475973f68514cc870c8b0ee27a5c2"},
+    {file = "rapidfuzz-0.9.1-cp36-cp36m-win_amd64.whl", hash = "sha256:5668ff58fc59cc412d16ec04ce586e77801236ab6c3d6f2fe73261b031682d83"},
+    {file = "rapidfuzz-0.9.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:9234a7916e94a7d496c70ef82f9ccbb5468d8f181f3cb1941b170bb69c635837"},
+    {file = "rapidfuzz-0.9.1-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:bf76d08d9913bd43e3f77652eaca411d8b44a7efffefa6fd2b6565bedc6ddc7d"},
+    {file = "rapidfuzz-0.9.1-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:0cff941855875c93acabee8b59331d153b200f6d21d57340d3d5d7ab5798e1bc"},
+    {file = "rapidfuzz-0.9.1-cp37-cp37m-win32.whl", hash = "sha256:c8be289357b6afd3dfb9f40c4bad66b88f6efb62996bc407620337e0ba8a1efc"},
+    {file = "rapidfuzz-0.9.1-cp37-cp37m-win_amd64.whl", hash = "sha256:73c3ffaa92a3a2c4baed7848b66b7ff91485a15ff009aaf56bf94df06eca71a1"},
+    {file = "rapidfuzz-0.9.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:a843033f402776ddfd45c89976870ed18804d5e8fba4affa4bff42590738d1e9"},
+    {file = "rapidfuzz-0.9.1-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:d82853c684fc6d858c31ad49da731e314a7bc51e350159d830658a4c8c2703c3"},
+    {file = "rapidfuzz-0.9.1-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:fb20126c250dca59868a37728b38d5f7557985ef58634daff676ed4f5cae2eda"},
+    {file = "rapidfuzz-0.9.1-cp38-cp38-win32.whl", hash = "sha256:2e940fc25d3db3997e898c967aaab640271c71b109e758e8ab7fc7076f5f731e"},
+    {file = "rapidfuzz-0.9.1-cp38-cp38-win_amd64.whl", hash = "sha256:1cdaa4452a52df106d08285964c78a3998394f2bc41afd88555747fcb46a5351"},
+    {file = "rapidfuzz-0.9.1-pp36-pypy36_pp73-macosx_10_9_x86_64.whl", hash = "sha256:a302a62a2b2cecd2b5fc6593ada00cb3d4667c32e9c9bdc0948b3bea2d617430"},
+    {file = "rapidfuzz-0.9.1-pp36-pypy36_pp73-manylinux2010_x86_64.whl", hash = "sha256:6a3da7189b02ecd9ebf775dd4ecb766f090dc202022867dce31844a2d9377f26"},
+    {file = "rapidfuzz-0.9.1-pp36-pypy36_pp73-win32.whl", hash = "sha256:6b28d96a64949d8bc7b5d5bdf8f5c978850e92b83afb789b2d42488c4a45d507"},
+    {file = "rapidfuzz-0.9.1.tar.gz", hash = "sha256:15058e1b291dd96c63969bf17843da55fd7caa75e195422db2365287e955e4dd"},
 ]
 regex = [
     {file = "regex-2020.6.8-cp27-cp27m-win32.whl", hash = "sha256:fbff901c54c22425a5b809b914a3bfaf4b9570eee0e5ce8186ac71eb2025191c"},

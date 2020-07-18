@@ -1,8 +1,8 @@
 """Tests for fuzzyconfig module."""
-from fuzzywuzzy import fuzz
 import pytest
+from rapidfuzz import fuzz
 
-from spaczz.exceptions import CaseConflictWarning, EmptyConfigError
+from spaczz.exceptions import EmptyConfigError
 from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 
 
@@ -35,9 +35,3 @@ def test__get_fuzzy_alg_raises_error_with_unknown_name(config: FuzzyConfig) -> N
     """It raises a ValueError if fuzzy_func does not match a predefined key name."""
     with pytest.raises(ValueError):
         config.get_fuzzy_func("unkown")
-
-
-def test__get_fuzzy_alg_warns_with_case_conflict(config: FuzzyConfig) -> None:
-    """It warns-CaseConflictWarning if fuzzy func lower-cases but not ignore_case."""
-    with pytest.warns(CaseConflictWarning):
-        config.get_fuzzy_func("u_weighted", ignore_case=False)

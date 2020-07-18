@@ -20,21 +20,8 @@ Please visit `spaczz's GitHub page <https://github.com/gandersen101/spaczz>`_ fo
 Installation
 ------------
 
-Spaczz can be installed using pip. It is strongly recommended that the
-“fast” extra is installed. This installs the optional python-Levenshtein
-package which speeds up fuzzywuzzy’s fuzzy matching by 4-10x.
+Spaczz can be installed using pip.
 
 .. code:: Python
 
-    # Basic Install
     pip install spaczz
-
-    # Install with python-Levenshtein
-    pip install "spaczz[fast]"
-
-If you decide to install the optional python-Levenshtein package later
-simply pip install it when desired.
-
-.. code:: Python
-
-    pip install python-Levenshtein
