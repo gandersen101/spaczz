@@ -64,7 +64,7 @@ class FuzzyConfig:
             >>> config = FuzzyConfig()
             >>> simple = config.get_fuzzy_func("simple", False)
             >>> simple("hi", "hi")
-            100
+            100.0
         """
         if not self._fuzzy_funcs:
             raise EmptyConfigError(
