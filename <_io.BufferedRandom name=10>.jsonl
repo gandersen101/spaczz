@@ -1,5 +1,0 @@
-{"label":"DRUG","pattern":"Zithromax","type":"fuzzy"}
-{"label":"GPE","pattern":"Mahwah","type":"fuzzy"}
-{"label":"NAME","pattern":"Grant Andersen","type":"fuzzy","kwargs":{"fuzzy_func":"token_sort"}}
-{"label":"STREET","pattern":"street_addresses","type":"regex","kwargs":{"predef":true}}
-{"label":"GPE","pattern":"(?i)[U](nited|\\.?) ?[S](tates|\\.?)","type":"regex"}
