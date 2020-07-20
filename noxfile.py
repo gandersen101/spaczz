@@ -1,4 +1,6 @@
 """Nox sessions."""
+import os
+import platform
 import tempfile
 from typing import Any
 
@@ -26,16 +28,29 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         args: Command-line arguments for pip.
         kwargs: Additional keyword arguments for Session.install.
     """
-    with tempfile.NamedTemporaryFile() as requirements:
-        session.run(
-            "poetry",
-            "export",
-            "--dev",
-            "--format=requirements.txt",
-            f"--output={requirements.name}",
-            external=True,
-        )
-        session.install(f"--constraint={requirements.name}", *args, **kwargs)
+    if platform.system() == "Windows":
+        with tempfile.gettempdir() as tmpdir:
+            req_path = os.path.join(tmpdir, os.urandom(24).hex())
+            session.run(
+                "poetry",
+                "export",
+                "--dev",
+                "--format=requirements.txt",
+                f"--output={req_path}",
+                external=True,
+            )
+            session.install(f"--constraint={req_path}", *args, **kwargs)
+    else:
+        with tempfile.NamedTemporaryFile() as requirements:
+            session.run(
+                "poetry",
+                "export",
+                "--dev",
+                "--format=requirements.txt",
+                f"--output={requirements.name}",
+                external=True,
+            )
+            session.install(f"--constraint={requirements.name}", *args, **kwargs)
 
 
 @nox.session(python="3.8")
