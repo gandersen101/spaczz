@@ -29,17 +29,17 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         kwargs: Additional keyword arguments for Session.install.
     """
     if platform.system() == "Windows":
-        with tempfile.gettempdir() as tmpdir:
-            req_path = os.path.join(tmpdir, os.urandom(24).hex())
-            session.run(
-                "poetry",
-                "export",
-                "--dev",
-                "--format=requirements.txt",
-                f"--output={req_path}",
-                external=True,
-            )
-            session.install(f"--constraint={req_path}", *args, **kwargs)
+        req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
+        session.run(
+            "poetry",
+            "export",
+            "--dev",
+            "--format=requirements.txt",
+            f"--output={req_path}",
+            external=True,
+        )
+        session.install(f"--constraint={req_path}", *args, **kwargs)
+        os.unlink(req_path)
     else:
         with tempfile.NamedTemporaryFile() as requirements:
             session.run(
