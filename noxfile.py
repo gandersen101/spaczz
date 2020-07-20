@@ -1,4 +1,6 @@
 """Nox sessions."""
+import os
+import platform
 import tempfile
 from typing import Any
 
@@ -26,16 +28,29 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         args: Command-line arguments for pip.
         kwargs: Additional keyword arguments for Session.install.
     """
-    with tempfile.NamedTemporaryFile() as requirements:
+    if platform.system() == "Windows":
+        req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
         session.run(
             "poetry",
             "export",
             "--dev",
             "--format=requirements.txt",
-            f"--output={requirements.name}",
+            f"--output={req_path}",
             external=True,
         )
-        session.install(f"--constraint={requirements.name}", *args, **kwargs)
+        session.install(f"--constraint={req_path}", *args, **kwargs)
+        os.unlink(req_path)
+    else:
+        with tempfile.NamedTemporaryFile() as requirements:
+            session.run(
+                "poetry",
+                "export",
+                "--dev",
+                "--format=requirements.txt",
+                f"--output={requirements.name}",
+                external=True,
+            )
+            session.install(f"--constraint={requirements.name}", *args, **kwargs)
 
 
 @nox.session(python="3.8")
@@ -91,18 +106,35 @@ def mypy(session: Session) -> None:
 @nox.session(python="3.8")
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages."""
-    with tempfile.NamedTemporaryFile() as requirements:
+    if platform.system() == "Windows":
+        req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
         session.run(
             "poetry",
             "export",
             "--dev",
             "--format=requirements.txt",
             "--without-hashes",
-            f"--output={requirements.name}",
+            f"--output={req_path}",
             external=True,
         )
         install_with_constraints(session, "safety")
-        session.run("safety", "check", f"--file={requirements.name}", "--full-report")
+        session.run("safety", "check", f"--file={req_path}", "--full-report")
+        os.unlink(req_path)
+    else:
+        with tempfile.NamedTemporaryFile() as requirements:
+            session.run(
+                "poetry",
+                "export",
+                "--dev",
+                "--format=requirements.txt",
+                "--without-hashes",
+                f"--output={requirements.name}",
+                external=True,
+            )
+            install_with_constraints(session, "safety")
+            session.run(
+                "safety", "check", f"--file={requirements.name}", "--full-report"
+            )
 
 
 @nox.session(python=["3.8", "3.7"])

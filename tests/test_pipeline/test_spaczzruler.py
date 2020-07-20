@@ -225,11 +225,11 @@ def test_spaczz_patterns_to_from_disk(
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns, spaczz_overwrite_ents=True)
     assert len(ruler) == len(patterns)
     assert len(ruler.labels) == 4
-    with tempfile.TemporaryFile() as tmpfile:
-        ruler.to_disk(f"{tmpfile}.jsonl")
-        assert os.path.isfile(f"{tmpfile}.jsonl")
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        ruler.to_disk(f"{tmpfile.name}.jsonl")
+        assert os.path.isfile(tmpfile.name)
         new_ruler = SpaczzRuler(nlp)
-        new_ruler = new_ruler.from_disk(f"{tmpfile}.jsonl")
+        new_ruler = new_ruler.from_disk(f"{tmpfile.name}.jsonl")
     assert len(new_ruler) == len(patterns)
     assert len(new_ruler.labels) == 4
     assert len(new_ruler.patterns) == len(ruler.patterns)
