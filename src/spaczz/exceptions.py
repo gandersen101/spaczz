@@ -13,6 +13,10 @@ class FlexWarning(Warning):
     """It warns if flex value is changed if too large."""
 
 
+class FuzzyPrecheckWarning(Warning):
+    """It warns if the fuzzy query is affected by trimming functions."""
+
+
 class KwargsWarning(Warning):
     """It warns if there are more kwargs than patterns or vice versa."""
 
