@@ -47,7 +47,7 @@ class RegexSearcher:
                     )
                 )
 
-    def multi_match(
+    def match(
         self,
         doc: Doc,
         regex_str: Union[str, regex.Regex],

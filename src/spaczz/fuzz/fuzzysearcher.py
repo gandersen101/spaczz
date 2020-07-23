@@ -49,122 +49,7 @@ class FuzzySearcher:
                     )
                 )
 
-    def best_match(
-        self,
-        doc: Doc,
-        query: Doc,
-        fuzzy_func: str = "simple",
-        min_r1: int = 30,
-        min_r2: int = 75,
-        ignore_case: bool = True,
-        flex: Union[str, int] = "default",
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
-    ) -> Union[Tuple[int, int, int], None]:
-        """Returns the single best fuzzy match span in a Doc.
-
-        Finds the best fuzzy match span in doc based on the query,
-        assuming the minimum match ratios (min_r1 and min_r2) are met,
-        If more than one match has the same ratio,
-        the earliest match will be returned.
-
-        Args:
-            doc: Doc object to search over.
-            query: Doc object to fuzzy match against doc.
-            fuzzy_func: Key name of fuzzy matching function to use.
-                The default is "simple".
-                All rapidfuzz matching functions with default settings
-                are included:
-                "simple" = fuzz.ratio
-                "partial" = fuzz.partial_ratio
-                "token_set" = fuzz.token_set_ratio
-                "token_sort" = fuzz.token_sort_ratio
-                "partial_token_set" = fuzz.partial_token_set_ratio
-                "partial_token_sort" = fuzz.partial_token_sort_ratio
-                "quick" = fuzz.QRatio
-                "weighted" = fuzz.WRatio
-                "quick_lev" = fuzz.quick_lev_ratio
-            min_r1: Minimum fuzzy match ratio required for
-                selection during the intial search over doc.
-                This should be lower than min_r2 and "low" in general
-                because match span boundaries are not flexed initially.
-                0 means all spans of query length in doc will
-                have their boundaries flexed and will be recompared
-                during match optimization.
-                Lower min_r1 will result in more fine-grained matching
-                but will run slower. Default is 25.
-            min_r2: Minimum fuzzy match ratio required for
-                selection during match optimization.
-                Should be higher than min_r1 and "high" in general
-                to ensure only quality matches are returned.
-                Default is 75.
-            ignore_case: If strings should be lower-cased before
-                fuzzy matching or not. Default is True.
-            flex: Number of tokens to move match span boundaries
-                left and right during match optimization.
-                Default is "default".
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names. Default is None.
-                These prevent start and end boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
-                are currently available as: "space", "punct", and "stop".
-            start_trimmers: Optional iterable of start index
-                span trimmer key names. Default is None.
-                These prevent start boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
-                are currently available as: "space", "punct", and "stop".
-            end_trimmers: Optional iterable of end index
-                span trimmer key names. Default is None.
-                These prevent end boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
-                are currently available as: "space", "punct", and "stop".
-
-        Returns:
-            A tuple of the match span's start index,
-            end index, and fuzzy match ratio or None.
-
-        Raises:
-            TypeError: doc must be a Doc object.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
-            >>> doc = nlp.make_doc("G-rant Anderson lives in TN.")
-            >>> query = nlp.make_doc("Grant Andersen")
-            >>> searcher.best_match(doc, query)
-            (0, 4, 90)
-        """
-        if not isinstance(doc, Doc):
-            raise TypeError("doc must be a Doc object.")
-        query = self._precheck_query(query, trimmers, start_trimmers, end_trimmers)
-        flex = self._calc_flex(query, flex)
-        match_values = self._scan_doc(doc, query, fuzzy_func, min_r1, ignore_case)
-        if match_values:
-            pos = self._index_max(match_values)
-            match = self._adjust_left_right_positions(
-                doc,
-                query,
-                match_values,
-                pos,
-                fuzzy_func,
-                min_r2,
-                ignore_case,
-                flex,
-                trimmers,
-                start_trimmers,
-                end_trimmers,
-            )
-            return match
-        else:
-            return None
-
-    def match(
+    def compare(
         self, str1: str, str2: str, fuzzy_func: str = "simple", ignore_case: bool = True
     ) -> int:
         """Peforms fuzzy matching between two strings.
@@ -197,7 +82,7 @@ class FuzzySearcher:
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
             >>> searcher = FuzzySearcher()
-            >>> searcher.match("spaczz", "spacy")
+            >>> searcher.compare("spaczz", "spacy")
             73
         """
         if ignore_case:
@@ -205,7 +90,7 @@ class FuzzySearcher:
             str2 = str2.lower()
         return round(self._config.get_fuzzy_func(fuzzy_func, ignore_case)(str1, str2))
 
-    def multi_match(
+    def match(
         self,
         doc: Doc,
         query: Doc,
@@ -274,7 +159,7 @@ class FuzzySearcher:
                 span trimmer key names. Default is None.
                 These prevent start boundaries of fuzzy match
                 spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
+                Functions for punctuation, whitespace, and stop words
                 are currently available as: "space", "punct", and "stop".
             end_trimmers: Optional iterable of end index
                 span trimmer key names. Default is None.
@@ -299,13 +184,12 @@ class FuzzySearcher:
                 "chiken from Popeyes is better than chken from Chick-fil-A"
                 )
             >>> query = nlp.make_doc("chicken")
-            >>> searcher.multi_match(doc, query, ignore_case=False)
+            >>> searcher.match(doc, query, ignore_case=False)
             [(0, 1, 92), (6, 7, 83)]
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
-        if not isinstance(query, Doc):
-            raise TypeError("query must be a Doc object.")
+        query = self._precheck_query(query, trimmers, start_trimmers, end_trimmers)
         if n == 0:
             n = int(len(doc) / len(query) + 2)
         flex = self._calc_flex(query, flex)
@@ -406,25 +290,25 @@ class FuzzySearcher:
         bmv_r = match_values[p_l]
         if flex:
             for f in range(1, flex + 1):
-                ll = self.match(
+                ll = self.compare(
                     query.text, doc[p_l - f : p_r].text, fuzzy_func, ignore_case
                 )
                 if (ll > bmv_l) and (p_l - f >= 0):
                     bmv_l = ll
                     bp_l = p_l - f
-                lr = self.match(
+                lr = self.compare(
                     query.text, doc[p_l + f : p_r].text, fuzzy_func, ignore_case
                 )
                 if (lr > bmv_l) and (p_l + f < p_r):
                     bmv_l = lr
                     bp_l = p_l + f
-                rl = self.match(
+                rl = self.compare(
                     query.text, doc[p_l : p_r - f].text, fuzzy_func, ignore_case
                 )
                 if (rl > bmv_r) and (p_r - f > p_l):
                     bmv_r = rl
                     bp_r = p_r - f
-                rr = self.match(
+                rr = self.compare(
                     query.text, doc[p_l : p_r + f].text, fuzzy_func, ignore_case
                 )
                 if rr > bmv_r and (p_r + f <= len(doc)):
@@ -434,7 +318,7 @@ class FuzzySearcher:
             doc, bp_l, bp_r, trimmers, start_trimmers, end_trimmers
         )
         if new_bp_l is not None and new_bp_r is not None:
-            r = self.match(
+            r = self.compare(
                 query.text, doc[new_bp_l:new_bp_r].text, fuzzy_func, ignore_case
             )
             if r >= min_r2:
@@ -698,7 +582,7 @@ class FuzzySearcher:
         match_values: Dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
-            match = self.match(
+            match = self.compare(
                 query.text, doc[i : i + len(query)].text, fuzzy_func, ignore_case
             )
             if match >= min_r1:

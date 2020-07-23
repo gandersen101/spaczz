@@ -62,14 +62,14 @@ def test_fuzzysearcher_has_empty_config_if_empty_passed() -> None:
     assert not searcher._config._fuzzy_funcs
 
 
-def test_match_works_with_defaults(searcher: FuzzySearcher) -> None:
-    """Checks match is working as intended."""
-    assert searcher.match("spaczz", "spacy") == 73
+def test_compare_works_with_defaults(searcher: FuzzySearcher) -> None:
+    """Checks compare is working as intended."""
+    assert searcher.compare("spaczz", "spacy") == 73
 
 
-def test_match_without_ignore_case(searcher: FuzzySearcher) -> None:
+def test_compare_without_ignore_case(searcher: FuzzySearcher) -> None:
     """Checks ignore_case is working."""
-    assert searcher.match("SPACZZ", "spaczz", ignore_case=False) == 0
+    assert searcher.compare("SPACZZ", "spaczz", ignore_case=False) == 0
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
@@ -222,97 +222,51 @@ def test__filter_overlapping_matches_filters_correctly(
     assert searcher._filter_overlapping_matches(matches) == [(1, 2, 80)]
 
 
-def test_best_match_finds_best_match(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It finds the single best fuzzy match that meets threshold."""
-    doc = nlp("G-rant Anderson lives in TN.")
-    query = nlp("Grant Andersen")
-    assert searcher.best_match(doc, query) == (0, 4, 90)
-
-
-def test_best_match_return_none_when_no_matches(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It returns None if no fuzzy match meets threshold."""
-    doc = nlp("G-rant Anderson lives in TN.")
-    query = nlp("xenomorph")
-    assert searcher.best_match(doc, query) is None
-
-
-def test_best_match_raises_error_when_doc_not_Doc(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """Raises a Type error if doc is not a Doc object."""
-    doc = "G-rant Anderson lives in TN."
-    query = nlp("xenomorph")
-    with pytest.raises(TypeError):
-        searcher.best_match(doc, query)
-
-
-def test_best_match_raises_error_when_query_not_Doc(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """Raises a Type error if query is not a Doc object."""
-    doc = nlp("G-rant Anderson lives in TN.")
-    query = "xenomorph"
-    with pytest.raises(TypeError):
-        searcher.best_match(doc, query)
-
-
-def test_multi_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> None:
+def test_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> None:
     """It returns all the fuzzy matches that meet threshold correctly sorted."""
     doc = nlp("chiken from Popeyes is better than chken from Chick-fil-A")
     query = nlp("chicken")
-    assert searcher.multi_match(doc, query, ignore_case=False) == [
+    assert searcher.match(doc, query, ignore_case=False) == [
         (0, 1, 92),
         (6, 7, 83),
     ]
 
 
-def test_multi_match_return_empty_list_when_no_matches_after_scan(
+def test_match_return_empty_list_when_no_matches_after_scan(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It returns an empty list if no fuzzy matches meet min_r1 threshold."""
     doc = nlp("G-rant Anderson lives in TN.")
     query = nlp("xenomorph")
-    assert searcher.multi_match(doc, query) == []
+    assert searcher.match(doc, query) == []
 
 
-def test_multi_match_return_empty_list_when_no_matches_after_adjust(
+def test_match_return_empty_list_when_no_matches_after_adjust(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It returns an empty list if no fuzzy matches meet min_r2 threshold."""
     doc = nlp("G-rant Anderson lives in TN.")
     query = nlp("Garth, Anderdella")
-    assert searcher.multi_match(doc, query) == []
+    assert searcher.match(doc, query) == []
 
 
-def test_multi_match_with_n_less_than_actual_matches(
+def test_match_with_n_less_than_actual_matches(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It returns the n best fuzzy matches that meet threshold correctly sorted."""
     doc = nlp("cow, cow, cow, cow")
     query = nlp("cow")
-    assert searcher.multi_match(doc, query, n=2) == [(0, 1, 100), (2, 3, 100)]
+    assert searcher.match(doc, query, n=2) == [(0, 1, 100), (2, 3, 100)]
 
 
-def test_multi_match_raises_error_when_doc_not_Doc(
+def test_match_raises_error_when_doc_not_Doc(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It raises a TypeError if doc is not a Doc object."""
     doc = "G-rant Anderson lives in TN."
     query = nlp("xenomorph")
     with pytest.raises(TypeError):
-        searcher.multi_match(doc, query)
-
-
-def test_multi_match_raises_error_when_query_not_Doc(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It raises a TypeError if query is not a Doc object."""
-    doc = nlp("G-rant Anderson lives in TN.")
-    query = "xenomorph"
-    with pytest.raises(TypeError):
-        searcher.multi_match(doc, query)
+        searcher.match(doc, query)
 
 
 def test_precheck_query_passes(searcher: FuzzySearcher, nlp: Language) -> None:

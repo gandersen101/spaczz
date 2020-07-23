@@ -33,8 +33,9 @@ class FuzzyConfig:
             These prevent start and/or end boundaries
             of fuzzy match spans from containing
             unwanted tokens like punctuation.
-            Functions for punctuations, spaces,
-            and stop words are currently available as: "space", "punct", and "stop".
+            Functions for punctuation, whitespace,
+            and stop words are currently available as:
+            "space", "punct", and "stop".
     """
 
     def __init__(self, empty: bool = False) -> None:
