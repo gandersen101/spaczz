@@ -44,7 +44,7 @@ def test_regex_search_has_empty_config_if_empty_passed() -> None:
 def test_multi_match(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces matches."""
     doc = nlp("My phone number is (555) 555-5555, not (554) 554-5554.")
-    matches = searcher.multi_match(doc, "phones", predef=True)
+    matches = searcher.match(doc, "phones", predef=True)
     assert matches == [(4, 10), (12, 18)]
 
 
@@ -55,7 +55,7 @@ def test_multi_match_will_expand_on_partial_match_if_partials(
     doc = nlp(
         "We want to identify 'USA' even though only first two letters will matched."
     )
-    matches = searcher.multi_match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)")
+    matches = searcher.match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)")
     assert matches == [(5, 6)]
 
 
@@ -66,9 +66,7 @@ def test_multi_match_will_not_expand_if_not_partials(
     doc = nlp(
         "We want to identify 'USA' even though only first two letters will matched."
     )
-    matches = searcher.multi_match(
-        doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)", partial=False
-    )
+    matches = searcher.match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)", partial=False)
     assert matches == []
 
 
@@ -79,7 +77,7 @@ def test_multi_match_will_not_match_if_regex_starts_ends_with_space(
     doc = nlp(
         "We want to identify US but will fail because regex includes whitespaces."
     )
-    matches = searcher.multi_match(doc, "\\s[Uu](nited|\\.?) ?[Ss](tates|\\.?)\\s")
+    matches = searcher.match(doc, "\\s[Uu](nited|\\.?) ?[Ss](tates|\\.?)\\s")
     assert matches == []
 
 
@@ -89,4 +87,4 @@ def test_multi_match_raises_error_if_regex_str_not_str(
     """It raises a type error if regex_str is not a string."""
     doc = nlp("My phone number is (555) 555-5555.")
     with pytest.raises(TypeError):
-        searcher.multi_match(doc, 1, predef=True)
+        searcher.match(doc, 1, predef=True)

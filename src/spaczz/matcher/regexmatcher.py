@@ -106,7 +106,7 @@ class RegexMatcher(RegexSearcher):
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
                 if not kwargs:
                     kwargs = self.defaults
-                matches_wo_label = self.multi_match(doc, pattern, **kwargs)
+                matches_wo_label = self.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
                         (label,) + match_wo_label[:2]

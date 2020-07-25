@@ -9,14 +9,23 @@ from ..exceptions import EmptyConfigError
 class FuzzyConfig:
     """Class for housing predefined fuzzy matching functions.
 
-    Currently includes all fuzzywuzzy matchers with default settings.
-    Will eventually includes methods for adding/removing user functions.
+    Currently includes all rapidfuzz matchers with default settings.
+    Will eventually include methods for adding/removing user matchers.
 
     Attributes:
         _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
             Fuzzy matching functions accessible
             by their given key name. All rapidfuzz matchers
-            with default settings are currently available.
+            with default settings are currently available:
+            "simple" = fuzz.ratio
+            "partial" = fuzz.partial_ratio
+            "token_set" = fuzz.token_set_ratio
+            "token_sort" = fuzz.token_sort_ratio
+            "partial_token_set" = fuzz.partial_token_set_ratio
+            "partial_token_sort" = fuzz.partial_token_sort_ratio
+            "quick" = fuzz.QRatio
+            "weighted" = fuzz.WRatio
+            "quick_lev" = fuzz.quick_lev_ratio
     """
 
     def __init__(self, empty: bool = False) -> None:
@@ -70,7 +79,7 @@ class FuzzyConfig:
             raise EmptyConfigError(
                 (
                     "The config has no fuzzy matchers available to it.",
-                    "Please add any matching functions you intend to use",
+                    "Please add any fuzzy matching functions you intend to use",
                     "or do not initialize the config as empty.",
                 )
             )
