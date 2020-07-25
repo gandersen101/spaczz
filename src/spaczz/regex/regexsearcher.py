@@ -104,7 +104,7 @@ class RegexSearcher:
             >>> nlp = spacy.blank("en")
             >>> searcher = RegexSearcher()
             >>> doc = nlp.make_doc("My phone number is (555) 555-5555.")
-            >>> searcher.multi_match(doc, "phones", predef=True)
+            >>> searcher.match(doc, "phones", predef=True)
             [(4, 10)]
         """
         if isinstance(regex_str, str):

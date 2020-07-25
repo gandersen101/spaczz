@@ -699,25 +699,3 @@ class FuzzySearcher:
             return sorted(match_values, key=lambda x: (-match_values[x], x))[:n]
         else:
             return list(match_values.keys())
-
-    @staticmethod
-    def _index_max(match_values: Dict[int, int]) -> int:
-        """Returns the start index of the highest ratio fuzzy match or None.
-
-        If the max ratio applies to multiple indices
-        the lowest index will be returned.
-
-        Args:
-            match_values: Dict of potential fuzzy matches
-                in start index, fuzzy ratio pairs.
-
-        Returns:
-            Integer value of the best matches' start index.
-
-        Example:
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> searcher = FuzzySearcher()
-            >>> searcher._index_max({1:30, 9:100})
-            9
-        """
-        return sorted(match_values, key=lambda x: (-match_values[x], x))[0]

@@ -6,7 +6,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/gandersen101/spaczz"
 repository = "https://github.com/gandersen101/spaczz"
-keywords = ["fuzzy matching", "spacy", "fuzzywuzzy"]
+keywords = ["fuzzy matching", "spacy", "nlp"]
 authors = ["Grant Andersen <gandersen.codes@gmail.com>"]
 documentation = "https://spaczz.readthedocs.io"
 
@@ -40,9 +40,6 @@ rstcheck = "^3.3.1"
 sphinx-autodoc-typehints = "^1.11.0"
 sphinx-autobuild = "^0.7.1"
 codecov = "^2.1.7"
-
-[tool.poetry.extras]
-fast = ["python-Levenshtein"]
 
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"

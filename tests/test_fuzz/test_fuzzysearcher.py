@@ -104,13 +104,6 @@ def test__calc_flex_raises_error_if_non_valid_value(
         searcher._calc_flex(query, None)
 
 
-def test__index_max_returns_key_with_max_value(
-    searcher: FuzzySearcher, initial_matches: Dict[int, int]
-) -> None:
-    """It returns the earliest key with the largest value."""
-    assert searcher._index_max(initial_matches) == 8
-
-
 def test__indice_maxes_returns_n_keys_with_max_values(
     searcher: FuzzySearcher, initial_matches: Dict[int, int]
 ) -> None:
@@ -304,7 +297,7 @@ def test_trimming_rules_squash_match(searcher: FuzzySearcher, nlp: Language) -> 
             fuzzy_func="simple",
             min_r2=70,
             ignore_case=True,
-            flex=4,
+            flex=3,
             trimmers=["punct"],
         )
         is None
@@ -330,6 +323,48 @@ def test_start_trimming_rules(searcher: FuzzySearcher, nlp: Language) -> None:
     assert doc[result[0] : result[1]].text == "Steve?!"
 
 
+def test_start_trimming_rules_returns_nones_when_bpl_hits_bpr(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """It returns None because there is not suitable match."""
+    doc = nlp("Looking for: !?! not a word")
+    query = nlp("!?!")
+    match_values = {2: 57, 3: 100, 4: 44}
+    result = searcher._adjust_left_right_positions(
+        doc,
+        query,
+        match_values,
+        pos=3,
+        fuzzy_func="simple",
+        min_r2=70,
+        ignore_case=True,
+        flex=3,
+        start_trimmers=["punct"],
+    )
+    assert result is None
+
+
+def test_start_trimming_rules_returns_nones_when_bpl_hits_bpr2(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """It returns None because there is not suitable match."""
+    doc = nlp("Looking for: !?! not a word")
+    query = nlp("!?")
+    match_values = {2: 40, 3: 100, 4: 50}
+    result = searcher._adjust_left_right_positions(
+        doc,
+        query,
+        match_values,
+        pos=3,
+        fuzzy_func="simple",
+        min_r2=70,
+        ignore_case=True,
+        flex=2,
+        start_trimmers=["punct"],
+    )
+    assert result is None
+
+
 def test_end_trimming_rules(searcher: FuzzySearcher, nlp: Language) -> None:
     """It returns the end trimmed match."""
     doc = nlp("Looking for: !Steve?!")
@@ -347,3 +382,24 @@ def test_end_trimming_rules(searcher: FuzzySearcher, nlp: Language) -> None:
         end_trimmers=["punct"],
     )
     assert doc[result[0] : result[1]].text == "!Steve"
+
+
+def test_end_trimming_rules_returns_nones_when_bpr_hits_bpl(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """It returns None because there is not suitable match."""
+    doc = nlp("Looking for: !?! not a word")
+    query = nlp("!?!")
+    match_values = {2: 57, 3: 100, 4: 44}
+    result = searcher._adjust_left_right_positions(
+        doc,
+        query,
+        match_values,
+        pos=3,
+        fuzzy_func="simple",
+        min_r2=70,
+        ignore_case=True,
+        flex=3,
+        end_trimmers=["punct"],
+    )
+    assert result is None
