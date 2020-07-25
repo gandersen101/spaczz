@@ -5,7 +5,7 @@ import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.exceptions import FlexWarning, FuzzyPrecheckWarning
+from spaczz.exceptions import FlexWarning
 from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 from spaczz.fuzz.fuzzysearcher import FuzzySearcher
 
@@ -34,20 +34,18 @@ def adjust_example(nlp: Language) -> Doc:
     return nlp.make_doc("There was a great basketball player named: Karem Abdul Jabar")
 
 
-def test_fuzzysearcherer_config_contains_predefined_defaults(
+def test_fuzzysearcher_config_contains_predefined_defaults(
     searcher: FuzzySearcher,
 ) -> None:
     """Its config contains predefined defaults."""
     assert searcher._config._fuzzy_funcs
-    assert searcher._config._span_trimmers
 
 
-def test_fuzzysearcherer_uses_passed_config() -> None:
+def test_fuzzysearcher_uses_passed_config() -> None:
     """It uses the config passed to it."""
     config = FuzzyConfig()
     searcher = FuzzySearcher(config=config)
     assert searcher._config._fuzzy_funcs
-    assert searcher._config._span_trimmers
 
 
 def test_fuzzysearcher_raises_error_if_config_is_not_fuzzyconfig() -> None:
@@ -262,144 +260,11 @@ def test_match_raises_error_when_doc_not_Doc(
         searcher.match(doc, query)
 
 
-def test_precheck_query_passes(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It passes through a valid query."""
-    query = nlp("This is a test.")
-    assert searcher._precheck_query(query) == query
-
-
-def test_precheck_raises_error_if_query_not_doc(searcher: FuzzySearcher) -> None:
-    """It raises a type error if query not a doc."""
+def test_match_raises_error_if_query_not_Doc(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """It raises a TypeError if query not a doc."""
+    doc = nlp("This is a doc")
+    query = "Not a doc"
     with pytest.raises(TypeError):
-        searcher._precheck_query("Not a doc.")
-
-
-def test_precheck_warns_if_trimmer_affects_query(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It warns if one or more trimming funcs will affect the query."""
-    query = nlp("This is a test.")
-    with pytest.warns(FuzzyPrecheckWarning):
-        searcher._precheck_query(query, ["punct"])
-
-
-def test_trimming_rules_squash_match(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It returns None if trimming rules eliminate match."""
-    doc = nlp("Looking for: !?!")
-    query = nlp("!?!")
-    match_values = {2: 57, 3: 100}
-    assert (
-        searcher._adjust_left_right_positions(
-            doc,
-            query,
-            match_values,
-            pos=3,
-            fuzzy_func="simple",
-            min_r2=70,
-            ignore_case=True,
-            flex=3,
-            trimmers=["punct"],
-        )
-        is None
-    )
-
-
-def test_start_trimming_rules(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It returns the start trimmed match."""
-    doc = nlp("Looking for: !Steve?!")
-    query = nlp("!Steve?!")
-    match_values = {1: 63, 2: 82, 3: 100}
-    result = searcher._adjust_left_right_positions(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=4,
-        start_trimmers=["punct"],
-    )
-    assert doc[result[0] : result[1]].text == "Steve?!"
-
-
-def test_start_trimming_rules_returns_nones_when_bpl_hits_bpr(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It returns None because there is not suitable match."""
-    doc = nlp("Looking for: !?! not a word")
-    query = nlp("!?!")
-    match_values = {2: 57, 3: 100, 4: 44}
-    result = searcher._adjust_left_right_positions(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=3,
-        start_trimmers=["punct"],
-    )
-    assert result is None
-
-
-def test_start_trimming_rules_returns_nones_when_bpl_hits_bpr2(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It returns None because there is not suitable match."""
-    doc = nlp("Looking for: !?! not a word")
-    query = nlp("!?")
-    match_values = {2: 40, 3: 100, 4: 50}
-    result = searcher._adjust_left_right_positions(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=2,
-        start_trimmers=["punct"],
-    )
-    assert result is None
-
-
-def test_end_trimming_rules(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It returns the end trimmed match."""
-    doc = nlp("Looking for: !Steve?!")
-    query = nlp("!Steve?!")
-    match_values = {1: 63, 2: 82, 3: 100}
-    result = searcher._adjust_left_right_positions(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=4,
-        end_trimmers=["punct"],
-    )
-    assert doc[result[0] : result[1]].text == "!Steve"
-
-
-def test_end_trimming_rules_returns_nones_when_bpr_hits_bpl(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It returns None because there is not suitable match."""
-    doc = nlp("Looking for: !?! not a word")
-    query = nlp("!?!")
-    match_values = {2: 57, 3: 100, 4: 44}
-    result = searcher._adjust_left_right_positions(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=3,
-        end_trimmers=["punct"],
-    )
-    assert result is None
+        searcher.match(doc, query)

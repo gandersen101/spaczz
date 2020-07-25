@@ -1,12 +1,12 @@
 """Module for FuzzySearcher class. Does fuzzy matching in spaCy Docs."""
 from itertools import chain
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import warnings
 
 from spacy.tokens import Doc
 
 from .fuzzyconfig import FuzzyConfig
-from ..exceptions import FlexWarning, FuzzyPrecheckWarning
+from ..exceptions import FlexWarning
 
 
 class FuzzySearcher:
@@ -100,9 +100,6 @@ class FuzzySearcher:
         min_r2: int = 75,
         ignore_case: bool = True,
         flex: Union[str, int] = "default",
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
     ) -> List[Tuple[int, int, int]]:
         """Returns the n best fuzzy matches in a Doc.
 
@@ -149,24 +146,6 @@ class FuzzySearcher:
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
                 Default is "default".
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names. Default is None.
-                These prevent start and end boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
-                are currently available as: "space", "punct", and "stop".
-            start_trimmers: Optional iterable of start index
-                span trimmer key names. Default is None.
-                These prevent start boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuation, whitespace, and stop words
-                are currently available as: "space", "punct", and "stop".
-            end_trimmers: Optional iterable of end index
-                span trimmer key names. Default is None.
-                These prevent end boundaries of fuzzy match
-                spans from containing unwanted tokens like punctuation.
-                Functions for punctuations, spaces, and stop words
-                are currently available as: "space", "punct", and "stop".
 
         Returns:
             A list of tuples of match span start indices,
@@ -174,6 +153,7 @@ class FuzzySearcher:
 
         Raises:
             TypeError: doc must be a Doc object.
+            TypeError: query must be a Doc object.
 
         Example:
             >>> import spacy
@@ -189,7 +169,8 @@ class FuzzySearcher:
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
-        query = self._precheck_query(query, trimmers, start_trimmers, end_trimmers)
+        if not isinstance(query, Doc):
+            raise TypeError("query must be a Doc object.")
         if n == 0:
             n = int(len(doc) / len(query) + 2)
         flex = self._calc_flex(query, flex)
@@ -206,9 +187,6 @@ class FuzzySearcher:
                     min_r2,
                     ignore_case,
                     flex,
-                    trimmers,
-                    start_trimmers,
-                    end_trimmers,
                 )
                 for pos in positions
             ]
@@ -232,9 +210,6 @@ class FuzzySearcher:
         min_r2: int,
         ignore_case: bool,
         flex: int,
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
     ) -> Union[Tuple[int, int, int], None]:
         """Optimizes a fuzzy match by flexing match span boundaries.
 
@@ -259,12 +234,6 @@ class FuzzySearcher:
                 fuzzy matching or not.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names.
-            start_trimmers: Optional iterable of start index
-                span trimmer key names.
-            end_trimmers: Optional iterable of end index
-                span trimmer key names.
 
         Returns:
             A tuple of left boundary index,
@@ -314,227 +283,10 @@ class FuzzySearcher:
                 if rr > bmv_r and (p_r + f <= len(doc)):
                     bmv_r = rr
                     bp_r = p_r + f
-        new_bp_l, new_bp_r = self._enforce_trimming_rules(
-            doc, bp_l, bp_r, trimmers, start_trimmers, end_trimmers
-        )
-        if new_bp_l is not None and new_bp_r is not None:
-            r = self.compare(
-                query.text, doc[new_bp_l:new_bp_r].text, fuzzy_func, ignore_case
-            )
-            if r >= min_r2:
-                return (new_bp_l, new_bp_r, r)
+        r = self.compare(query.text, doc[bp_l:bp_r].text, fuzzy_func, ignore_case)
+        if r >= min_r2:
+            return (bp_l, bp_r, r)
         return None
-
-    def _enforce_end_trimmers(
-        self,
-        doc: Doc,
-        bp_l: Union[int, None],
-        bp_r: int,
-        trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
-    ) -> Union[int, None]:
-        """Enforces trimming rules to the end index of the match span.
-
-        Will move the span end index backwards until the
-        trimming functions return False -
-        returning a new end index,
-        or until the start index equals the end index -
-        returning None.
-
-        Args:
-            doc: The Doc object being searched over.
-            bp_l: Span start index.
-            bp_r: Span end index.
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names.
-            end_trimmers: Optional iterable of end index
-                span trimmer key names.
-
-        Returns:
-            Integer of new end index or None.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
-            >>> doc = nlp("we don't want no punctuation.")
-            >>> searcher._enforce_end_trimmers(doc, 5, 7, end_trimmers=["punct"])
-            6
-        """
-        if bp_l is not None:
-            trimmer_funcs = self._config.get_trimmers(
-                "end", trimmers, end_trimmers=end_trimmers
-            )
-            if trimmer_funcs:
-                while any([func(doc[bp_r - 1]) for func in trimmer_funcs]):
-                    if bp_r - 1 <= bp_l:
-                        return None
-                    bp_r -= 1
-            return bp_r
-        else:
-            return None
-
-    def _enforce_start_trimmers(
-        self,
-        doc: Doc,
-        bp_l: int,
-        bp_r: int,
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-    ) -> Union[int, None]:
-        """Enforces trimming rules to the start index of the match span.
-
-        Will move the span start index forward until the
-        trimming functions return False -
-        returning a new start index,
-        or until the start index equals the end index -
-        returning None.
-
-        Args:
-            doc: The Doc object being searched over.
-            bp_l: Span start index.
-            bp_r: Span end index.
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names.
-            start_trimmers: Optional iterable of start index
-                span trimmer key names.
-
-        Returns:
-            Integer of new start index or None.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
-            >>> doc = nlp("this starts with a stop word")
-            >>> searcher._enforce_start_trimmers(doc, 0, 2, start_trimmers=["stop"])
-            1
-        """
-        trimmer_funcs = self._config.get_trimmers("start", trimmers, start_trimmers)
-        if trimmer_funcs:
-            while any([func(doc[bp_l]) for func in trimmer_funcs]):
-                if bp_l >= bp_r:
-                    return None
-                bp_l += 1
-                if bp_l == len(doc):
-                    return None
-        if bp_l >= bp_r:
-            return None
-        else:
-            return bp_l
-
-    def _enforce_trimming_rules(
-        self,
-        doc: Doc,
-        bp_l: int,
-        bp_r: int,
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
-    ) -> Tuple[Union[int, None], Union[int, None]]:
-        """Span boundary rules are enforced on optimized fuzzy match.
-
-        After fuzzy match optimization, any start-only, end-only,
-        or direction agnostic trimming rules are applied to the
-        start and end indices of the match span to prevent
-        unwanted tokens from populating the span.
-
-        Args:
-            doc: Doc object being searched over.
-            bp_l: Span start index.
-            bp_r: Span end index.
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names.
-            start_trimmers: Optional iterable of start index
-                span trimmer key names.
-            end_trimmers: Optional iterable of end index
-                span trimmer key names.
-
-        Returns:
-            The new span start index or None
-            and the new span end index or None
-            as a tuple. Only one of the two values
-            will be None.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
-            >>> doc = nlp("The token we are looking for is: xenomorph.")
-            >>> searcher._enforce_trimming_rules(doc, 7, 10, trimmers=["punct"])
-            (8, 9)
-        """
-        new_bp_l = self._enforce_start_trimmers(
-            doc, bp_l, bp_r, trimmers, start_trimmers
-        )
-        new_bp_r = self._enforce_end_trimmers(
-            doc, new_bp_l, bp_r, trimmers, end_trimmers
-        )
-        return new_bp_l, new_bp_r
-
-    def _precheck_query(
-        self,
-        query: Doc,
-        trimmers: Optional[Iterable[str]] = None,
-        start_trimmers: Optional[Iterable[str]] = None,
-        end_trimmers: Optional[Iterable[str]] = None,
-    ) -> Doc:
-        """Validates the query Doc before fuzzy matching.
-
-        Ensures the query is a Doc object and
-        checks if any of the trimmer functions affect the query.
-
-        Args:
-            query: Doc to fuzzy match against another Doc object.
-            trimmers: Optional iterable of direction agnostic
-                span trimmer key names.
-            start_trimmers: Optional iterable of start index
-                span trimmer key names.
-            end_trimmers: Optional iterable of end index
-                span trimmer key names.
-
-        Returns:
-            A Doc object.
-
-        Raises:
-            TypeError: The query is not a Doc object.
-
-        Warnings:
-            FuzzyPrecheckWarning:
-                If trimmer rules will affect the query.
-
-        Example:
-            >>> import spacy
-            >>> from spacy.tokens import Doc
-            >>> from spaczz.fuzz import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
-            >>> query = nlp("This is a query.")
-            >>> precheck_query = searcher._precheck_query(query)
-            >>> isinstance(precheck_query, Doc)
-            True
-        """
-        if not isinstance(query, Doc):
-            raise TypeError("The query must be a Doc object.")
-        start_trimmer_funcs = self._config.get_trimmers(
-            "start", trimmers, start_trimmers
-        )
-        end_trimmer_funcs = self._config.get_trimmers(
-            "end", trimmers, end_trimmers=end_trimmers
-        )
-        if any([func(query[0]) for func in start_trimmer_funcs]) or any(
-            [func(query[-1]) for func in end_trimmer_funcs]
-        ):
-            warnings.warn(
-                """One or more trimmer rules will affect the query,\n
-                    which will likely lead to unexpected fuzzy matching behavior.\n
-                    Either change the query or trimmer rules to remedy this.""",
-                FuzzyPrecheckWarning,
-            )
-        return query
 
     def _scan_doc(
         self, doc: Doc, query: Doc, fuzzy_func: str, min_r1: int, ignore_case: bool
@@ -599,7 +351,7 @@ class FuzzySearcher:
 
         By default flex is set to the legth of query.
         If flex is a value greater than query,
-        flex will be set to 1 instead.
+        flex will be set to len(query) instead.
 
         Args:
             query: The Doc object to fuzzy match with.
