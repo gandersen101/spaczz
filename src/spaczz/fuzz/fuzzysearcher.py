@@ -1,11 +1,11 @@
 """Module for FuzzySearcher class. Does fuzzy matching in spaCy Docs."""
 from itertools import chain
-from typing import Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
 import warnings
 
+from rapidfuzz import fuzz
 from spacy.tokens import Doc
 
-from .fuzzyconfig import FuzzyConfig
 from ..exceptions import FlexWarning
 
 
@@ -17,37 +17,39 @@ class FuzzySearcher:
     span in a Doc object, the n best fuzzy matched spans in a Doc,
     and fuzzy matching between any two given strings.
 
+    Fuzzy matching is currently provided by rapidfuzz and the searcher
+    contains provides access to all rapidfuzz matchers with default
+    settings.
+
     Attributes:
-        _config (FuzzyConfig): The fuzzy config used with the fuzzy searcher.
+        _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
+            Fuzzy matching functions accessible
+            by their given key name. All rapidfuzz matchers
+            with default settings are currently available:
+            "simple" = fuzz.ratio
+            "partial" = fuzz.partial_ratio
+            "token_set" = fuzz.token_set_ratio
+            "token_sort" = fuzz.token_sort_ratio
+            "partial_token_set" = fuzz.partial_token_set_ratio
+            "partial_token_sort" = fuzz.partial_token_sort_ratio
+            "quick" = fuzz.QRatio
+            "weighted" = fuzz.WRatio
+            "quick_lev" = fuzz.quick_lev_ratio
     """
 
-    def __init__(self, config: Union[str, FuzzyConfig] = "default") -> None:
-        """Initializes a fuzzy searcher with the given config.
-
-        Args:
-            config: Provides predefind fuzzy matching functions.
-                Uses the default config if "default", an empty config if "empty",
-                or a custom config by passing a FuzzyConfig object.
-                Default is "default".
-
-        Raises:
-            TypeError: If config is not a FuzzyConfig object.
-        """
-        if config == "default":
-            self._config = FuzzyConfig(empty=False)
-        elif config == "empty":
-            self._config = FuzzyConfig(empty=True)
-        else:
-            if isinstance(config, FuzzyConfig):
-                self._config = config
-            else:
-                raise TypeError(
-                    (
-                        "config must be one of the strings 'default' or 'empty',",
-                        "or a FuzzyConfig object not,",
-                        f"{config} of type: {type(config)}.",
-                    )
-                )
+    def __init__(self) -> None:
+        """Initializes a fuzzy searcher with the given config."""
+        self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+            "simple": fuzz.ratio,
+            "partial": fuzz.partial_ratio,
+            "token_set": fuzz.token_set_ratio,
+            "token_sort": fuzz.token_sort_ratio,
+            "partial_token_set": fuzz.partial_token_set_ratio,
+            "partial_token_sort": fuzz.partial_token_sort_ratio,
+            "quick": fuzz.QRatio,
+            "weighted": fuzz.WRatio,
+            "quick_lev": fuzz.quick_lev_ratio,
+        }
 
     def compare(
         self, str1: str, str2: str, fuzzy_func: str = "simple", ignore_case: bool = True
@@ -88,7 +90,41 @@ class FuzzySearcher:
         if ignore_case:
             str1 = str1.lower()
             str2 = str2.lower()
-        return round(self._config.get_fuzzy_func(fuzzy_func, ignore_case)(str1, str2))
+        return round(self.get_fuzzy_func(fuzzy_func, ignore_case)(str1, str2))
+
+    def get_fuzzy_func(
+        self, fuzzy_func: str, ignore_case: bool = True
+    ) -> Callable[[str, str], int]:
+        """Returns a fuzzy matching function based on it's key name.
+
+        Args:
+            fuzzy_func: Key name of the fuzzy matching function.
+            ignore_case: If fuzzy matching will be executed
+                with case sensitivity or not.
+
+        Returns:
+            A fuzzy matching function.
+
+        Raises:
+            ValueError: fuzzy_func was not a valid key name.
+
+        Example:
+            >>> from spaczz.fuzz import FuzzySearcher
+            >>> searcher = FuzzySearcher()
+            >>> simple = searcher.get_fuzzy_func("simple", False)
+            >>> simple("hi", "hi")
+            100.0
+        """
+        try:
+            return self._fuzzy_funcs[fuzzy_func]
+        except KeyError:
+            raise ValueError(
+                (
+                    f"No fuzzy matching function called {fuzzy_func}.",
+                    "Matcher must be in the following:",
+                    f"{list(self._fuzzy_funcs.keys())}",
+                )
+            )
 
     def match(
         self,

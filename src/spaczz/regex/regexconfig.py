@@ -1,4 +1,4 @@
-"""Module for RegexConfig class."""
+"""Module for RegexPredef class."""
 from typing import Any
 
 import regex
@@ -8,12 +8,12 @@ from ..exceptions import RegexParseError
 
 
 class RegexConfig:
-    """Class for housing predefined regex patterns.
+    """Class for parsing regex patterns and housing predefined regex patterns.
 
-    Will eventually includes methods for adding/removing user patterns.
+    Will eventually includes methods for adding/removing predefined user patterns.
 
     Attributes:
-        _predef: Regex patterns available.
+        _predefs: Regex patterns available.
     """
 
     def __init__(self, empty: bool = False) -> None:
@@ -21,7 +21,7 @@ class RegexConfig:
 
         Args:
             empty: Whether to initialize the instance without predefined
-                flags and patterns or not. Will be more useful later once API
+                patterns or not. Will be more useful later once API
                 is extended. Default is False.
         """
         if not empty:
@@ -66,13 +66,13 @@ class RegexConfig:
         Example:
             >>> import regex
             >>> from spaczz.regex import RegexConfig
-            >>> config = RegexConfig()
-            >>> pattern = config.parse_regex("Test")
+            >>> predef = RegexConfig()
+            >>> pattern = predef.parse_regex("Test")
             >>> isinstance(pattern, type(regex.compile("type")))
             True
         """
         if predef:
-            compiled_regex = self._get_predef(regex_str)
+            compiled_regex = self.get_predef(regex_str)
         else:
             try:
                 compiled_regex = regex.compile(regex_str,)
@@ -80,7 +80,7 @@ class RegexConfig:
                 raise RegexParseError(e)
         return compiled_regex
 
-    def _get_predef(self, predef: str) -> Any:
+    def get_predef(self, predef: str) -> Any:
         """Returns a regex pattern from the predefined patterns available.
 
         Args:
@@ -96,7 +96,7 @@ class RegexConfig:
             >>> import regex
             >>> from spaczz.regex import RegexConfig
             >>> config = RegexConfig()
-            >>> pattern = config._get_predef("phones")
+            >>> pattern = config.get_predef("phones")
             >>> isinstance(pattern, type(regex.compile("type")))
             True
         """
@@ -105,5 +105,5 @@ class RegexConfig:
             return predef_regex
         else:
             raise ValueError(
-                f"{predef} is not a regex pattern defined in this RegexConfig instance."
+                f"{predef} is not a regex pattern defined in this RegexPredef instance."
             )
