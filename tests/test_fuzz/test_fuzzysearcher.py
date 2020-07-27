@@ -2,11 +2,11 @@
 from typing import Dict
 
 import pytest
+from rapidfuzz import fuzz
 from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.exceptions import FlexWarning
-from spaczz.fuzz.fuzzyconfig import FuzzyConfig
 from spaczz.fuzz.fuzzysearcher import FuzzySearcher
 
 
@@ -34,30 +34,16 @@ def adjust_example(nlp: Language) -> Doc:
     return nlp.make_doc("There was a great basketball player named: Karem Abdul Jabar")
 
 
-def test_fuzzysearcher_config_contains_predefined_defaults(
-    searcher: FuzzySearcher,
-) -> None:
-    """Its config contains predefined defaults."""
-    assert searcher._config._fuzzy_funcs
+def test_get_fuzzy_alg_returns_alg(searcher: FuzzySearcher) -> None:
+    """It returns the expected fuzzy matching function."""
+    func = searcher.get_fuzzy_func("simple")
+    assert func == fuzz.ratio
 
 
-def test_fuzzysearcher_uses_passed_config() -> None:
-    """It uses the config passed to it."""
-    config = FuzzyConfig()
-    searcher = FuzzySearcher(config=config)
-    assert searcher._config._fuzzy_funcs
-
-
-def test_fuzzysearcher_raises_error_if_config_is_not_fuzzyconfig() -> None:
-    """It raises a TypeError if config is not recognized string or FuzzyConfig."""
-    with pytest.raises(TypeError):
-        FuzzySearcher(config="Will cause error")
-
-
-def test_fuzzysearcher_has_empty_config_if_empty_passed() -> None:
-    """It's config is empty."""
-    searcher = FuzzySearcher(config="empty")
-    assert not searcher._config._fuzzy_funcs
+def test_get_fuzzy_alg_raises_error_with_unknown_name(searcher: FuzzySearcher) -> None:
+    """It raises a ValueError if fuzzy_func does not match a predefined key name."""
+    with pytest.raises(ValueError):
+        searcher.get_fuzzy_func("unkown")
 
 
 def test_compare_works_with_defaults(searcher: FuzzySearcher) -> None:

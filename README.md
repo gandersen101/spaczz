@@ -421,12 +421,13 @@ Spaczz is written in pure Python and it's matchers do not currently utilize spaC
 
 1. API support for adding user-defined regexes to the predefined regex.
     1. Saving these additional predefined regexes as part of the SpaczzRuler will also be supported.
-2. API support for adding user-defined fuzzy matching functions.
-    1. Custom fuzzy matching functions will likely have to be re-added to a loaded SpaczzRuler as saving/loading them will not be straightforward.
+2. Entity start/end trimming on the token level to prevent fuzzy matches from starting/ending with unwanted tokens, i.e. spaces/punctuation. Will support similar options as spaCy's matcher.
 
 Wishful thinking:
 
 1. Having the fuzzy/regex matchers utilize spaCy vocabularies.
+2. Rewrite the fuzzy searching algorithm in Cython to utilize C speed.
+3. Fuzzy matching with token patterns along with phrase patterns.
 
 
 ## Development

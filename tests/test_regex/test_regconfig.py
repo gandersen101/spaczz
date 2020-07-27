@@ -18,15 +18,15 @@ def test_empty_regex_config() -> None:
     assert empty_rc._predefs == {}
 
 
-def test__get_predef_returns_existing_regex(config: RegexConfig) -> None:
+def test_get_predef_returns_existing_regex(config: RegexConfig) -> None:
     """It returns a predefined compiled regex pattern."""
-    assert config._get_predef("times") == _commonregex["times"]
+    assert config.get_predef("times") == _commonregex["times"]
 
 
-def test__get_predef_raises_error_with_undefined_regex(config: RegexConfig) -> None:
+def test_get_predef_raises_error_with_undefined_regex(config: RegexConfig) -> None:
     """It raises a ValueError if predef is not actually predefined."""
     with pytest.raises(ValueError):
-        config._get_predef("unknown")
+        config.get_predef("unknown")
 
 
 def test_parse_regex_with_predef(config: RegexConfig) -> None:

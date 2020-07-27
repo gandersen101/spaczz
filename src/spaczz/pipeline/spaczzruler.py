@@ -46,7 +46,7 @@ class SpaczzRuler:
 
     name = "spaczz_ruler"
 
-    def __init__(self, nlp: Language, **cfg: Any) -> None:
+    def __init__(self, nlp: Language, attr: str = "spaczz_ent", **cfg: Any) -> None:
         """Initialize the spaczz ruler with a Language object and cfg parameters.
 
         All spaczz ruler cfg parameters are prepended with "spaczz_".
@@ -59,6 +59,9 @@ class SpaczzRuler:
         Args:
             nlp: The shared nlp object to pass the vocab to the matchers
                 (not currently used by spaczz matchers) and process fuzzy patterns.
+            attr: Name of custom Span attribute that denotes whether an
+                entity was added via the spaczz ruler or not.
+                Default is "spaczz_ent".
             **cfg: Other config parameters. The SpaczzRuler makes heavy use
                 of cfg to pass additional parameters down to the matchers.
                 spaczz config parameters start with "spaczz_" to keep them
@@ -66,9 +69,6 @@ class SpaczzRuler:
                 SpaczzRuler cfg components include (with "spaczz_" prepended to them):
                 overwrite_ents (bool): Whether to overwrite exisiting Doc.ents
                     with new matches. Default is False.
-                fuzzy_config (Union[str, FuzzyConfig]): Config to use with the
-                    fuzzy matcher. Default is "default". See FuzzyMatcher/FuzzySearcher
-                    documentation for available parameter details.
                 regex_config (Union[str, RegexConfig]): Config to use with the
                     regex matcher. Default is "default". See RegexMatcher/RegexSearcher
                     documentation for available parameter details.
@@ -87,6 +87,8 @@ class SpaczzRuler:
         Raises:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
+        if not Span.get_extension(attr):
+            Span.set_extension(attr, default=False)
         self.nlp = nlp
         self.fuzzy_patterns: DefaultDict[
             str,
@@ -110,13 +112,11 @@ class SpaczzRuler:
                         )
                     )
         self.fuzzy_matcher = FuzzyMatcher(
-            nlp.vocab,
-            cfg.get("spaczz_fuzzy_config", "default"),
-            **self.defaults.get("spaczz_fuzzy_defaults", {}),
+            nlp.vocab, **self.defaults.get("spaczz_fuzzy_defaults", {}),
         )
         self.regex_matcher = RegexMatcher(
             nlp.vocab,
-            cfg.get("spaczz_fuzzy_config", "default"),
+            cfg.get("spaczz_regex_config", "default"),
             **self.defaults.get("spaczz_regex_defaults", {}),
         )
         patterns = cfg.get("spaczz_patterns")
@@ -160,6 +160,7 @@ class SpaczzRuler:
             # check for end - 1 here because boundaries are inclusive
             if start not in seen_tokens and end - 1 not in seen_tokens:
                 span = Span(doc, start, end, label=match_id)
+                span._.set("spaczz_ent", True)
                 new_entities.append(span)
                 entities = [
                     e for e in entities if not (e.start < end and e.end > start)

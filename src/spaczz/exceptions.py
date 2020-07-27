@@ -1,10 +1,6 @@
 """Module for custom exceptions and warnings."""
 
 
-class EmptyConfigError(Exception):
-    """If config is called while empty."""
-
-
 class RegexParseError(Exception):
     """General error for errors that may happen during regex compilation."""
 
@@ -18,4 +14,4 @@ class KwargsWarning(Warning):
 
 
 class PatternTypeWarning(Warning):
-    """It warns if the spaczz pattern does not have a valid patter type."""
+    """It warns if the spaczz pattern does not have a valid pattern type."""

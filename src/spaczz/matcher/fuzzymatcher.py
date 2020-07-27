@@ -21,7 +21,7 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning
-from ..fuzz import FuzzyConfig, FuzzySearcher
+from ..fuzz import FuzzySearcher
 
 
 class FuzzyMatcher(FuzzySearcher):
@@ -38,8 +38,6 @@ class FuzzyMatcher(FuzzySearcher):
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the fuzzy matches identified.
-        _config: The FuzzyConfig object tied to an instance
-            of FuzzyMatcher.
         _patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
@@ -48,9 +46,7 @@ class FuzzyMatcher(FuzzySearcher):
 
     name = "fuzzy_matcher"
 
-    def __init__(
-        self, vocab: Vocab, config: Union[str, FuzzyConfig] = "default", **defaults: Any
-    ) -> None:
+    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the fuzzy matcher with the given config and defaults.
 
         Args:
@@ -60,11 +56,6 @@ class FuzzyMatcher(FuzzySearcher):
                 spaczz matchers are currently pure
                 Python and do not share vocabulary
                 with spacy pipelines.
-            config: Provides the class with predefind fuzzy matching
-                and span trimming functions.
-                Uses the default config if "default", an empty config if "empty",
-                or a custom config by passing a FuzzyConfig object.
-                Default is "default".
             **defaults: Keyword arguments that will
                 be passed to the fuzzy matching function
                 (the inherited multi_match method).
@@ -72,7 +63,7 @@ class FuzzyMatcher(FuzzySearcher):
                 fuzzy matching in the matcher.
                 See FuzzySearcher documentation for details.
         """
-        super().__init__(config)
+        super().__init__()
         self.defaults = defaults
         self._callbacks: Dict[
             str,
