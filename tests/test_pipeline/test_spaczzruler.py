@@ -25,13 +25,14 @@ def doc(nlp: Language) -> Doc:
 def patterns() -> List[Dict[str, Any]]:
     """Patterns for testing."""
     patterns = [
-        {"label": "DRUG", "pattern": "Zithromax", "type": "fuzzy"},
+        {"label": "DRUG", "pattern": "Zithromax", "type": "fuzzy", "id": "Antibiotic"},
         {"label": "GPE", "pattern": "Mahwah", "type": "fuzzy"},
         {
             "label": "NAME",
             "pattern": "Grant Andersen",
             "type": "fuzzy",
             "kwargs": {"fuzzy_func": "token_sort"},
+            "id": "Developer",
         },
         {
             "label": "STREET",
@@ -43,6 +44,7 @@ def patterns() -> List[Dict[str, Any]]:
             "label": "GPE",
             "pattern": r"(?i)[U](nited|\.?) ?[S](tates|\.?)",
             "type": "regex",
+            "id": "USA",
         },
     ]
     return patterns
@@ -125,6 +127,15 @@ def test_patterns(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
     assert all([pattern in ruler.patterns for pattern in patterns])
 
 
+def test_ent_ids(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
+    """It returns all unique ent ids."""
+    ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
+    assert all(
+        [ent_id in ruler.ent_ids for ent_id in ["Antibiotic", "Developer", "USA"]]
+    )
+    assert len(ruler.ent_ids) == 3
+
+
 def test_calling_ruler(nlp: Language, patterns: List[Dict[str, Any]], doc: Doc) -> None:
     """It adds entities to doc."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
@@ -184,6 +195,24 @@ def test_seeing_tokens_again(
     )
     doc = ruler(doc)
     assert "ADDRESS" in [ent.label_ for ent in doc.ents]
+
+
+def test_set_entity_ids(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
+    """It writes ids to entities."""
+    ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
+    nlp.add_pipe(ruler)
+    doc = nlp("Grint Anderson was prescribed Zithroma.")
+    assert len(doc.ents) == 2
+    assert doc.ents[0].label_ == "NAME"
+    assert doc.ents[0].ent_id_ == "Developer"
+    assert doc.ents[1].label_ == "DRUG"
+    assert doc.ents[1].ent_id_ == "Antibiotic"
+
+
+def test__create_label_w_no_ent_id(nlp: Language) -> None:
+    """It returns the label only."""
+    ruler = SpaczzRuler(nlp)
+    assert ruler._create_label("TEST", None) == "TEST"
 
 
 def test_spaczz_ruler_serialize_bytes(
