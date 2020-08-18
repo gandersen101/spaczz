@@ -72,10 +72,9 @@ class FuzzyMatcher(FuzzySearcher):
                 None,
             ],
         ] = {}
-        self._patterns: DefaultDict[
-            str,
-            DefaultDict[str, Union[List[Doc], List[Dict[str, Union[bool, int, str]]]]],
-        ] = defaultdict(lambda: defaultdict(list))
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+            lambda: defaultdict(list)
+        )
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
         """Find all sequences matching the supplied patterns in the Doc.

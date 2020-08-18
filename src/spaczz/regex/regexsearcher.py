@@ -1,7 +1,6 @@
 """Module for the RegexSearcher class. Does multi-token regex matching in spaCy Docs."""
 from typing import List, Tuple, Union
 
-import regex
 from spacy.tokens import Doc, Span
 
 from .regexconfig import RegexConfig
@@ -48,11 +47,7 @@ class RegexSearcher:
                 )
 
     def match(
-        self,
-        doc: Doc,
-        regex_str: Union[str, regex.Regex],
-        partial: bool = True,
-        predef: bool = False,
+        self, doc: Doc, regex_str: str, partial: bool = True, predef: bool = False,
     ) -> List[Tuple[int, int]]:
         """Returns all the regex matches within doc.
 

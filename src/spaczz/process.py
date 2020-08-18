@@ -1,4 +1,4 @@
-"""Module for various text processing functions."""
+"""Module for various text/doc processing functions."""
 from typing import Dict
 
 from spacy.tokens import Doc
@@ -11,3 +11,7 @@ def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
         for i in range(token.idx, token.idx + len(token.text)):
             chars_to_tokens[i] = token.i
     return chars_to_tokens
+
+
+class MatchCleanerMixin:
+    """To be implemented later."""
