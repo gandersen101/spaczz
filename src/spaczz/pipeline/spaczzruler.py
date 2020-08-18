@@ -72,7 +72,7 @@ class SpaczzRuler:
                 SpaczzRuler cfg components include (with "spaczz_" prepended to them):
                 overwrite_ents (bool): Whether to overwrite exisiting Doc.ents
                     with new matches. Default is False.
-                ent_id_sep: TBD.
+                ent_id_sep (str): String to separate entity labels and ids on.
                 regex_config (Union[str, RegexConfig]): Config to use with the
                     regex matcher. Default is "default". See RegexMatcher/RegexSearcher
                     documentation for available parameter details.
@@ -197,7 +197,17 @@ class SpaczzRuler:
         """All entity ids present in the match patterns id properties.
 
         Returns:
-            The string entity ids.
+            The unique string entity ids as a tuple.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> ruler.add_patterns([{"label": "AUTHOR", "pattern": "Kerouac",
+                "type": "fuzzy", "id": "BEAT"}])
+            >>> ruler.ent_ids
+            ('BEAT',)
         """
         keys = set(self.fuzzy_patterns.keys())
         keys.update(self.regex_patterns.keys())
@@ -591,14 +601,14 @@ class SpaczzRuler:
             write_to_disk(path, serializers, {})
 
     def _create_label(self, label: str, ent_id: Union[str, None]) -> str:
-        """Join Entity label with ent_id if the pattern has an `id` attribute.
+        """Join Entity label with ent_id if the pattern has an id attribute.
 
         Args:
-            label: The label to set for ent.label_
-            ent_id: The label
+            label: The entity label.
+            ent_id: The optional entity id.
 
         Returns:
-            The ent_label joined with configured ent_id_sep.
+            The label and ent_id joined with configured ent_id_sep.
         """
         if isinstance(ent_id, str):
             label = "{}{}{}".format(label, self.ent_id_sep, ent_id)
@@ -611,7 +621,7 @@ class SpaczzRuler:
             label: The value of label in a pattern entry
 
         Returns:
-            ent_label, ent_id
+            The separated ent_label and optional ent_id.
         """
         if self.ent_id_sep in label:
             ent_label, ent_id = label.rsplit(self.ent_id_sep, 1)
