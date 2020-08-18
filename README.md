@@ -1,19 +1,23 @@
-[![Tests](https://github.com/gandersen101/spaczz/workflows/Tests/badge.svg)](https://github.com/gandersen101/spaczz/actions?workflow=Tests)
-[![Codecov](https://codecov.io/gh/gandersen101/spaczz/branch/master/graph/badge.svg)](https://codecov.io/gh/gandersen101/spaczz)
-[![PyPI](https://img.shields.io/pypi/v/spaczz.svg)](https://pypi.org/project/spaczz/)
-[![Read the Docs](https://readthedocs.org/projects/spaczz/badge/)](https://spaczz.readthedocs.io/)
-
 # spaczz: Fuzzy matching and more for spaCy
 
 Spaczz provides fuzzy matching and multi-token regex matching functionality for [spaCy](https://spacy.io/).
 Spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
 
-Fuzzy matching is currently performed with matchers from [raipdfuzz](https://github.com/maxbachmann/rapidfuzz)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
+Fuzzy matching is currently performed with matchers from [RapidFuzz](https://github.com/maxbachmann/rapidfuzz)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
 
-Spaczz has been tested on Ubuntu-18.04, macos-10.15, and Windows Server 2019.
+Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
+
+*v0.2.0 Release Notes:*
+- *Fuzzy matching is now performed with [RapidFuzz](https://github.com/maxbachmann/rapidfuzz) instead of [FuzzyWuzzy](https://github.com/seatgeek/fuzzywuzzy).*
+    - *RapidFuzz is higher performance with a more liberal license.*
+- *The spaczz ruler now automatically sets a custom, boolean, Span attribute on all entities it adds.*
+    - *This is set by the `attr` parameter during `SpaczzRuler` instantiation and defaults to: "spaczz_ent".*
+    - *For example: an entity set by the spaczz ruler will have `ent._.spaczz_ent` set to `True`.*
+- *Spaczz ruler patterns now support optional "id" values like spaCy's entity ruler. See [this spaCy documentation](https://spacy.io/usage/rule-based-matching#entityruler-ent-ids) for usage details.*
+- *Automated Windows testing is now part of the build process.*
 
 <h1>Table of Contents<span class="tocSkip"></span></h1>
-<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#FuzzyMatcher" data-toc-modified-id="FuzzyMatcher-2.1">FuzzyMatcher</a></span></li><li><span><a href="#RegexMatcher" data-toc-modified-id="RegexMatcher-2.2">RegexMatcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.3">SpaczzRuler</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.4">Saving/Loading</a></span></li></ul></li><li><span><a href="#Limitations" data-toc-modified-id="Limitations-3">Limitations</a></span></li><li><span><a href="#Future-State" data-toc-modified-id="Future-State-4">Future State</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
+<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#Fuzzy-Matcher" data-toc-modified-id="Fuzzy-Matcher-2.1">Fuzzy Matcher</a></span></li><li><span><a href="#Regex-Matcher" data-toc-modified-id="Regex-Matcher-2.2">Regex Matcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.3">SpaczzRuler</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.4">Saving/Loading</a></span></li></ul></li><li><span><a href="#Limitations" data-toc-modified-id="Limitations-3">Limitations</a></span></li><li><span><a href="#Future-State" data-toc-modified-id="Future-State-4">Future State</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
 
 ## Installation
 
@@ -26,9 +30,9 @@ pip install spaczz
 
 ## Basic Usage
 
-Spaczz's primary features are fuzzy and regex matchers that function similarily to spaCy's phrase and token matchers, and the spaczz ruler which integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
+Spaczz's primary features are fuzzy and regex matchers that function similarily to spaCy's phrase matcher, and the spaczz ruler which integrates the fuzzy/regex matcher into a spaCy pipeline component similar to spaCy's entity ruler.
 
-### FuzzyMatcher
+### Fuzzy Matcher
 
 The basic usage of the fuzzy matcher is similar to spaCy's phrase matcher.
 
@@ -140,9 +144,7 @@ for match_id, start, end in matches:
     NAME Anderson, Grint
 
 
-The full list of keyword arguments available for fuzzy matching rules includes:
-
-- *fuzzy_func*: Key name of fuzzy matching function to use. All rapidfuzz matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
+- `fuzzy_func`: Key name of fuzzy matching function to use. All rapidfuzz matching functions with default settings are available. Default is "simple". The included fuzzy matchers are:
     - "simple" = fuzz.ratio
     - "partial" = fuzz.partial_ratio
     - "token_set" = fuzz.token_set_ratio
@@ -152,14 +154,14 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "quick" = fuzz.QRatio
     - "weighted" = fuzz.WRatio
     - "quick_lev" = fuzz.quick_lev_ratio
-- *ignore_case*: If strings should be lower-cased before fuzzy matching or not. Default is True.
-- *min_r1*: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than min_r2 and "low" in general because match span boundaries are not flexed initially. 0 means all spans of query length in doc will have their boundaries flexed and will be recompared during match optimization. Lower min_r1 will result in more fine-grained matching but will run slower. Default is 25.
-- *min_r2*: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
-- *flex*: Number of tokens to move match span boundaries left and right during match optimization. Default is "default".
+- `ignore_case`: If strings should be lower-cased before fuzzy matching or not. Default is True.
+- `min_r1`: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than min_r2 and "low" in general because match span boundaries are not flexed initially. 0 means all spans of query length in doc will have their boundaries flexed and will be recompared during match optimization. Lower min_r1 will result in more fine-grained matching but will run slower. Default is 25.
+- `min_r2`: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than min_r1 and "high" in general to ensure only quality matches are returned. Default is 75.
+- `flex`: Number of tokens to move match span boundaries left and right during match optimization. Default is "default".
 
-### RegexMatcher
+### Regex Matcher
 
-The basic usage of the regex matcher is also fairly similar to spaCy's phrase matcher. It accepts regex patterns as strings so flags must be inline. Regexes are compiled with the [regex](https://github.com/seatgeek/fuzzywuzzy) package so approximate fuzzy matching is supported.
+The basic usage of the regex matcher is also fairly similar to spaCy's phrase matcher. It accepts regex patterns as strings so flags must be inline. Regexes are compiled with the [regex](https://pypi.org/project/regex/) package so approximate fuzzy matching is supported.
 
 
 ```python
@@ -216,8 +218,8 @@ for match_id, start, end in matches:
 
 The full list of keyword arguments available for regex matching rules includes:
 
-- *partial*: Whether partial matches should be extended to existing span boundaries in doc or not, i.e. the regex only matches part of a token or span. Default is True.
-- *predef*: Whether the regex string should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
+- `partial`: Whether partial matches should be extended to existing span boundaries in doc or not, i.e. the regex only matches part of a token or span. Default is True.
+- `predef`: Whether the regex string should be interpreted as a key to a predefined regex pattern or not. Default is False. The included regexes are:
     - "dates"
     - "times"
     - "phones"
@@ -241,11 +243,11 @@ The above patterns are the same that the [commonregex](https://github.com/madiso
 
 The spaczz ruler combines the fuzzy matcher and regex matcher into one pipeline component that can update a docs entities similar to spaCy's entity ruler.
 
-Patterns must be added as an iterable of dictionaries in the format of {label (str), pattern(str), type(str), and optional kwargs (dict)}.
+Patterns must be added as an iterable of dictionaries in the format of {label (str), pattern(str), type(str), optional kwargs (dict), and optional id (str)}.
 
 For example:
 
-{"label": "ORG", "pattern": "Apple", "type": "fuzzy", "kwargs": {"ignore_case": False}}
+{"label": "ORG", "pattern": "Apple", "type": "fuzzy", "kwargs": {"ignore_case": False}, "id": "TECH"}
 
 
 ```python
@@ -286,7 +288,6 @@ The SpaczzRuler has it's own to/from disk/bytes methods and will accept cfg para
 
 
 ```python
-# Entities the small English model finds.
 import spacy
 from spaczz.pipeline import SpaczzRuler
 
@@ -304,7 +305,9 @@ for ent in doc.ents:
     ('spaczz', 4, 5, 'GPE')
     ('555', 9, 10, 'CARDINAL')
     ('Fake St', 10, 12, 'PERSON')
-    ('Apt 5', 14, 16, 'LAW')
+    ('5', 15, 16, 'CARDINAL')
+    ('TN', 19, 20, 'ORG')
+    ('55555-1234', 20, 23, 'DATE')
     ('USA', 25, 26, 'GPE')
 
 
@@ -334,8 +337,9 @@ for ent in doc.ents:
     ('spaczz', 4, 5, 'GPE')
     ('555', 9, 10, 'CARDINAL')
     ('Fake St', 10, 12, 'PERSON')
-    ('Apt 5', 14, 16, 'LAW')
+    ('5', 15, 16, 'CARDINAL')
     ('TN', 19, 20, 'GPE')
+    ('55555-1234', 20, 23, 'DATE')
     ('USA', 25, 26, 'GPE')
 
 
@@ -362,7 +366,7 @@ for ent in doc.ents:
     ('Anderson, Grint', 0, 3, 'NAME')
     ('spaczz', 4, 5, 'GPE')
     ('555 Fake St,', 9, 13, 'STREET')
-    ('Apt 5', 14, 16, 'DATE')
+    ('5', 15, 16, 'CARDINAL')
     ('Nashv1le', 17, 18, 'GPE')
     ('TN', 19, 20, 'GPE')
     ('55555-1234', 20, 23, 'ZIP')
@@ -429,7 +433,6 @@ Wishful thinking:
 2. Rewrite the fuzzy searching algorithm in Cython to utilize C speed.
 3. Fuzzy matching with token patterns along with phrase patterns.
 
-
 ## Development
 
 Pull requests and contributors are welcome.
@@ -446,7 +449,8 @@ poetry install # Within spaczz's root directory.
 ## References
 
 - Spaczz tries to stay as close to [spaCy](https://spacy.io/)'s API as possible. Whenever it made sense to use existing spaCy code within spaczz this was done.
-- Fuzzy matching is currently done using [rapidfuzz](https://github.com/maxbachmann/rapidfuzz).
+- Fuzzy matching is currently performed using [RapidFuzz](https://github.com/maxbachmann/rapidfuzz).
+- Regexes are performed using the [regex](https://pypi.org/project/regex/) library.
 - The search algorithm for fuzzy matching was heavily influnced by Stack Overflow user *Ulf Aslak*'s answer in this [thread](https://stackoverflow.com/questions/36013295/find-best-substring-match).
 - Spaczz's predefined regex patterns were borrowed from the [commonregex](https://github.com/madisonmay/CommonRegex) package.
 - Spaczz's development and CI/CD patterns were inspired by Claudio Jolowicz's [*Hypermodern Python*](https://cjolowicz.github.io/posts/hypermodern-python-01-setup/) article series.
