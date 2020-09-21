@@ -48,7 +48,7 @@ class RegexSearcher:
 
     def match(
         self, doc: Doc, regex_str: str, partial: bool = True, predef: bool = False,
-    ) -> List[Tuple[int, int]]:
+    ) -> List[Tuple[int, int, Tuple[int, int, int]]]:
         """Returns all the regex matches within doc.
 
         Matches on the character level and then maps matches back
@@ -88,7 +88,7 @@ class RegexSearcher:
                 "ssn_number".
 
         Returns:
-            A list of span start index and end index pairs as tuples.
+            A list of span start index, end index, fuzzy change count tuples.
 
         Raises:
             TypeError: If regex_str is not a string.
@@ -100,7 +100,7 @@ class RegexSearcher:
             >>> searcher = RegexSearcher()
             >>> doc = nlp.make_doc("My phone number is (555) 555-5555.")
             >>> searcher.match(doc, "phones", predef=True)
-            [(4, 10)]
+            [(4, 10, (0, 0, 0))]
         """
         if isinstance(regex_str, str):
             compiled_regex = self._config.parse_regex(regex_str, predef)
@@ -110,17 +110,18 @@ class RegexSearcher:
         chars_to_tokens = map_chars_to_tokens(doc)
         for match in compiled_regex.finditer(doc.text):
             start, end = match.span()
+            counts = match.fuzzy_counts
             span = doc.char_span(start, end)
             if span:
-                matches.append(span)
+                matches.append((span, counts))
             else:
                 if partial:
                     start_token = chars_to_tokens.get(start)
                     end_token = chars_to_tokens.get(end)
                     if start_token and end_token:
                         span = Span(doc, start_token, end_token + 1)
-                        matches.append(span)
+                        matches.append((span, counts))
         if matches:
-            return [(match.start, match.end) for match in matches]
+            return [(match[0].start, match[0].end, match[1]) for match in matches]
         else:
             return []

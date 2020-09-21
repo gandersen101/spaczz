@@ -68,7 +68,9 @@ class FuzzyMatcher(FuzzySearcher):
         self._callbacks: Dict[
             str,
             Union[
-                Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int]]], None],
+                Callable[
+                    [FuzzyMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
+                ],
                 None,
             ],
         ] = {}
@@ -76,14 +78,14 @@ class FuzzyMatcher(FuzzySearcher):
             lambda: defaultdict(list)
         )
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
+    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, int]]:
         """Find all sequences matching the supplied patterns in the Doc.
 
         Args:
             doc: The Doc object to match over.
 
         Returns:
-            A list of (key, start, end) tuples, describing the matches.
+            A list of (key, start, end, ratio) tuples, describing the matches.
 
         Example:
             >>> import spacy
@@ -93,7 +95,7 @@ class FuzzyMatcher(FuzzySearcher):
             >>> doc = nlp("Ridly Scot was the director of Alien.")
             >>> matcher.add("NAME", [nlp.make_doc("Ridley Scott")])
             >>> matcher(doc)
-            [('NAME', 0, 2)]
+            [('NAME', 0, 2, 91)]
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -103,14 +105,13 @@ class FuzzyMatcher(FuzzySearcher):
                 matches_wo_label = self.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label[:2]
-                        for match_wo_label in matches_wo_label
+                        (label,) + match_wo_label for match_wo_label in matches_wo_label
                     ]
                     for match in matches_w_label:
                         matches.add(match)
         if matches:
-            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
-            for i, (label, _start, _end) in enumerate(sorted_matches):
+            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1], -x[3]))
+            for i, (label, _start, _end, _ratio) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
                     on_match(self, doc, i, sorted_matches)
@@ -184,7 +185,7 @@ class FuzzyMatcher(FuzzySearcher):
         patterns: Sequence[Doc],
         kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+            Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -315,7 +316,7 @@ class FuzzyMatcher(FuzzySearcher):
             >>> matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
             >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4)], [('DRAGON', 3, 4)]]
+            [[('DRAGON', 3, 4, 86)], [('DRAGON', 3, 4, 91)]]
         """
         if as_tuples:
             for doc, context in stream:

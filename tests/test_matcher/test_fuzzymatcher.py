@@ -13,7 +13,7 @@ def add_name_ent(
     matcher: FuzzyMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
-    match_id, start, end = matches[i]
+    _match_id, start, end, _ratio = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)
 
@@ -130,10 +130,10 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: FuzzyMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
     assert matcher(doc) == [
-        ("ANIMAL", 1, 2),
-        ("SOUND", 4, 5),
-        ("ANIMAL", 16, 17),
-        ("NAME", 18, 19),
+        ("ANIMAL", 1, 2, 83),
+        ("SOUND", 4, 5, 80),
+        ("ANIMAL", 16, 17, 83),
+        ("NAME", 18, 19, 77),
     ]
 
 
@@ -186,7 +186,7 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
     matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
     output = matcher.pipe(doc_stream, return_matches=True)
     matches = [entry[1] for entry in output]
-    assert matches == [[("DRAGON", 4, 5)], [("DRAGON", 4, 5)]]
+    assert matches == [[("DRAGON", 4, 5, 86)], [("DRAGON", 4, 5, 91)]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
@@ -199,4 +199,7 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
     output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
     matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [([("DRAGON", 4, 5)], "Jund"), ([("DRAGON", 4, 5)], "Jund")]
+    assert matches == [
+        ([("DRAGON", 4, 5, 86)], "Jund"),
+        ([("DRAGON", 4, 5, 91)], "Jund"),
+    ]

@@ -64,6 +64,8 @@ class SpaczzRuler:
                 (not currently used by spaczz matchers) and process fuzzy patterns.
             attr: Name of custom Span attribute that denotes whether an
                 entity was added via the spaczz ruler or not.
+                It also prepends the "_ratio" and "_counts" attributes, which denote
+                the fuzzy ratio and fuzzy regex counts respectively.
                 Default is "spaczz_ent".
             **cfg: Other config parameters. The SpaczzRuler makes heavy use
                 of cfg to pass additional parameters down to the matchers.
@@ -93,6 +95,9 @@ class SpaczzRuler:
         """
         if not Span.get_extension(attr):
             Span.set_extension(attr, default=False)
+            Span.set_extension(f"{attr}_ratio", default=None)
+            Span.set_extension(f"{attr}_counts", default=None)
+        self.attr = attr
         self.nlp = nlp
         self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
@@ -149,9 +154,25 @@ class SpaczzRuler:
             >>> "Anderson, Grunt" in [ent.text for ent in doc.ents]
             True
         """
-        matches = list(self.fuzzy_matcher(doc) + self.regex_matcher(doc))
+        fuzzy_matches = []
+        ratio_lookup: Dict[Tuple[str, int, int], int] = {}
+        for fuzzy_match in self.fuzzy_matcher(doc):
+            fuzzy_matches.append(fuzzy_match[:3])
+            current_ratio = fuzzy_match[3]
+            best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
+            if current_ratio >= best_ratio:
+                ratio_lookup[fuzzy_match[:3]] = current_ratio
+        regex_matches = []
+        counts_lookup: Dict[Tuple[str, int, int], Tuple[int, int, int]] = {}
+        for regex_match in self.regex_matcher(doc):
+            regex_matches.append(regex_match[:3])
+            current_counts = regex_match[3]
+            best_counts = counts_lookup.get(regex_match[:3], (0, 0, 0))
+            if sum(current_counts) <= sum(best_counts):
+                counts_lookup[regex_match[:3]] = current_counts
+        matches = fuzzy_matches + regex_matches
         unique_matches = set(
-            [(m_id, start, end) for m_id, start, end in matches if start != end]
+            [(match_id, start, end) for match_id, start, end in matches if start != end]
         )
         sorted_matches = sorted(
             unique_matches, key=lambda m: (m[2] - m[1], m[1]), reverse=True
@@ -167,13 +188,20 @@ class SpaczzRuler:
                 if match_id in self._ent_ids:
                     label, ent_id = self._ent_ids[match_id]
                     span = Span(doc, start, end, label=label)
-                    span._.set("spaczz_ent", True)
                     if ent_id:
                         for token in span:
                             token.ent_id_ = ent_id
                 else:
                     span = Span(doc, start, end, label=match_id)
-                    span._.set("spaczz_ent", True)
+                span._.set(self.attr, True)
+                span._.set(
+                    f"{self.attr}_ratio",
+                    ratio_lookup.get((match_id, start, end), None),
+                )
+                span._.set(
+                    f"{self.attr}_counts",
+                    counts_lookup.get((match_id, start, end), None),
+                )
                 new_entities.append(span)
                 entities = [
                     e for e in entities if not (e.start < end and e.end > start)
