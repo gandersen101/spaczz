@@ -1,3 +1,8 @@
+[![Tests](https://github.com/gandersen101/spaczz/workflows/Tests/badge.svg)](https://github.com/gandersen101/spaczz/actions?workflow=Tests)
+[![Codecov](https://codecov.io/gh/gandersen101/spaczz/branch/master/graph/badge.svg)](https://codecov.io/gh/gandersen101/spaczz)
+[![PyPI](https://img.shields.io/pypi/v/spaczz.svg)](https://pypi.org/project/spaczz/)
+[![Read the Docs](https://readthedocs.org/projects/spaczz/badge/)](https://spaczz.readthedocs.io/)
+
 # spaczz: Fuzzy matching and more for spaCy
 
 Spaczz provides fuzzy matching and multi-token regex matching functionality for [spaCy](https://spacy.io/).
