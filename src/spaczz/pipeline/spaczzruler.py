@@ -167,8 +167,8 @@ class SpaczzRuler:
         for regex_match in self.regex_matcher(doc):
             regex_matches.append(regex_match[:3])
             current_counts = regex_match[3]
-            best_counts = counts_lookup.get(regex_match[:3], (0, 0, 0))
-            if sum(current_counts) <= sum(best_counts):
+            best_counts = counts_lookup.get(regex_match[:3])
+            if not best_counts or sum(current_counts) <= sum(best_counts):
                 counts_lookup[regex_match[:3]] = current_counts
         matches = fuzzy_matches + regex_matches
         unique_matches = set(
