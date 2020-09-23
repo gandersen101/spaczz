@@ -23,9 +23,10 @@ def doc(nlp: Language) -> Doc:
 
 @pytest.fixture
 def patterns() -> List[Dict[str, Any]]:
-    """Patterns for testing."""
+    """Patterns for testing. Semi-duplicates purposeful."""
     patterns = [
         {"label": "DRUG", "pattern": "Zithromax", "type": "fuzzy", "id": "Antibiotic"},
+        {"label": "GPE", "pattern": "Mahwahe", "type": "fuzzy"},
         {"label": "GPE", "pattern": "Mahwah", "type": "fuzzy"},
         {
             "label": "NAME",
@@ -46,6 +47,7 @@ def patterns() -> List[Dict[str, Any]]:
             "type": "regex",
             "id": "USA",
         },
+        {"label": "GPE", "pattern": r"(?:USR){e<=1}", "type": "regex", "id": "USA"},
     ]
     return patterns
 
@@ -72,7 +74,7 @@ def test_ruler_with_defaults_as_not_dict_raises_error(nlp: Language) -> None:
 def test_add_patterns(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
     """It adds patterns correctly."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    assert len(ruler) == 5
+    assert len(ruler) == 7
 
 
 def test_add_patterns_raises_error_if_not_spaczz_pattern(nlp: Language,) -> None:
@@ -105,7 +107,7 @@ def test_add_patterns_with_other_pipeline_components(
     ruler = SpaczzRuler(nlp)
     nlp.add_pipe(ruler, first=True)
     nlp.get_pipe("spaczz_ruler").add_patterns(patterns)
-    assert len(ruler) == 5
+    assert len(ruler) == 7
 
 
 def test_contains(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
@@ -140,6 +142,10 @@ def test_calling_ruler(nlp: Language, patterns: List[Dict[str, Any]], doc: Doc) 
     """It adds entities to doc."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     doc = ruler(doc)
+    ents = [ent for ent in doc.ents]
+    assert all(ent._.spaczz_ent for ent in ents)
+    assert ents[0]._.spaczz_ent_ratio == 86
+    assert ents[1]._.spaczz_ent_counts == (0, 0, 0)
     assert len(doc.ents) == 5
 
 

@@ -13,7 +13,7 @@ def add_gpe_ent(
     matcher: RegexMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
 ) -> None:
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
-    match_id, start, end = matches[i]
+    match_id, start, end, _fuzzy_counts = matches[i]
     entity = Span(doc, start, end, label="GPE")
     doc.ents += (entity,)
 
@@ -127,9 +127,9 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: RegexMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
     assert matcher(doc) == [
-        ("STREET", 3, 6),
-        ("ZIP", 10, 11),
-        ("GPE", 13, 14),
+        ("STREET", 3, 6, (0, 0, 0)),
+        ("ZIP", 10, 11, (0, 0, 0)),
+        ("GPE", 13, 14, (0, 0, 0)),
     ]
 
 
@@ -179,7 +179,7 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
     matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
     output = matcher.pipe(doc_stream, return_matches=True)
     matches = [entry[1] for entry in output]
-    assert matches == [[("GPE", 4, 6)], [("GPE", 4, 5)]]
+    assert matches == [[("GPE", 4, 6, (0, 0, 0))], [("GPE", 4, 5, (0, 0, 0))]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
@@ -192,4 +192,7 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
     output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
     matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [([("GPE", 4, 6)], "Country"), ([("GPE", 4, 5)], "Country")]
+    assert matches == [
+        ([("GPE", 4, 6, (0, 0, 0))], "Country"),
+        ([("GPE", 4, 5, (0, 0, 0))], "Country"),
+    ]

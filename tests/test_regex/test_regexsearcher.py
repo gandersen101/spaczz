@@ -45,7 +45,7 @@ def test_multi_match(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces matches."""
     doc = nlp("My phone number is (555) 555-5555, not (554) 554-5554.")
     matches = searcher.match(doc, "phones", predef=True)
-    assert matches == [(4, 10), (12, 18)]
+    assert matches == [(4, 10, (0, 0, 0)), (12, 18, (0, 0, 0))]
 
 
 def test_multi_match_will_expand_on_partial_match_if_partials(
@@ -56,7 +56,7 @@ def test_multi_match_will_expand_on_partial_match_if_partials(
         "We want to identify 'USA' even though only first two letters will matched."
     )
     matches = searcher.match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)")
-    assert matches == [(5, 6)]
+    assert matches == [(5, 6, (0, 0, 0))]
 
 
 def test_multi_match_will_not_expand_if_not_partials(

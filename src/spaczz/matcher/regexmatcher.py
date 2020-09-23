@@ -73,23 +73,31 @@ class RegexMatcher(RegexSearcher):
         self.defaults = defaults
         self._callbacks: Dict[
             str,
-            Union[
-                Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None],
-                None,
+            Optional[
+                Callable[
+                    [
+                        RegexMatcher,
+                        Doc,
+                        int,
+                        List[Tuple[str, int, int, Tuple[int, int, int]]],
+                    ],
+                    None,
+                ],
             ],
         ] = {}
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
-        )  # Not sure why mypy complains when this is typed like fuzzymatcher._patterns.
+        )
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
+    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
         r"""Find all sequences matching the supplied patterns in the Doc.
 
         Args:
             doc: The doc object to match over.
 
         Returns:
-            A list of (key, start, end) tuples, describing the matches.
+            A list of (key, start, end, fuzzy change count) tuples,
+            describing the matches.
 
         Example:
             >>> import spacy
@@ -99,7 +107,7 @@ class RegexMatcher(RegexSearcher):
             >>> doc = nlp.make_doc("I live in the united states, or the US")
             >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
             >>> matcher(doc)
-            [('GPE', 4, 6), ('GPE', 9, 10)]
+            [('GPE', 4, 6, (0, 0, 0)), ('GPE', 9, 10, (0, 0, 0))]
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -109,14 +117,15 @@ class RegexMatcher(RegexSearcher):
                 matches_wo_label = self.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label[:2]
-                        for match_wo_label in matches_wo_label
+                        (label,) + match_wo_label for match_wo_label in matches_wo_label
                     ]
                     for match in matches_w_label:
                         matches.add(match)
         if matches:
-            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
-            for i, (label, _start, _end) in enumerate(sorted_matches):
+            sorted_matches = sorted(
+                matches, key=lambda x: (x[1], -x[2] - x[1], sum(x[3]))
+            )
+            for i, (label, _start, _end, _subs) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
                     on_match(self, doc, i, sorted_matches)
@@ -189,7 +198,15 @@ class RegexMatcher(RegexSearcher):
         patterns: Sequence[str],
         kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+            Callable[
+                [
+                    RegexMatcher,
+                    Doc,
+                    int,
+                    List[Tuple[str, int, int, Tuple[int, int, int]]],
+                ],
+                None,
+            ]
         ] = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -323,7 +340,7 @@ class RegexMatcher(RegexSearcher):
             >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
             >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[('GPE', 3, 5)], [('GPE', 3, 4)]]
+            [[('GPE', 3, 5, (0, 0, 0))], [('GPE', 3, 4, (0, 0, 0))]]
         """
         if as_tuples:
             for doc, context in stream:
