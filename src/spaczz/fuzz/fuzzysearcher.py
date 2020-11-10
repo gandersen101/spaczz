@@ -1,4 +1,4 @@
-"""Module for FuzzySearcher class. Does fuzzy matching in spaCy Docs."""
+"""Module for FuzzySearcher. Does fuzzy matching in spaCy Docs."""
 from itertools import chain
 from typing import Callable, Dict, List, Tuple, Union
 import warnings
@@ -38,7 +38,7 @@ class FuzzySearcher:
     """
 
     def __init__(self) -> None:
-        """Initializes a fuzzy searcher with the given config."""
+        """Initializes a fuzzy searcher."""
         self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
             "simple": fuzz.ratio,
             "partial": fuzz.partial_ratio,
@@ -79,7 +79,7 @@ class FuzzySearcher:
                 before comparison or not. Default is True.
 
         Returns:
-            The fuzzy ratio between a and b.
+            The fuzzy ratio between str1 and str2.
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
@@ -330,7 +330,7 @@ class FuzzySearcher:
         """Returns a Dict of potential match start indices and fuzzy ratios.
 
         Iterates through the doc by spans of query length,
-        and fuzzy matches each span gainst query.
+        and fuzzy matches each span against query.
 
         If a match span's fuzzy ratio is greater than or equal to the
         min_r1 it is added to a dict with it's start index

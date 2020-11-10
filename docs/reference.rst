@@ -13,6 +13,20 @@ spaczz.fuzz
    :members:
 
 
+spaczz.regex
+--------------------------
+
+.. automodule:: spaczz.regex
+   :members:
+
+
+spaczz.similarity
+--------------------------
+
+.. automodule:: spaczz.similarity
+   :members:
+
+
 spaczz.matcher
 --------------------------
 
@@ -31,13 +45,6 @@ spaczz.process
 --------------------------
 
 .. automodule:: spaczz.process
-   :members:
-
-
-spaczz.regex
---------------------------
-
-.. automodule:: spaczz.regex
    :members:
 
 
