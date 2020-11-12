@@ -1,4 +1,4 @@
-"""Module for the RegexSearcher class. Does multi-token regex matching in spaCy Docs."""
+"""Module for RegexSearcher. Does multi-token regex matching in spaCy Docs."""
 from typing import List, Tuple, Union
 
 from spacy.tokens import Doc, Span

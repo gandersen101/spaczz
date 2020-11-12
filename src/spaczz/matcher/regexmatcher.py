@@ -33,7 +33,7 @@ class RegexMatcher(RegexSearcher):
     Attributes:
         name: Class attribute - the name of the matcher.
         defaults: Kwargs to be used as default regex matching settings
-            for the regex matcher. Apply to inherited multi_match method.
+            for the matcher. Apply to inherited match method.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the regex matches identified.
@@ -65,7 +65,7 @@ class RegexMatcher(RegexSearcher):
                 Default is "default".
             defaults: Keyword arguments that will
                 be passed to the regex matching function
-                (the inherited multi_match() method).
+                (the inherited match() method).
                 These arguments will become the new defaults for
                 regex matching in the created RegexMatcher instance.
         """

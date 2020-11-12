@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.3.0"
+version = "0.3.1"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"

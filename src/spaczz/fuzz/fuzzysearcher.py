@@ -1,4 +1,4 @@
-"""Module for FuzzySearcher class. Does fuzzy matching in spaCy Docs."""
+"""Module for FuzzySearcher. Does fuzzy matching in spaCy Docs."""
 from itertools import chain
 from typing import Callable, Dict, List, Tuple, Union
 import warnings
@@ -38,7 +38,7 @@ class FuzzySearcher:
     """
 
     def __init__(self) -> None:
-        """Initializes a fuzzy searcher with the given config."""
+        """Initializes a fuzzy searcher."""
         self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
             "simple": fuzz.ratio,
             "partial": fuzz.partial_ratio,
@@ -79,7 +79,7 @@ class FuzzySearcher:
                 before comparison or not. Default is True.
 
         Returns:
-            The fuzzy ratio between a and b.
+            The fuzzy ratio between str1 and str2.
 
         Example:
             >>> from spaczz.fuzz import FuzzySearcher
@@ -295,30 +295,34 @@ class FuzzySearcher:
         bmv_r = match_values[p_l]
         if flex:
             for f in range(1, flex + 1):
-                ll = self.compare(
-                    query.text, doc[p_l - f : p_r].text, fuzzy_func, ignore_case
-                )
-                if (ll > bmv_l) and (p_l - f >= 0):
-                    bmv_l = ll
-                    bp_l = p_l - f
-                lr = self.compare(
-                    query.text, doc[p_l + f : p_r].text, fuzzy_func, ignore_case
-                )
-                if (lr > bmv_l) and (p_l + f < p_r):
-                    bmv_l = lr
-                    bp_l = p_l + f
-                rl = self.compare(
-                    query.text, doc[p_l : p_r - f].text, fuzzy_func, ignore_case
-                )
-                if (rl > bmv_r) and (p_r - f > p_l):
-                    bmv_r = rl
-                    bp_r = p_r - f
-                rr = self.compare(
-                    query.text, doc[p_l : p_r + f].text, fuzzy_func, ignore_case
-                )
-                if rr > bmv_r and (p_r + f <= len(doc)):
-                    bmv_r = rr
-                    bp_r = p_r + f
+                if p_l - f >= 0:
+                    ll = self.compare(
+                        query.text, doc[p_l - f : p_r].text, fuzzy_func, ignore_case
+                    )
+                    if ll > bmv_l:
+                        bmv_l = ll
+                        bp_l = p_l - f
+                if p_l + f < p_r:
+                    lr = self.compare(
+                        query.text, doc[p_l + f : p_r].text, fuzzy_func, ignore_case
+                    )
+                    if lr > bmv_l:
+                        bmv_l = lr
+                        bp_l = p_l + f
+                if p_r - f > p_l:
+                    rl = self.compare(
+                        query.text, doc[p_l : p_r - f].text, fuzzy_func, ignore_case
+                    )
+                    if rl > bmv_r:
+                        bmv_r = rl
+                        bp_r = p_r - f
+                if p_r + f <= len(doc):
+                    rr = self.compare(
+                        query.text, doc[p_l : p_r + f].text, fuzzy_func, ignore_case
+                    )
+                    if rr > bmv_r:
+                        bmv_r = rr
+                        bp_r = p_r + f
         r = self.compare(query.text, doc[bp_l:bp_r].text, fuzzy_func, ignore_case)
         if r >= min_r2:
             return (bp_l, bp_r, r)
@@ -330,7 +334,7 @@ class FuzzySearcher:
         """Returns a Dict of potential match start indices and fuzzy ratios.
 
         Iterates through the doc by spans of query length,
-        and fuzzy matches each span gainst query.
+        and fuzzy matches each span against query.
 
         If a match span's fuzzy ratio is greater than or equal to the
         min_r1 it is added to a dict with it's start index

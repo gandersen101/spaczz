@@ -145,6 +145,7 @@ def tests(session: Session) -> None:
     install_with_constraints(
         session, "coverage[toml]", "pytest", "pytest-cov", "pytest-mock"
     )
+    session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
 
 
@@ -154,6 +155,7 @@ def typeguard(session: Session) -> None:
     args = session.posargs
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
+    session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", f"--typeguard-packages={package}", *args)
 
 
@@ -163,4 +165,5 @@ def xdoctest(session: Session) -> None:
     args = session.posargs or ["all"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "xdoctest")
+    session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("python", "-m", "xdoctest", package, *args)
