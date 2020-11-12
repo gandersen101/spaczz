@@ -295,30 +295,34 @@ class FuzzySearcher:
         bmv_r = match_values[p_l]
         if flex:
             for f in range(1, flex + 1):
-                ll = self.compare(
-                    query.text, doc[p_l - f : p_r].text, fuzzy_func, ignore_case
-                )
-                if (ll > bmv_l) and (p_l - f >= 0):
-                    bmv_l = ll
-                    bp_l = p_l - f
-                lr = self.compare(
-                    query.text, doc[p_l + f : p_r].text, fuzzy_func, ignore_case
-                )
-                if (lr > bmv_l) and (p_l + f < p_r):
-                    bmv_l = lr
-                    bp_l = p_l + f
-                rl = self.compare(
-                    query.text, doc[p_l : p_r - f].text, fuzzy_func, ignore_case
-                )
-                if (rl > bmv_r) and (p_r - f > p_l):
-                    bmv_r = rl
-                    bp_r = p_r - f
-                rr = self.compare(
-                    query.text, doc[p_l : p_r + f].text, fuzzy_func, ignore_case
-                )
-                if rr > bmv_r and (p_r + f <= len(doc)):
-                    bmv_r = rr
-                    bp_r = p_r + f
+                if p_l - f >= 0:
+                    ll = self.compare(
+                        query.text, doc[p_l - f : p_r].text, fuzzy_func, ignore_case
+                    )
+                    if ll > bmv_l:
+                        bmv_l = ll
+                        bp_l = p_l - f
+                if p_l + f < p_r:
+                    lr = self.compare(
+                        query.text, doc[p_l + f : p_r].text, fuzzy_func, ignore_case
+                    )
+                    if lr > bmv_l:
+                        bmv_l = lr
+                        bp_l = p_l + f
+                if p_r - f > p_l:
+                    rl = self.compare(
+                        query.text, doc[p_l : p_r - f].text, fuzzy_func, ignore_case
+                    )
+                    if rl > bmv_r:
+                        bmv_r = rl
+                        bp_r = p_r - f
+                if p_r + f <= len(doc):
+                    rr = self.compare(
+                        query.text, doc[p_l : p_r + f].text, fuzzy_func, ignore_case
+                    )
+                    if rr > bmv_r:
+                        bmv_r = rr
+                        bp_r = p_r + f
         r = self.compare(query.text, doc[bp_l:bp_r].text, fuzzy_func, ignore_case)
         if r >= min_r2:
             return (bp_l, bp_r, r)

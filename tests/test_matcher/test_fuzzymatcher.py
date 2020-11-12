@@ -145,9 +145,7 @@ def test_matcher_returns_empty_list_if_no_matches(
     assert matcher(temp_doc) == []
 
 
-def test_matcher_uses_on_match_callback(
-    matcher: FuzzyMatcher, doc: Doc, nlp: Language
-) -> None:
+def test_matcher_uses_on_match_callback(matcher: FuzzyMatcher, doc: Doc) -> None:
     """It utilizes callback on match functions passed when called on a Doc object."""
     matcher(doc)
     ent_text = [ent.text for ent in doc.ents]

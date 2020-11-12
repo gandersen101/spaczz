@@ -1,4 +1,4 @@
-"""Module for FuzzyMatcher class with an API semi-analogous to spaCy matchers."""
+"""Module for SimilarityMatcher class with an API semi-analogous to spaCy matchers."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -20,48 +20,50 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import KwargsWarning
-from ..fuzz import FuzzySearcher
+from ..exceptions import KwargsWarning, MissingVectorsWarning
+from ..similarity import SimilaritySearcher
 
 
-class FuzzyMatcher(FuzzySearcher):
-    """spaCy-like matcher for finding fuzzy matches in Doc objects.
+class SimilarityMatcher(SimilaritySearcher):
+    """spaCy-like matcher for finding vector similarity matches in Doc objects.
 
-    Fuzzy matches added patterns against the Doc object it is called on.
-    Accepts labeled fuzzy patterns in the form of Doc objects.
+    Similarity matches added patterns against the Doc object it is called on.
+    Accepts labeled patterns in the form of Doc objects.
 
     Attributes:
         name: Class attribute - the name of the matcher.
-        defaults: Kwargs to be used as default fuzzy matching settings
+        defaults: Kwargs to be used as default similarity matching settings
             for the matcher. Apply to inherited match method.
-            See FuzzySearcher documentation for details.
+            See SimilaritySearcher documentation for details.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
-            Can make use of the fuzzy matches identified.
+            Can make use of the similarity matches identified.
         _patterns:
             Patterns added to the matcher. Contains patterns
             and kwargs that should be passed to matching function
             for each labels added.
     """
 
-    name = "fuzzy_matcher"
+    name = "similarity_matcher"
 
     def __init__(self, vocab: Vocab, **defaults: Any) -> None:
-        """Initializes the fuzzy matcher with the given defaults.
+        """Initializes the similarity matcher with the given defaults.
 
         Args:
-            vocab: A spacy Vocab object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are currently pure
-                Python and do not share vocabulary
-                with spacy pipelines.
+            vocab: A spacy Vocab object with word vectors.
+                Mostly for consistency with spaCy mathcer APIs for now.
+                If vocab does not have word vectors a warning
+                will be raised on initialization.
             **defaults: Keyword arguments that will
-                be passed to the fuzzy matching function
+                be passed to the similarity matching function
                 (the inherited match method).
                 These arguments will become the new defaults for
-                fuzzy matching in the matcher.
-                See FuzzySearcher documentation for details.
+                similarity matching in the matcher.
+                See SimilaritySearcher documentation for details.
+
+        Warnings:
+            UserWarning:
+                If vocab does not contain any word vectors.
         """
         super().__init__()
         self.defaults = defaults
@@ -69,7 +71,7 @@ class FuzzyMatcher(FuzzySearcher):
             str,
             Union[
                 Callable[
-                    [FuzzyMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
+                    [SimilarityMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
                 ],
                 None,
             ],
@@ -77,6 +79,12 @@ class FuzzyMatcher(FuzzySearcher):
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
+        if vocab.vectors.n_keys == 0:
+            warnings.warn(
+                """The spaCy Vocab object has no word vectors.\n
+                Similarity results may not be useful.""",
+                MissingVectorsWarning,
+            )
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int, int]]:
         """Find all sequences matching the supplied patterns in the Doc.
@@ -89,13 +97,13 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
-            >>> doc = nlp("Ridly Scot was the director of Alien.")
-            >>> matcher.add("NAME", [nlp.make_doc("Ridley Scott")])
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab)
+            >>> doc = nlp("John Frusciante is a musician.")
+            >>> matcher.add("PROFESSION", [nlp("guitarist")])
             >>> matcher(doc)
-            [('NAME', 0, 2, 91)]
+            [('PROFESSION', 4, 5, 77)]
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -136,12 +144,12 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp.make_doc("Kerouac")])
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab)
+            >>> matcher.add("INSTRUMENT", [nlp("piano")])
             >>> matcher.labels
-            ('AUTHOR',)
+            ('INSTRUMENT',)
         """
         return tuple(self._patterns.keys())
 
@@ -155,17 +163,17 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp.make_doc("Kerouac")],
-                [{"ignore_case": False}])
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab)
+            >>> matcher.add("INSTRUMENT", [nlp("piano")],
+                [{"min_r2": 90}])
             >>> matcher.patterns == [
                 {
-                    "label": "AUTHOR",
-                    "pattern": "Kerouac",
-                    "type": "fuzzy",
-                    "kwargs": {"ignore_case": False}
+                    "label": "INSTRUMENT",
+                    "pattern": "piano",
+                    "type": "similarity",
+                    "kwargs": {"min_r2": 90}
                     },
                     ]
             True
@@ -173,7 +181,7 @@ class FuzzyMatcher(FuzzySearcher):
         all_patterns = []
         for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
-                p = {"label": label, "pattern": pattern.text, "type": "fuzzy"}
+                p = {"label": label, "pattern": pattern.text, "type": "similarity"}
                 if kwargs:
                     p["kwargs"] = kwargs
                 all_patterns.append(p)
@@ -185,7 +193,9 @@ class FuzzyMatcher(FuzzySearcher):
         patterns: Sequence[Doc],
         kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[FuzzyMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
+            Callable[
+                [SimilarityMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
+            ]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -195,11 +205,12 @@ class FuzzyMatcher(FuzzySearcher):
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: Doc objects that will be fuzzy matched
+            patterns: Doc objects that will be similarity matched
                 against the Doc object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior of the fuzzy matching.
-                Apply to inherited multi_match method.
-                See FuzzySearcher documentation for kwarg details.
+            kwargs: Optional arguments to modify the behavior
+                of the similarity matching.
+                Apply to inherited match() method.
+                See SimilaritySearcher documentation for kwarg details.
                 Default is None.
             on_match: Optional callback function to modify the
                 Doc objec the matcher is called on after matching.
@@ -212,7 +223,7 @@ class FuzzyMatcher(FuzzySearcher):
         Warnings:
             UserWarning:
                 If there are more patterns than kwargs
-                default fuzzy matching settings will be used
+                default similarity matching settings will be used
                 for extra patterns.
             UserWarning:
                 If there are more kwargs dicts than patterns,
@@ -220,11 +231,11 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp.make_doc("mooo")])
-            >>> "SOUND" in matcher
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab)
+            >>> matcher.add("COMPANY", [nlp("Google")])
+            >>> "COMPANY" in matcher
             True
         """
         if kwargs is None:
@@ -264,12 +275,12 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp.make_doc("mooo")])
-            >>> matcher.remove("SOUND")
-            >>> "SOUND" in matcher
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab)
+            >>> matcher.add("COMPANY", [nlp("Google")])
+            >>> matcher.remove("COMPANY")
+            >>> "COMPANY" in matcher
             False
         """
         try:
@@ -306,17 +317,17 @@ class FuzzyMatcher(FuzzySearcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import FuzzyMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = FuzzyMatcher(nlp.vocab)
+            >>> from spaczz.matcher import SimilarityMatcher
+            >>> nlp = spacy.load("en_core_web_md")
+            >>> matcher = SimilarityMatcher(nlp.vocab, min_r2=65)
             >>> doc_stream = (
-                    nlp.make_doc("test doc1: Corvold"),
-                    nlp.make_doc("test doc2: Prosh"),
+                    nlp("test doc1: grape"),
+                    nlp("test doc2: kiwi"),
                 )
-            >>> matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
+            >>> matcher.add("FRUIT", [nlp("fruit")])
             >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4, 86)], [('DRAGON', 3, 4, 91)]]
+            [[('FRUIT', 3, 4, 72)], [('FRUIT', 3, 4, 68)]]
         """
         if as_tuples:
             for doc, context in stream:
