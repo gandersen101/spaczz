@@ -27,7 +27,7 @@ def doc(nlp: Language) -> Doc:
 
 
 @pytest.fixture
-def matcher(nlp: Language,) -> FuzzyMatcher:
+def matcher(nlp: Language) -> FuzzyMatcher:
     """Fuzzy matcher with patterns added."""
     animals = ["Heifer", "chicken"]
     sounds = ["mooo"]

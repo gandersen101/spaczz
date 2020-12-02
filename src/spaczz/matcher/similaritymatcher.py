@@ -21,7 +21,7 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning, MissingVectorsWarning
-from ..similarity import SimilaritySearcher
+from ..search import SimilaritySearcher
 
 
 class SimilarityMatcher(SimilaritySearcher):
@@ -31,10 +31,12 @@ class SimilarityMatcher(SimilaritySearcher):
     Accepts labeled patterns in the form of Doc objects.
 
     Attributes:
-        name: Class attribute - the name of the matcher.
         defaults: Kwargs to be used as default similarity matching settings
             for the matcher. Apply to inherited match method.
             See SimilaritySearcher documentation for details.
+        name: Class attribute - the name of the matcher.
+        vocab (Vocab): The shared vocabulary.
+            Included for consistency and potential future-state.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the similarity matches identified.
@@ -65,7 +67,7 @@ class SimilarityMatcher(SimilaritySearcher):
             UserWarning:
                 If vocab does not contain any word vectors.
         """
-        super().__init__()
+        super().__init__(vocab=vocab)
         self.defaults = defaults
         self._callbacks: Dict[
             str,
@@ -118,7 +120,7 @@ class SimilarityMatcher(SimilaritySearcher):
                     for match in matches_w_label:
                         matches.add(match)
         if matches:
-            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1], -x[3]))
+            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
             for i, (label, _start, _end, _ratio) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
