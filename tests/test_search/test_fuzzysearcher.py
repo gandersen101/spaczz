@@ -1,4 +1,4 @@
-"""Tests for fuzzymatcher module."""
+"""Tests for fuzzysearcher module."""
 from typing import Dict
 
 import pytest
@@ -7,13 +7,13 @@ from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.exceptions import FlexWarning
-from spaczz.fuzz.fuzzysearcher import FuzzySearcher
+from spaczz.search import FuzzySearcher
 
 
 @pytest.fixture
-def searcher() -> FuzzySearcher:
+def searcher(nlp: Language) -> FuzzySearcher:
     """It returns a default fuzzy searcher."""
-    return FuzzySearcher()
+    return FuzzySearcher(vocab=nlp.vocab)
 
 
 @pytest.fixture
@@ -25,13 +25,13 @@ def initial_matches() -> Dict[int, int]:
 @pytest.fixture
 def scan_example(nlp: Language) -> Doc:
     """Example doc for scan_doc tests."""
-    return nlp.make_doc("Don't call me Sh1rley")
+    return nlp("Don't call me Sh1rley")
 
 
 @pytest.fixture
 def adjust_example(nlp: Language) -> Doc:
     """Example doc for adjust_left_right tests."""
-    return nlp.make_doc("There was a great basketball player named: Karem Abdul Jabar")
+    return nlp("There was a great basketball player named: Karem Abdul Jabar")
 
 
 def test_get_fuzzy_alg_returns_alg(searcher: FuzzySearcher) -> None:
@@ -46,35 +46,35 @@ def test_get_fuzzy_alg_raises_error_with_unknown_name(searcher: FuzzySearcher) -
         searcher.get_fuzzy_func("unkown")
 
 
-def test_compare_works_with_defaults(searcher: FuzzySearcher) -> None:
+def test_compare_works_with_defaults(searcher: FuzzySearcher, nlp: Language) -> None:
     """Checks compare is working as intended."""
-    assert searcher.compare("spaczz", "spacy") == 73
+    assert searcher.compare(nlp("spaczz"), nlp("spacy")) == 73
 
 
-def test_compare_without_ignore_case(searcher: FuzzySearcher) -> None:
+def test_compare_without_ignore_case(searcher: FuzzySearcher, nlp: Language) -> None:
     """Checks ignore_case is working."""
-    assert searcher.compare("SPACZZ", "spaczz", ignore_case=False) == 0
+    assert searcher.compare(nlp("SPACZZ"), nlp("spaczz"), ignore_case=False) == 0
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
     """It returns len(query) if set with "default"."""
-    query = nlp.make_doc("Test query.")
-    assert searcher._calc_flex(query, "default") == 3
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, "default") == 1
 
 
 def test__calc_flex_passes_through_valid_value(
     nlp: Language, searcher: FuzzySearcher
 ) -> None:
     """It passes through a valid flex value (<= len(query))."""
-    query = nlp.make_doc("Test query.")
-    assert searcher._calc_flex(query, 1) == 1
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, 0) == 0
 
 
 def test__calc_flex_warns_if_flex_longer_than_query(
     nlp: Language, searcher: FuzzySearcher
 ) -> None:
     """It provides UserWarning if flex > len(query)."""
-    query = nlp.make_doc("Test query.")
+    query = nlp("Test query")
     with pytest.warns(FlexWarning):
         searcher._calc_flex(query, 5)
 
@@ -88,61 +88,45 @@ def test__calc_flex_raises_error_if_non_valid_value(
         searcher._calc_flex(query, None)
 
 
-def test__indice_maxes_returns_n_keys_with_max_values(
-    searcher: FuzzySearcher, initial_matches: Dict[int, int]
-) -> None:
-    """It returns the n keys correctly sorted."""
-    assert searcher._indice_maxes(initial_matches, 3) == [8, 9, 4]
-
-
-def test__indice_maxes_returns_all_keys_if_n_is_0(
-    searcher: FuzzySearcher, initial_matches: Dict[int, int]
-) -> None:
-    """It returns input unchanged if n is 0."""
-    assert searcher._indice_maxes(initial_matches, 0) == [1, 4, 5, 8, 9]
-
-
-def test__scan_doc_returns_matches_over_min_r1(
+def test__scan_returns_matches_over_min_r1(
     searcher: FuzzySearcher, nlp: Language, scan_example: Doc
 ) -> None:
     """It returns all spans of len(query) in doc if ratio >= min_r1."""
-    query = nlp.make_doc("Shirley")
-    assert searcher._scan_doc(
+    query = nlp("Shirley")
+    assert searcher._scan(
         scan_example, query, fuzzy_func="simple", min_r1=30, ignore_case=True
     ) == {4: 86}
 
 
-def test__scan_doc_returns_all_matches_with_no_min_r1(
+def test__scan_returns_all_matches_with_no_min_r1(
     searcher: FuzzySearcher, nlp: Language, scan_example: Doc
 ) -> None:
     """It returns all spans of len(query) in doc if min_r1 = 0."""
-    query = nlp.make_doc("Shirley")
-    assert searcher._scan_doc(
+    query = nlp("Shirley")
+    assert searcher._scan(
         scan_example, query, fuzzy_func="simple", min_r1=0, ignore_case=True
     ) == {0: 0, 1: 0, 2: 18, 3: 22, 4: 86}
 
 
-def test__scan_doc_with_no_matches(
+def test__scan_with_no_matches(
     searcher: FuzzySearcher, nlp: Language, scan_example: Doc
 ) -> None:
     """It returns None if no matches >= min_r1."""
-    query = nlp.make_doc("xenomorph")
+    query = nlp("xenomorph")
     assert (
-        searcher._scan_doc(
+        searcher._scan(
             scan_example, query, fuzzy_func="simple", min_r1=30, ignore_case=True
         )
         is None
     )
 
 
-def test__adjust_left_right_positions_finds_better_match(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
+def test__optimize_finds_better_match(searcher: FuzzySearcher, nlp: Language) -> None:
     """It optimizes the initial match to find a better match."""
-    doc = nlp.make_doc("Patient was prescribed Zithromax tablets.")
-    query = nlp.make_doc("zithromax tablet")
+    doc = nlp("Patient was prescribed Zithromax tablets.")
+    query = nlp("zithromax tablet")
     match_values = {0: 30, 2: 50, 3: 97, 4: 50}
-    assert searcher._adjust_left_right_positions(
+    assert searcher._optimize(
         doc,
         query,
         match_values,
@@ -150,17 +134,17 @@ def test__adjust_left_right_positions_finds_better_match(
         fuzzy_func="simple",
         min_r2=70,
         ignore_case=True,
-        flex=2,
+        flex=1,
     ) == (3, 5, 97)
 
 
-def test__adjust_left_right_positions_finds_better_match2(
+def test__optimize_finds_better_match2(
     searcher: FuzzySearcher, nlp: Language, adjust_example: Doc
 ) -> None:
     """It optimizes the initial match to find a better match."""
-    query = nlp.make_doc("Kareem Abdul-Jabbar")
+    query = nlp("Kareem Abdul-Jabbar")
     match_values = {0: 33, 1: 39, 2: 41, 3: 33, 5: 37, 6: 59, 7: 84}
-    assert searcher._adjust_left_right_positions(
+    assert searcher._optimize(
         adjust_example,
         query,
         match_values,
@@ -172,14 +156,12 @@ def test__adjust_left_right_positions_finds_better_match2(
     ) == (8, 11, 89)
 
 
-def test__adjust_left_right_positions_with_no_flex(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
+def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
     """It returns the intial match when flex value = 0."""
-    doc = nlp.make_doc("Patient was prescribed Zithroma tablets.")
-    query = nlp.make_doc("zithromax")
+    doc = nlp("Patient was prescribed Zithroma tablets.")
+    query = nlp("zithromax")
     match_values = {3: 94}
-    assert searcher._adjust_left_right_positions(
+    assert searcher._optimize(
         doc,
         query,
         match_values,
@@ -225,15 +207,6 @@ def test_match_return_empty_list_when_no_matches_after_adjust(
     doc = nlp("G-rant Anderson lives in TN.")
     query = nlp("Garth, Anderdella")
     assert searcher.match(doc, query) == []
-
-
-def test_match_with_n_less_than_actual_matches(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It returns the n best fuzzy matches that meet threshold correctly sorted."""
-    doc = nlp("cow, cow, cow, cow")
-    query = nlp("cow")
-    assert searcher.match(doc, query, n=2) == [(0, 1, 100), (2, 3, 100)]
 
 
 def test_match_raises_error_when_doc_not_Doc(

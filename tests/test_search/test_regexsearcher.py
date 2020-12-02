@@ -3,15 +3,15 @@ import pytest
 import regex
 from spacy.language import Language
 
+from spaczz.regex import RegexConfig
 from spaczz.regex._commonregex import _commonregex
-from spaczz.regex.regexconfig import RegexConfig
-from spaczz.regex.regexsearcher import RegexSearcher
+from spaczz.search import RegexSearcher
 
 
 @pytest.fixture
-def searcher() -> RegexSearcher:
+def searcher(nlp: Language) -> RegexSearcher:
     """It returns a default regex searcher."""
-    return RegexSearcher()
+    return RegexSearcher(vocab=nlp.vocab)
 
 
 def test_regexsearcher_config_contains_predefined_defaults(
@@ -21,23 +21,23 @@ def test_regexsearcher_config_contains_predefined_defaults(
     assert searcher._config._predefs == _commonregex
 
 
-def test_regexsearcher_uses_passed_config() -> None:
+def test_regexsearcher_uses_passed_config(nlp: Language) -> None:
     """It uses the config passed to it."""
     config = RegexConfig()
     config._predefs["test"] = regex.compile("test")
-    searcher = RegexSearcher(config=config)
+    searcher = RegexSearcher(vocab=nlp.vocab, config=config)
     assert "test" in searcher._config._predefs
 
 
-def test_regexsearcher_raises_error_if_config_is_not_regexconfig() -> None:
+def test_regexsearcher_raises_error_if_config_is_not_regexconfig(nlp: Language) -> None:
     """It raises a TypeError if config is not recognized string or RegexConfig."""
     with pytest.raises(TypeError):
-        RegexSearcher(config="Will cause error")
+        RegexSearcher(vocab=nlp.vocab, config="Will cause error")
 
 
-def test_regex_search_has_empty_config_if_empty_passed() -> None:
+def test_regex_search_has_empty_config_if_empty_passed(nlp: Language) -> None:
     """Its config is empty."""
-    searcher = RegexSearcher(config="empty")
+    searcher = RegexSearcher(vocab=nlp.vocab, config="empty")
     assert searcher._config._predefs == {}
 
 

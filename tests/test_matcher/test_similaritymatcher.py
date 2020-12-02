@@ -123,7 +123,11 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 
 def test_matcher_returns_matches(matcher: SimilarityMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
-    assert matcher(doc) == [("INSTRUMENT", 5, 6, 71), ("PEPPER", 14, 15, 100)]
+    assert matcher(doc) == [
+        ("INSTRUMENT", 5, 6, 71),
+        ("PEPPER", 13, 14, 79),
+        ("PEPPER", 14, 15, 100),
+    ]
 
 
 def test_matcher_returns_empty_list_if_no_matches(

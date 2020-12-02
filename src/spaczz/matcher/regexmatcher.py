@@ -21,7 +21,8 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning
-from ..regex import RegexConfig, RegexSearcher
+from ..regex import RegexConfig
+from ..search import RegexSearcher
 
 
 class RegexMatcher(RegexSearcher):
@@ -31,9 +32,11 @@ class RegexMatcher(RegexSearcher):
     Accepts labeled regex patterns in the form of strings.
 
     Attributes:
-        name: Class attribute - the name of the matcher.
         defaults: Kwargs to be used as default regex matching settings
             for the matcher. Apply to inherited match method.
+        name: Class attribute - the name of the matcher.
+        vocab (Vocab): The shared vocabulary.
+            Included for consistency and potential future-state.
         _callbacks:
             On match functions to modify Doc objects passed to the matcher.
             Can make use of the regex matches identified.
@@ -69,7 +72,7 @@ class RegexMatcher(RegexSearcher):
                 These arguments will become the new defaults for
                 regex matching in the created RegexMatcher instance.
         """
-        super().__init__(config)
+        super().__init__(vocab=vocab, config=config)
         self.defaults = defaults
         self._callbacks: Dict[
             str,
@@ -122,9 +125,7 @@ class RegexMatcher(RegexSearcher):
                     for match in matches_w_label:
                         matches.add(match)
         if matches:
-            sorted_matches = sorted(
-                matches, key=lambda x: (x[1], -x[2] - x[1], sum(x[3]))
-            )
+            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
             for i, (label, _start, _end, _subs) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
