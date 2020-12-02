@@ -71,7 +71,7 @@ class SimilaritySearcher(_PhraseSearcher):
             >>> import spacy
             >>> from spaczz.search import SimilaritySearcher
             >>> nlp = spacy.load("en_core_web_md")
-            >>> searcher = SimilaritySearcher()
+            >>> searcher = SimilaritySearcher(nlp.vocab)
             >>> doc1 = nlp("I like apples.")
             >>> doc2 = nlp("I like grapes.")
             >>> searcher.compare(doc1, doc2)

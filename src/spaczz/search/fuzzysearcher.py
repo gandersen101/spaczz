@@ -106,7 +106,7 @@ class FuzzySearcher(_PhraseSearcher):
             >>> import spacy
             >>> from spaczz.search import FuzzySearcher
             >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher()
+            >>> searcher = FuzzySearcher(nlp.vocab)
             >>> searcher.compare(nlp("spaczz"), nlp("spacy"))
             73
         """
@@ -118,7 +118,7 @@ class FuzzySearcher(_PhraseSearcher):
             b_text = b.text
         return round(self.get_fuzzy_func(fuzzy_func)(a_text, b_text))
 
-    def get_fuzzy_func(self, fuzzy_func: str) -> Callable[[str, str], int]:
+    def get_fuzzy_func(self, fuzzy_func: str) -> Callable[[str, str], float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:
@@ -131,9 +131,11 @@ class FuzzySearcher(_PhraseSearcher):
             ValueError: fuzzy_func was not a valid key name.
 
         Example:
+            >>> import spacy
             >>> from spaczz.search import FuzzySearcher
-            >>> searcher = FuzzySearcher()
-            >>> simple = searcher.get_fuzzy_func("simple", False)
+            >>> nlp = spacy.blank("en")
+            >>> searcher = FuzzySearcher(nlp.vocab)
+            >>> simple = searcher.get_fuzzy_func("simple")
             >>> simple("hi", "hi")
             100.0
         """

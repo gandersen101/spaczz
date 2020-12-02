@@ -109,7 +109,7 @@ class RegexSearcher:
             >>> import spacy
             >>> from spaczz.search import RegexSearcher
             >>> nlp = spacy.blank("en")
-            >>> searcher = RegexSearcher()
+            >>> searcher = RegexSearcher(nlp.vocab)
             >>> doc = nlp("My phone number is (555) 555-5555.")
             >>> searcher.match(doc, "phones", predef=True)
             [(4, 10, (0, 0, 0))]

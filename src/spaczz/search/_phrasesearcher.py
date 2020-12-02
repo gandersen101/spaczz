@@ -282,12 +282,12 @@ class _PhraseSearcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.search import PhraseSearcher
+            >>> from spaczz.search import _PhraseSearcher
             >>> nlp = spacy.blank("en")
-            >>> searcher = PhraseSearcher()
-            >>> query = nlp("Test query.")
+            >>> searcher = _PhraseSearcher(nlp.vocab)
+            >>> query = nlp("Test query")
             >>> searcher._calc_flex(query, "default")
-            3
+            1
         """
         if flex == "default":
             flex = len(query) - 1
@@ -322,8 +322,10 @@ class _PhraseSearcher:
             The filtered list of match span tuples.
 
         Example:
-            >>> from spaczz.search import PhraseSearcher
-            >>> searcher = PhraseSearcher()
+            >>> import spacy
+            >>> from spaczz.search import _PhraseSearcher
+            >>> nlp = spacy.blank("en")
+            >>> searcher = _PhraseSearcher(nlp.vocab)
             >>> matches = [(1, 3, 80), (1, 2, 70)]
             >>> searcher._filter_overlapping_matches(matches)
             [(1, 3, 80)]
