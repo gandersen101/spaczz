@@ -50,7 +50,7 @@ class FuzzySearcher(_PhraseSearcher):
                 currently and do not share vocabulary
                 with spaCy pipelines.
         """
-        super().__init__(vocab)
+        super().__init__(vocab=vocab)
         self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
             "simple": fuzz.ratio,
             "partial": fuzz.partial_ratio,

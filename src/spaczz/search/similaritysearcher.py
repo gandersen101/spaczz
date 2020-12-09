@@ -6,6 +6,7 @@ from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
+from ..exceptions import MissingVectorsWarning
 
 
 class SimilaritySearcher(_PhraseSearcher):
@@ -43,8 +44,18 @@ class SimilaritySearcher(_PhraseSearcher):
                 spaczz matchers are mostly pure-Python
                 currently and do not share vocabulary
                 with spaCy pipelines.
+
+        Warnings:
+            UserWarning:
+                If vocab does not contain any word vectors.
         """
-        super().__init__(vocab)
+        super().__init__(vocab=vocab)
+        if vocab.vectors.n_keys == 0:
+            warnings.warn(
+                """The spaCy Vocab object has no word vectors.\n
+                Similarity results may not be useful.""",
+                MissingVectorsWarning,
+            )
 
     def compare(
         self,

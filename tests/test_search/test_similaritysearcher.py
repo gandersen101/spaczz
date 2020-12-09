@@ -6,9 +6,9 @@ from spaczz.search import SimilaritySearcher
 
 
 @pytest.fixture
-def searcher(nlp: Language) -> SimilaritySearcher:
+def searcher(model: Language) -> SimilaritySearcher:
     """It returns a default similarity searcher."""
-    return SimilaritySearcher(vocab=nlp.vocab)
+    return SimilaritySearcher(vocab=model.vocab)
 
 
 def test_compare_works_with_defaults(
