@@ -34,9 +34,9 @@ class RegexSearcher:
                 currently and do not share vocabulary
                 with spaCy pipelines.
             config: Provides the class with predefind regex patterns.
-                Uses the default config if "default", an empty config if "empty",
-                or a custom config by passing a RegexConfig object.
-                Default is "default".
+                Uses the default config if `"default"`, an empty config if `"empty"`,
+                or a custom config by passing a `RegexConfig` object.
+                Default is `"default"`.
 
         Raises:
             TypeError: If config is not a `RegexConfig` object.
@@ -54,14 +54,14 @@ class RegexSearcher:
                     (
                         "config must be one of the strings 'default' or 'empty',",
                         "or a RegexConfig object not,",
-                        f"{config} of type: {type(config)}.",
+                        f"config of type: {type(config)}.",
                     )
                 )
 
     def match(
         self, doc: Doc, query: str, partial: bool = True, predef: bool = False,
     ) -> List[Tuple[int, int, Tuple[int, int, int]]]:
-        """Returns all the regex matches within doc.
+        """Returns all the regex matches within a doc.
 
         Matches on the character level and then maps matches back
         to tokens. If a character cannot be mapped back to a token it means
@@ -78,26 +78,26 @@ class RegexSearcher:
             partial: Whether partial matches should be extended
                 to existing span boundaries in doc or not, i.e.
                 the regex only matches part of a token or span.
-                Default is True.
+                Default is `True`.
             predef: Whether regex should be interpreted as a key to
-                a predefined regex pattern or not. Default is False.
+                a predefined regex pattern or not. Default is `False`.
                 The included regexes are:
-                "dates"
-                "times"
-                "phones"
-                "phones_with_exts"
-                "links"
-                "emails"
-                "ips"
-                "ipv6s"
-                "prices"
-                "hex_colors"
-                "credit_cards"
-                "btc_addresses"
-                "street_addresses"
-                "zip_codes"
-                "po_boxes"
-                "ssn_number".
+                `"dates"`
+                `"times"`
+                `"phones"`
+                `"phones_with_exts"`
+                `"links"`
+                `"emails"`
+                `"ips"`
+                `"ipv6s"`
+                `"prices"`
+                `"hex_colors"`
+                `"credit_cards"`
+                `"btc_addresses"`
+                `"street_addresses"`
+                `"zip_codes"`
+                `"po_boxes"`
+                `"ssn_number"`.
 
         Returns:
             A list of span start index, end index, fuzzy change count tuples.

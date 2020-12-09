@@ -25,26 +25,23 @@ from ..regex import RegexConfig
 from ..search import RegexSearcher
 
 
-class RegexMatcher(RegexSearcher):
-    """spaCy-like matcher for finding multi-token regex matches in Doc objects.
+class RegexMatcher:
+    """spaCy-like matcher for finding multi-token regex matches in `Doc` objects.
 
-    Matches added patterns against the Doc object it is called on.
+    Matches added patterns against the `Doc` object it is called on.
     Accepts labeled regex patterns in the form of strings.
 
     Attributes:
-        defaults: Kwargs to be used as default regex matching settings
-            for the matcher. Apply to inherited match method.
+        defaults: Keyword arguments to be used as default matching settings.
+            See `RegexSearcher` documentation for details.
         name: Class attribute - the name of the matcher.
-        vocab (Vocab): The shared vocabulary.
-            Included for consistency and potential future-state.
+        type: The kind of matcher object.
         _callbacks:
-            On match functions to modify Doc objects passed to the matcher.
-            Can make use of the regex matches identified.
-        _config: The RegexConfig object tied to an instance
-            of RegexMatcher.
+            On match functions to modify `Doc` objects passed to the matcher.
+            Can make use of the matches identified.
         _patterns:
             Patterns added to the matcher. Contains patterns
-            and kwargs that should be passed to matching function
+            and kwargs that should be used during matching
             for each labels added.
     """
 
@@ -56,24 +53,23 @@ class RegexMatcher(RegexSearcher):
         """Initializes the regex matcher with the given config and defaults.
 
         Args:
-            vocab: A spacy Vocab object.
+            vocab: A spacy `Vocab` object.
                 Purely for consistency between spaCy
                 and spaczz matcher APIs for now.
                 spaczz matchers are currently pure
                 Python and do not share vocabulary
                 with spacy pipelines.
-            config: Provides the class with predefind regex patterns and flags.
+            config: Provides predefind regex patterns and flags.
                 Uses the default config if "default", an empty config if "empty",
-                or a custom config by passing a RegexConfig object.
+                or a custom config by passing a `RegexConfig` object.
                 Default is "default".
-            defaults: Keyword arguments that will
-                be passed to the regex matching function
-                (the inherited match() method).
-                These arguments will become the new defaults for
-                regex matching in the created RegexMatcher instance.
+            **defaults: Keyword arguments that will
+                be used as default matching settings.
+                These arguments will become the new defaults for matching.
+                See `RegexSearcher` documentation for details.
         """
-        super().__init__(vocab=vocab, config=config)
         self.defaults = defaults
+        self.type = "regex"
         self._callbacks: Dict[
             str,
             Optional[
@@ -91,12 +87,13 @@ class RegexMatcher(RegexSearcher):
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
+        self._searcher = RegexSearcher(vocab=vocab, config=config)
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
-        r"""Find all sequences matching the supplied patterns in the Doc.
+        r"""Find all sequences matching the supplied patterns in the doc.
 
         Args:
-            doc: The doc object to match over.
+            doc: The `Doc` object to match over.
 
         Returns:
             A list of (key, start, end, fuzzy change count) tuples,
@@ -117,7 +114,7 @@ class RegexMatcher(RegexSearcher):
             for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
                 if not kwargs:
                     kwargs = self.defaults
-                matches_wo_label = self.match(doc, pattern, **kwargs)
+                matches_wo_label = self._searcher.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
                         (label,) + match_wo_label for match_wo_label in matches_wo_label
@@ -193,6 +190,11 @@ class RegexMatcher(RegexSearcher):
                 all_patterns.append(p)
         return all_patterns
 
+    @property
+    def vocab(self) -> Vocab:
+        """Returns the spaCy `Vocab` object utilized."""
+        return self._searcher.vocab
+
     def add(
         self,
         label: str,
@@ -212,7 +214,7 @@ class RegexMatcher(RegexSearcher):
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of strings and if kwargs is not None,
+        Patterns must be a list of strings and if kwargs is not `None`,
         kwargs must be a list of dictionaries.
 
         To utilize regex flags, use inline flags.
@@ -223,10 +225,10 @@ class RegexMatcher(RegexSearcher):
                 the Doc object the matcher is called on.
             kwargs: Optional arguments to modify the behavior of the regex matching.
                 Apply to inherited multi_match method.
-                Default is None.
+                Default is `None`.
             on_match: Optional callback function to modify the
-                Doc objec the matcher is called on after matching.
-                Default is None.
+                `Doc` object the matcher is called on after matching.
+                Default is `None`.
 
         Raises:
             TypeError: If patterns is not a non-string iterable of strings.
@@ -238,7 +240,7 @@ class RegexMatcher(RegexSearcher):
                 default regex matching settings will be used
                 for extra patterns.
             UserWarning:
-                If there are more kwargs dicts than patterns,
+                If there are more kwargs dictionaries than patterns,
                 the extra kwargs will be ignored.
 
         Example:
@@ -312,19 +314,19 @@ class RegexMatcher(RegexSearcher):
         return_matches: bool = False,
         as_tuples: bool = False,
     ) -> Generator[Any, None, None]:
-        r"""Match a stream of Doc objects, yielding them in turn.
+        r"""Match a stream of `Doc` objects, yielding them in turn.
 
         Args:
-            stream: A stream of Doc objects.
+            stream: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.
-                Default is 1000.
+                Default is `1000`.
             return_matches: Yield the match lists along with the docs,
-                making results (doc, matches) tuples. Defualt is False.
+                making results (doc, matches) tuples. Default is `False`.
             as_tuples: Interpret the input stream as (doc, context) tuples,
                 and yield (result, context) tuples out.
-                If both return_matches and as_tuples are True,
+                If both return_matches and as_tuples are `True`,
                 the output will be a sequence of ((doc, matches), context) tuples.
-                Default is False.
+                Default is `False`.
 
         Yields:
             Doc objects, in order.

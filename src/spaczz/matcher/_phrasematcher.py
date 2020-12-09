@@ -31,8 +31,8 @@ class _PhraseMatcher:
     Accepts labeled patterns in the form of `Doc` objects.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings
-            during matching.
+        defaults: Keyword arguments to be used as default matching settings.
+            See `_PhraseSearcher` documentation for details.
         name: Class attribute - the name of the matcher.
         type: The kind of matcher object.
         _callbacks:
@@ -40,7 +40,7 @@ class _PhraseMatcher:
             Can make use of the matches identified.
         _patterns:
             Patterns added to the matcher. Contains patterns
-            and kwargs that should be passed to matching function
+            and kwargs that should be used during matching
             for each labels added.
     """
 
@@ -57,13 +57,12 @@ class _PhraseMatcher:
                 Python and do not share vocabulary
                 with spaCy pipelines.
             **defaults: Keyword arguments that will
-                be used as default matching settings during matching.
+                be used as default matching settings.
                 These arguments will become the new defaults for matching.
-                See _PhraseSearcher documentation for details.
+                See `_PhraseSearcher` documentation for details.
         """
-        self.type = "_phrase"
         self.defaults = defaults
-        self._searcher = _PhraseSearcher(vocab=vocab)
+        self.type = "_phrase"
         self._callbacks: Dict[
             str,
             Union[
@@ -76,12 +75,13 @@ class _PhraseMatcher:
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
+        self._searcher = _PhraseSearcher(vocab=vocab)
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int, int]]:
-        """Find all sequences matching the supplied patterns in the Doc.
+        """Find all sequences matching the supplied patterns in the doc.
 
         Args:
-            doc: The Doc object to match over.
+            doc: The `Doc` object to match over.
 
         Returns:
             A list of (key, start, end, ratio) tuples, describing the matches.
@@ -163,7 +163,7 @@ class _PhraseMatcher:
                 {
                     "label": "AUTHOR",
                     "pattern": "Kerouac",
-                    "type": "base",
+                    "type": "_phrase",
                     "kwargs": {"ignore_case": False}
                     },
                     ]
@@ -194,23 +194,23 @@ class _PhraseMatcher:
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of Doc object and if kwargs is not None,
+        Patterns must be a list of `Doc` object and if kwargs is not None,
         kwargs must be a list of dictionaries.
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: Doc objects that will be matched
-                against the Doc object the matcher is called on.
+            patterns: `Doc` objects that will be matched
+                against the `Doc` object the matcher is called on.
             kwargs: Optional arguments to modify the behavior of the matching.
                 Apply to inherited multi_match method.
-                See _PhraseSearcher documentation for kwarg details.
-                Default is None.
+                See `_PhraseSearcher` documentation for kwarg details.
+                Default is `None`.
             on_match: Optional callback function to modify the
-                Doc objec the matcher is called on after matching.
-                Default is None.
+                `Doc` object the matcher is called on after matching.
+                Default is `None`.
 
         Raises:
-            TypeError: If patterns is not an iterable of Doc objects.
+            TypeError: If patterns is not an iterable of `Doc` objects.
             TypeError: If kwargs is not an iterable dictionaries.
 
         Warnings:
@@ -291,22 +291,22 @@ class _PhraseMatcher:
         return_matches: bool = False,
         as_tuples: bool = False,
     ) -> Generator[Any, None, None]:
-        """Match a stream of Doc objects, yielding them in turn.
+        """Match a stream of `Doc` objects, yielding them in turn.
 
         Args:
-            stream: A stream of Doc objects.
+            stream: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.
-                Default is 1000.
+                Default is `1000`.
             return_matches: Yield the match lists along with the docs,
-                making results (doc, matches) tuples. Defualt is False.
+                making results (doc, matches) tuples. Default is `False`.
             as_tuples: Interpret the input stream as (doc, context) tuples,
                 and yield (result, context) tuples out.
-                If both return_matches and as_tuples are True,
+                If both return_matches and as_tuples are `True`,
                 the output will be a sequence of ((doc, matches), context) tuples.
-                Default is False.
+                Default is `False`.
 
         Yields:
-            Doc objects, in order.
+            `Doc` objects, in order.
 
         Example:
             >>> import spacy

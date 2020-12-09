@@ -16,9 +16,8 @@ class SimilarityMatcher(_PhraseMatcher):
     Accepts labeled patterns in the form of `Doc` objects.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings
-            during matching.
-            See SimilaritySearcher documentation for details.
+        defaults: Keyword arguments to be used as default matching settings.
+            See `SimilaritySearcher` documentation for details.
         name: Class attribute - the name of the matcher.
         type: The kind of matcher object.
         _callbacks:
@@ -43,9 +42,9 @@ class SimilarityMatcher(_PhraseMatcher):
                 Python and do not share vocabulary
                 with spacy pipelines.
             **defaults: Keyword arguments that will
-                be used as default matching settings during matching.
+                be used as default matching settings.
                 These arguments will become the new defaults for matching.
-                See SimilaritySearcher documentation for details.
+                See `SimilaritySearcher` documentation for details.
 
         Warnings:
             UserWarning:

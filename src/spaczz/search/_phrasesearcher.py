@@ -56,7 +56,7 @@ class _PhraseSearcher:
             a: First container for comparison.
             b: Second container for comparison.
             ignore_case: Whether to lower-case a and b
-                before comparison or not. Default is True.
+                before comparison or not. Default is `True`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -96,7 +96,7 @@ class _PhraseSearcher:
             query: `Doc` object to match against doc.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
-                Default is "default" (length of query - 1).
+                Default is `"default"` (length of query - 1).
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general
@@ -105,12 +105,12 @@ class _PhraseSearcher:
                 have their boundaries flexed and will be recompared
                 during match optimization.
                 Lower min_r1 will result in more fine-grained matching
-                but will run slower. Default is 25.
+                but will run slower. Default is `25`.
             min_r2: Minimum match ratio required for
                 selection during match optimization.
                 Should be higher than min_r1 and "high" in general
                 to ensure only quality matches are returned.
-                Default is 75.
+                Default is `75`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -183,7 +183,7 @@ class _PhraseSearcher:
         Returns:
             A tuple of left boundary index,
             right boudary index, and match ratio
-            or None.
+            or `None`.
         """
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
@@ -267,8 +267,8 @@ class _PhraseSearcher:
         flex will be set to `len(query)` instead.
 
         Args:
-            query: The Doc object to match with.
-            flex: Either "default" or an integer value.
+            query: The `Doc` object to match with.
+            flex: Either `"default"` or an integer value.
 
         Returns:
             The new flex value.
@@ -294,8 +294,8 @@ class _PhraseSearcher:
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than `len(query)`.\n
-                        Setting flex to the default `flex = len(query) - 1`.""",
+                    f"""Flex of size {flex} is greater than len(query).\n
+                        Setting flex to the default flex = len(query) - 1.""",
                     FlexWarning,
                 )
                 flex = len(query)

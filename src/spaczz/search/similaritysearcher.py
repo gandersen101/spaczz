@@ -27,7 +27,7 @@ class SimilaritySearcher(_PhraseSearcher):
     will always return a similarity score of 0.
 
     Warnings from spaCy about the above two scenarios are suppressed
-    for convenience.
+    for convenience. However, spaczz will still warn about the former.
 
     Attributes:
         vocab (Vocab): The shared vocabulary.
