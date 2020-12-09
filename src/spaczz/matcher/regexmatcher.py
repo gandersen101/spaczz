@@ -251,14 +251,14 @@ class RegexMatcher(RegexSearcher):
             True
         """
         if kwargs is None:
-            kwargs = [{} for p in patterns]
+            kwargs = [{} for _ in patterns]
         elif len(kwargs) < len(patterns):
             warnings.warn(
                 """There are more patterns then there are kwargs.\n
                     Patterns not matched to a kwarg dict will have default settings.""",
                 KwargsWarning,
             )
-            kwargs.extend([{} for p in range(len(patterns) - len(kwargs))])
+            kwargs.extend([{} for _ in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
             warnings.warn(
                 """There are more kwargs dicts than patterns.\n
