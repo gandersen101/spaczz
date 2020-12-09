@@ -111,6 +111,11 @@ def test_labels_returns_label_names(matcher: FuzzyMatcher) -> None:
     assert all(label in matcher.labels for label in ("SOUND", "ANIMAL", "NAME"))
 
 
+def test_vocab_prop_returns_vocab(matcher: FuzzyMatcher, nlp: Language) -> None:
+    """It returns the vocab it was initialized with."""
+    assert matcher.vocab == nlp.vocab
+
+
 def test_remove_label(matcher: FuzzyMatcher, nlp: Language) -> None:
     """It removes a label from the matcher."""
     matcher.add("TEST", [nlp.make_doc("test")])

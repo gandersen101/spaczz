@@ -28,15 +28,15 @@ class FuzzySearcher(_PhraseSearcher):
             Fuzzy matching functions accessible
             by their given key name. All rapidfuzz matchers
             with default settings are currently available:
-            "simple" = ratio
-            "partial" = partial_ratio
-            "token_set" = token_set_ratio
-            "token_sort" = token_sort_ratio
-            "partial_token_set" = partial_token_set_ratio
-            "partial_token_sort" = partial_token_sort_ratio
-            "quick" = QRatio
-            "weighted" = WRatio
-            "quick_lev" = quick_lev_ratio
+            "simple" = `ratio`
+            "partial" = `partial_ratio`
+            "token_set" = `token_set_ratio`
+            "token_sort" = `token_sort_ratio`
+            "partial_token_set" = `partial_token_set_ratio`
+            "partial_token_sort" = `partial_token_sort_ratio`
+            "quick" = `QRatio`
+            "weighted" = `WRatio`
+            "quick_lev" = `quick_lev_ratio`
     """
 
     def __init__(self, vocab: Vocab) -> None:
@@ -50,7 +50,7 @@ class FuzzySearcher(_PhraseSearcher):
                 currently and do not share vocabulary
                 with spaCy pipelines.
         """
-        super().__init__(vocab)
+        super().__init__(vocab=vocab)
         self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
             "simple": fuzz.ratio,
             "partial": fuzz.partial_ratio,
@@ -82,20 +82,20 @@ class FuzzySearcher(_PhraseSearcher):
             a: First container for comparison.
             b: Second container for comparison.
             ignore_case: Whether to lower-case a and b
-                before comparison or not. Default is True.
+                before comparison or not. Default is `True`.
             fuzzy_func: Key name of fuzzy matching function to use.
                 All rapidfuzz matching functions with default settings
                 are available:
-                "simple" = fuzz.ratio
-                "partial" = fuzz.partial_ratio
-                "token_set" = fuzz.token_set_ratio
-                "token_sort" = fuzz.token_sort_ratio
-                "partial_token_set" = fuzz.partial_token_set_ratio
-                "partial_token_sort" = fuzz.partial_token_sort_ratio
-                "quick" = fuzz.QRatio
-                "weighted" = fuzz.WRatio
-                "quick_lev" = fuzz.quick_lev_ratio
-                Default is "simple".
+                "simple" = `ratio`
+                "partial" = `partial_ratio`
+                "token_set" = `token_set_ratio`
+                "token_sort" = `token_sort_ratio`
+                "partial_token_set" = `partial_token_set_ratio`
+                "partial_token_sort" = `partial_token_sort_ratio`
+                "quick" = `QRatio`
+                "weighted" = `WRatio`
+                "quick_lev" = `quick_lev_ratio`
+                Default is `"simple"`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -128,7 +128,7 @@ class FuzzySearcher(_PhraseSearcher):
             A fuzzy matching function.
 
         Raises:
-            ValueError: fuzzy_func was not a valid key name.
+            ValueError: The fuzzy function was not a valid key name.
 
         Example:
             >>> import spacy
@@ -144,7 +144,7 @@ class FuzzySearcher(_PhraseSearcher):
         except KeyError:
             raise ValueError(
                 (
-                    f"No fuzzy matching function called {fuzzy_func}.",
+                    f"No fuzzy matching function called: {fuzzy_func}.",
                     "Matching function must be in the following:",
                     f"{list(self._fuzzy_funcs.keys())}",
                 )

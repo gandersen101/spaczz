@@ -108,6 +108,11 @@ def test_labels_returns_label_names(matcher: RegexMatcher) -> None:
     assert all(label in matcher.labels for label in ("GPE", "ZIP", "STREET"))
 
 
+def test_vocab_prop_returns_vocab(matcher: RegexMatcher, nlp: Language) -> None:
+    """It returns the vocab it was initialized with."""
+    assert matcher.vocab == nlp.vocab
+
+
 def test_remove_label(matcher: RegexMatcher) -> None:
     """It removes a label from the matcher."""
     matcher.add("TEST", ["test"])
