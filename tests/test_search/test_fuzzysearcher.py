@@ -2,7 +2,6 @@
 from typing import Dict
 
 import pytest
-from rapidfuzz import fuzz
 from spacy.language import Language
 from spacy.tokens import Doc
 
@@ -34,16 +33,10 @@ def adjust_example(nlp: Language) -> Doc:
     return nlp("There was a great basketball player named: Karem Abdul Jabar")
 
 
-def test_get_fuzzy_alg_returns_alg(searcher: FuzzySearcher) -> None:
-    """It returns the expected fuzzy matching function."""
-    func = searcher.get_fuzzy_func("simple")
-    assert func == fuzz.ratio
-
-
-def test_get_fuzzy_alg_raises_error_with_unknown_name(searcher: FuzzySearcher) -> None:
-    """It raises a ValueError if fuzzy_func does not match a predefined key name."""
-    with pytest.raises(ValueError):
-        searcher.get_fuzzy_func("unkown")
+# def test_get_fuzzy_alg_returns_alg(searcher: FuzzySearcher) -> None:
+#     """It returns the expected fuzzy matching function."""
+#     func = searcher.get_fuzzy_func("simple")
+#     assert func == fuzz.ratio
 
 
 def test_compare_works_with_defaults(searcher: FuzzySearcher, nlp: Language) -> None:
@@ -54,6 +47,14 @@ def test_compare_works_with_defaults(searcher: FuzzySearcher, nlp: Language) -> 
 def test_compare_without_ignore_case(searcher: FuzzySearcher, nlp: Language) -> None:
     """Checks ignore_case is working."""
     assert searcher.compare(nlp("SPACZZ"), nlp("spaczz"), ignore_case=False) == 0
+
+
+def test_compare_raises_error_with_unknown_func_name(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """It raises a ValueError if fuzzy_func does not match a predefined key name."""
+    with pytest.raises(ValueError):
+        assert searcher.compare(nlp("spaczz"), nlp("spacy"), fuzzy_func="unknown")
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:

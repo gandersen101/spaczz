@@ -1,11 +1,11 @@
 """Module for FuzzySearcher: fuzzy matching in spaCy `Doc` objects."""
-from typing import Any, Callable, Dict, Union
+from typing import Any, Union
 
-from rapidfuzz import fuzz
 from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
+from ._process import FuzzyFuncs
 
 
 class FuzzySearcher(_PhraseSearcher):
@@ -24,10 +24,11 @@ class FuzzySearcher(_PhraseSearcher):
     Attributes:
         vocab (Vocab): The shared vocabulary.
             Included for consistency and potential future-state.
-        _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
-            Fuzzy matching functions accessible
-            by their given key name. All rapidfuzz matchers
-            with default settings are currently available:
+        _fuzzy_funcs (FuzzyFuncs):
+            Container class housing fuzzy matching functions.
+            Functions are accessible via the classes `get()` method
+            by their given key name. All rapidfuzz matching functions
+            with default settings are available:
             "simple" = `ratio`
             "partial" = `partial_ratio`
             "token_set" = `token_set_ratio`
@@ -51,17 +52,7 @@ class FuzzySearcher(_PhraseSearcher):
                 with spaCy pipelines.
         """
         super().__init__(vocab=vocab)
-        self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
-            "simple": fuzz.ratio,
-            "partial": fuzz.partial_ratio,
-            "token_set": fuzz.token_set_ratio,
-            "token_sort": fuzz.token_sort_ratio,
-            "partial_token_set": fuzz.partial_token_set_ratio,
-            "partial_token_sort": fuzz.partial_token_sort_ratio,
-            "quick": fuzz.QRatio,
-            "weighted": fuzz.WRatio,
-            "quick_lev": fuzz.quick_lev_ratio,
-        }
+        self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs()
 
     def compare(
         self,
@@ -116,36 +107,4 @@ class FuzzySearcher(_PhraseSearcher):
         else:
             a_text = a.text
             b_text = b.text
-        return round(self.get_fuzzy_func(fuzzy_func)(a_text, b_text))
-
-    def get_fuzzy_func(self, fuzzy_func: str) -> Callable[[str, str], float]:
-        """Returns a fuzzy matching function based on it's key name.
-
-        Args:
-            fuzzy_func: Key name of the fuzzy matching function.
-
-        Returns:
-            A fuzzy matching function.
-
-        Raises:
-            ValueError: The fuzzy function was not a valid key name.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.search import FuzzySearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = FuzzySearcher(nlp.vocab)
-            >>> simple = searcher.get_fuzzy_func("simple")
-            >>> simple("hi", "hi")
-            100.0
-        """
-        try:
-            return self._fuzzy_funcs[fuzzy_func]
-        except KeyError:
-            raise ValueError(
-                (
-                    f"No fuzzy matching function called: {fuzzy_func}.",
-                    "Matching function must be in the following:",
-                    f"{list(self._fuzzy_funcs.keys())}",
-                )
-            )
+        return round(self._fuzzy_funcs.get(fuzzy_func)(a_text, b_text))

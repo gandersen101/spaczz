@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 from spacy.tokens import Doc, Span
 from spacy.vocab import Vocab
 
-from ..process import map_chars_to_tokens
+from ._process import map_chars_to_tokens
 from ..regex import RegexConfig
 
 
