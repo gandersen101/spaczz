@@ -1,5 +1,6 @@
 """Module for various text/doc processing functions/classes."""
-from typing import Callable, Dict
+from itertools import tee
+from typing import Any, Callable, Dict, Iterable
 
 from rapidfuzz import fuzz
 from spacy.tokens import Doc
@@ -12,6 +13,15 @@ def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
         for i in range(token.idx, token.idx + len(token.text)):
             chars_to_tokens[i] = token.i
     return chars_to_tokens
+
+
+def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
+    """Iterates over an iterables in slices of length n by one step at a time."""
+    iterables = tee(iterable, n)
+    for i in range(len(iterables)):
+        for _ in range(i):
+            next(iterables[i], None)
+    return zip(*iterables)
 
 
 class FuzzyFuncs:
@@ -70,12 +80,12 @@ class FuzzyFuncs:
             100.0
         """
         try:
-            return self._fuzzy_funcs[fuzzy_func]
+            return self._fuzzy_funcs[fuzzy_func.lower()]
         except KeyError:
             raise ValueError(
                 (
                     f"No fuzzy matching function called: {fuzzy_func}.",
-                    "Matching function must be in the following:",
+                    "Matching function must be in the following (case insensitive):",
                     f"{list(self._fuzzy_funcs.keys())}",
                 )
             )

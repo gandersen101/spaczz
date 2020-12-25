@@ -24,7 +24,7 @@ class SpaczzRuler:
     It can be combined with other spaCy NER components like the statistical
     EntityRecognizer and/or the EntityRuler to boost accuracy.
     After initialization, the component is typically added to the pipeline
-    using nlp.add_pipe.
+    using `nlp.add_pipe()`.
 
     Attributes:
         nlp: The shared nlp object to pass the vocab to the matchers
@@ -88,7 +88,7 @@ class SpaczzRuler:
                 patterns (Iterable[Dict[str, Any]]): Patterns to initialize
                     the ruler with. Default is None.
                 If SpaczzRuler is loaded as part of a model pipeline,
-                cfg will include all keyword arguments passed to spacy.load.
+                cfg will include all keyword arguments passed to `spacy.load()`.
 
         Raises:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
