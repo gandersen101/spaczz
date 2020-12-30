@@ -21,7 +21,7 @@ class TokenSearcher:
         {"TEXT": {"FREGEX": "(database){e<=1}"}},
         {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
 
-    Please make sure to use uppercase dictionary keys in patterns.
+    Make sure to use uppercase dictionary keys in patterns.
 
     Attributes:
         vocab (Vocab): The shared vocabulary.
@@ -96,6 +96,8 @@ class TokenSearcher:
     ) -> List[List[Optional[Tuple[str, str]]]]:
         """Finds potential token pattern matches in a `Doc` object.
 
+        Make sure to use uppercase dictionary keys in patterns.
+
         Args:
             doc: `Doc` object to search over.
             pattern: Individual spaCy token pattern.
@@ -123,10 +125,10 @@ class TokenSearcher:
             >>> pattern = [
                 {"TEXT": {"FUZZY": "zithromax"}},
                 {"POS": "CCONJ"},
-                {"TEXT": {"FREGEX": "(advair){e<=1}"}
+                {"TEXT": {"FREGEX": "(advair){e<=1}"}}
                 ]
             >>> searcher.match(doc, pattern)
-            [[("TEXT", "zithramax"), None, ("TEXT", "advar")]]
+            [[('TEXT', 'zithramax'), None, ('TEXT', 'advar')]]
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
@@ -155,6 +157,14 @@ class TokenSearcher:
 
         Returns:
             `True` if match, `False` if not.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.search import TokenSearcher
+            >>> nlp = spacy.blank("en")
+            >>> searcher = TokenSearcher(nlp)
+            >>> searcher.regex_compare("sequel", "(sql){i<=3}")
+            True
         """
         if ignore_case:
             text = text.lower()
@@ -170,7 +180,7 @@ class TokenSearcher:
         min_r: int,
         fuzzy_func: str,
     ) -> List[Optional[Tuple[str, str]]]:
-        """Pass."""
+        """Evaluates each token in a pattern against a doc token sequence."""
         seq_matches: List[Optional[Tuple[str, str]]] = []
         for i, token in enumerate(pattern):
             pattern_dict, case, case_bool = self._parse_case(token)
@@ -199,7 +209,7 @@ class TokenSearcher:
 
     @staticmethod
     def _parse_case(token: Dict[str, Any]) -> Tuple[Union[str, dict, None], str, bool]:
-        """Pass."""
+        """Parses the case of a token pattern."""
         if token.get("TEXT"):
             return token.get("TEXT"), "TEXT", False
         else:
@@ -207,7 +217,7 @@ class TokenSearcher:
 
     @staticmethod
     def _parse_type(pattern_dict: Dict[str, Any]) -> Tuple[str, str]:
-        """Pass."""
+        """Parses the type of a token pattern."""
         fuzzy_text = pattern_dict.get("FUZZY")
         regex_text = pattern_dict.get("FREGEX")
         if isinstance(fuzzy_text, str):
