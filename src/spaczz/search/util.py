@@ -75,7 +75,7 @@ class FuzzyFuncs:
                 "quick_lev": fuzz.quick_lev_ratio,
             }
         elif match_type == "token":
-            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+            self._fuzzy_funcs = {
                 "simple": fuzz.ratio,
                 "quick": fuzz.QRatio,
                 "quick_lev": fuzz.quick_lev_ratio,
