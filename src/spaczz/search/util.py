@@ -32,6 +32,9 @@ class FuzzyFuncs:
     with default settings are available.
 
     Attributes:
+        match_type (str): Whether the fuzzy matching functions
+            should support multi-token strings ("phrase") or
+            only single-token strings ("token").
         _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
             The available fuzzy matching functions:
             "simple" = `ratio`
@@ -43,21 +46,42 @@ class FuzzyFuncs:
             "quick" = `QRatio`
             "weighted" = `WRatio`
             "quick_lev" = `quick_lev_ratio`
+            This is limited to "simple", "quick", and "quick_lev"
+            if match_type = "token".
     """
 
-    def __init__(self) -> None:
-        """Initializes a fuzzyfuncs container."""
-        self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
-            "simple": fuzz.ratio,
-            "partial": fuzz.partial_ratio,
-            "token_set": fuzz.token_set_ratio,
-            "token_sort": fuzz.token_sort_ratio,
-            "partial_token_set": fuzz.partial_token_set_ratio,
-            "partial_token_sort": fuzz.partial_token_sort_ratio,
-            "quick": fuzz.QRatio,
-            "weighted": fuzz.WRatio,
-            "quick_lev": fuzz.quick_lev_ratio,
-        }
+    def __init__(self, match_type: str = "phrase") -> None:
+        """Initializes a fuzzyfuncs container.
+
+        Args:
+            match_type: Whether the fuzzy matching functions
+                support multi-token strings ("phrase") or
+                only single-token strings ("token").
+
+        Raises:
+            ValueError: If match_type is not "phrase" or "token".
+        """
+        self.match_type = match_type
+        if match_type == "phrase":
+            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+                "simple": fuzz.ratio,
+                "partial": fuzz.partial_ratio,
+                "token_set": fuzz.token_set_ratio,
+                "token_sort": fuzz.token_sort_ratio,
+                "partial_token_set": fuzz.partial_token_set_ratio,
+                "partial_token_sort": fuzz.partial_token_sort_ratio,
+                "quick": fuzz.QRatio,
+                "weighted": fuzz.WRatio,
+                "quick_lev": fuzz.quick_lev_ratio,
+            }
+        elif match_type == "token":
+            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+                "simple": fuzz.ratio,
+                "quick": fuzz.QRatio,
+                "quick_lev": fuzz.quick_lev_ratio,
+            }
+        else:
+            raise ValueError("match_type must be either 'phrase' or 'token'.")
 
     def get(self, fuzzy_func: str) -> Callable[[str, str], float]:
         """Returns a fuzzy matching function based on it's key name.
@@ -73,7 +97,7 @@ class FuzzyFuncs:
 
         Example:
             >>> import spacy
-            >>> from spaczz.search._process import FuzzyFuncs
+            >>> from spaczz.search.util import FuzzyFuncs
             >>> ff = FuzzyFuncs()
             >>> simple = ff.get("simple")
             >>> simple("hi", "hi")
@@ -84,7 +108,8 @@ class FuzzyFuncs:
         except KeyError:
             raise ValueError(
                 (
-                    f"No fuzzy matching function called: {fuzzy_func}.",
+                    f"No fuzzy {self.match_type} matching function",
+                    f"called: {fuzzy_func}.",
                     "Matching function must be in the following (case insensitive):",
                     f"{list(self._fuzzy_funcs.keys())}",
                 )

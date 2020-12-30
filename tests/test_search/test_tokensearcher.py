@@ -48,3 +48,16 @@ def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
 def test_no_matches(searcher: TokenSearcher, example: Doc) -> None:
     """No matches returns empty list."""
     assert searcher.match(example, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
+
+
+def test_raises_type_error_when_not_doc(searcher: TokenSearcher, example: Doc) -> None:
+    """The searcher with lower-cased text is working as intended."""
+    with pytest.raises(TypeError):
+        searcher.match(
+            "example",
+            [
+                {"TEXT": "SQL"},
+                {"LOWER": {"FREGEX": "(database){e<=1}"}},
+                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+            ],
+        )
