@@ -11,7 +11,7 @@ from spaczz.search import FuzzySearcher
 
 @pytest.fixture
 def searcher(nlp: Language) -> FuzzySearcher:
-    """It returns a fuzzy searcher."""
+    """It returns a default fuzzy searcher."""
     return FuzzySearcher(vocab=nlp.vocab)
 
 
@@ -31,6 +31,12 @@ def scan_example(nlp: Language) -> Doc:
 def adjust_example(nlp: Language) -> Doc:
     """Example doc for adjust_left_right tests."""
     return nlp("There was a great basketball player named: Karem Abdul Jabar")
+
+
+# def test_get_fuzzy_alg_returns_alg(searcher: FuzzySearcher) -> None:
+#     """It returns the expected fuzzy matching function."""
+#     func = searcher.get_fuzzy_func("simple")
+#     assert func == fuzz.ratio
 
 
 def test_compare_works_with_defaults(searcher: FuzzySearcher, nlp: Language) -> None:
