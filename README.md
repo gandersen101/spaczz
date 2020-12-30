@@ -19,7 +19,7 @@ Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 - *The `FuzzyMatcher` and `RegexMatcher` now return fuzzy ratio and fuzzy count details respectively. The behavior of these two matchers is still the same except they now return lists of tuples of length 4 (match id, start, end, fuzzy details).*
     - *This change could be breaking in instances where these tuples are unpacked in the traditional spaCy fashion (match id, start, end). Simply include the fuzzy details or a placeholder during unpacking to fix.*
 - *The SpaczzRuler now writes fuzzy ratio and fuzzy count details for fuzzy/regex matches respectively as custom `Span` attributes. These are `spaczz_ent_ratio` and `spaczz_ent_counts` respectively. They return `None` by default.*
-    - *The `spaczz_ent` portion of these attributes is controlled by the `attr` parameter and can be changed if needed. However, the `_ratio` and `_counts` extensions are hard-coded.*
+    - *The `spaczz_ent` portion of these attributes is controlled by the `attr` parameter and can be changed if needed. However, the `_ent_ratio` and `_ent_counts` extensions are hard-coded.*
     - *If, in the rare case, the same match is made via a fuzzy pattern and regex pattern, the span will have both extensions set with their repsective values.*
 - *Fixed a bug where the `attr` parameter in the `SpaczzRuler` did not actually change the name of the custom span attribute.*
 

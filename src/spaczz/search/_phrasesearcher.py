@@ -84,9 +84,9 @@ class _PhraseSearcher:
         *args: Any,
         **kwargs: Any,
     ) -> List[Tuple[int, int, int]]:
-        """Returns phrase matches in a `Doc` object.
+        """Returns the n best phrase matches in a `Doc` object.
 
-        Finds phrase matches in the doc based on the query,
+        Finds the n best phrase matches in the doc based on the query,
         assuming the minimum match ratios (min_r1 and min_r2) are met.
         Matches will be sorted by descending matching score,
         then ascending start index.

@@ -104,7 +104,7 @@ _commonregex = {
         |cir|boulevard|blvd|lane|ln)\W?(?=\s|$)""",
     ),
     "zip_codes": regex.compile(r"\b\d{5}(?:[-\s]\d{4})?\b"),
-    "po_boxes": regex.compile(r"(?i)P\.? ?O\.? box \d+"),
+    "po_boxes": regex.compile(r"(?i)P\.? ?O\.? Box \d+"),
     "ssn_number": regex.compile(
         r"""(?x)(?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]
         |[0-7][0-7][0-2])[- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}""",
