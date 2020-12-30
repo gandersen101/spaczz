@@ -5,7 +5,7 @@ from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
-from ._process import FuzzyFuncs
+from .util import FuzzyFuncs
 
 
 class FuzzySearcher(_PhraseSearcher):
@@ -18,8 +18,7 @@ class FuzzySearcher(_PhraseSearcher):
     (`Doc`, `Span`, `Token`).
 
     Fuzzy matching is currently provided by rapidfuzz and the searcher
-    contains provides access to all rapidfuzz matchers with default
-    settings.
+    provides access to all rapidfuzz matchers with default settings.
 
     Attributes:
         vocab (Vocab): The shared vocabulary.
@@ -52,7 +51,7 @@ class FuzzySearcher(_PhraseSearcher):
                 with spaCy pipelines.
         """
         super().__init__(vocab=vocab)
-        self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs()
+        self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs(match_type="phrase")
 
     def compare(
         self,
@@ -63,10 +62,10 @@ class FuzzySearcher(_PhraseSearcher):
         *args: Any,
         **kwargs: Any,
     ) -> int:
-        """Peforms fuzzy matching between two strings.
+        """Peforms fuzzy matching between two spaCy containers.
 
         Applies the given fuzzy matching algorithm (fuzzy_func)
-        to two string from spacy containers (`Doc`, `Span`, `Token`)
+        to two spacy containers (`Doc`, `Span`, `Token`)
         and returns the resulting fuzzy ratio.
 
         Args:

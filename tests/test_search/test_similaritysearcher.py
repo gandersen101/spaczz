@@ -7,7 +7,7 @@ from spaczz.search import SimilaritySearcher
 
 @pytest.fixture
 def searcher(model: Language) -> SimilaritySearcher:
-    """It returns a default similarity searcher."""
+    """It returns a similarity searcher."""
     return SimilaritySearcher(vocab=model.vocab)
 
 
