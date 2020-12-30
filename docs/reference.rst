@@ -6,27 +6,6 @@ Reference
     :backlinks: none
 
 
-spaczz.fuzz
---------------------------
-
-.. automodule:: spaczz.fuzz
-   :members:
-
-
-spaczz.regex
---------------------------
-
-.. automodule:: spaczz.regex
-   :members:
-
-
-spaczz.similarity
---------------------------
-
-.. automodule:: spaczz.similarity
-   :members:
-
-
 spaczz.matcher
 --------------------------
 
@@ -41,10 +20,17 @@ spaczz.pipeline
    :members:
 
 
-spaczz.process
+spaczz.search
 --------------------------
 
-.. automodule:: spaczz.process
+.. automodule:: spaczz.search
+   :members:
+
+
+spaczz.regex
+--------------------------
+
+.. automodule:: spaczz.regex
    :members:
 
 
@@ -52,4 +38,11 @@ spaczz.util
 --------------------------
 
 .. automodule:: spaczz.util
+   :members:
+
+
+spaczz.exceptions
+--------------------------
+
+.. automodule:: spaczz.exceptions
    :members:

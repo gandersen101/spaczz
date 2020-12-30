@@ -7,7 +7,7 @@ from spaczz.search import _PhraseSearcher
 
 @pytest.fixture
 def searcher(nlp: Language) -> _PhraseSearcher:
-    """It returns a default phrase searcher."""
+    """It returns a phrase searcher."""
     return _PhraseSearcher(vocab=nlp.vocab)
 
 
