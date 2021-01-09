@@ -68,7 +68,7 @@ class SpaczzMatcher:
                 None,
             ],
         ] = {}
-        self._patterns: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
     def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
@@ -210,9 +210,9 @@ class SpaczzMatcher:
         """
         for pattern in patterns:
             if isinstance(pattern, Sequence):
-                self._patterns[label].append(pattern)
+                self._patterns[label].append(list(pattern))
             else:
-                raise TypeError("Patterns must be sequences of dictionaries.")
+                raise TypeError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
     def remove(self, label: str) -> None:
@@ -297,8 +297,8 @@ class SpaczzMatcher:
 
 
 def _mapback(
-    matches: List[List[Optional[Tuple[str, str]]]], pattern: Sequence[Dict[str, Any]]
-) -> Sequence[Dict[str, Any]]:
+    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
+) -> List[List[Dict[str, Any]]]:
     """Pass."""
     new_patterns = []
     if matches:

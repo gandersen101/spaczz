@@ -1,5 +1,5 @@
 """Module for TokenSearcher: flexible token searching in spaCy `Doc` objects."""
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
 from spacy.tokens import Doc, Token
@@ -90,7 +90,7 @@ class TokenSearcher:
     def match(
         self,
         doc: Doc,
-        pattern: Sequence[Dict[str, Any]],
+        pattern: List[Dict[str, Any]],
         min_r: int = 75,
         fuzzy_func: str = "simple",
     ) -> List[List[Optional[Tuple[str, str]]]]:
@@ -176,7 +176,7 @@ class TokenSearcher:
     def _iter_pattern(
         self,
         seq: Tuple[Token, ...],
-        pattern: Sequence[Dict[str, Any]],
+        pattern: List[Dict[str, Any]],
         min_r: int,
         fuzzy_func: str,
     ) -> List[Optional[Tuple[str, str]]]:
