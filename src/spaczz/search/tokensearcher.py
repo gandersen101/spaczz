@@ -5,7 +5,7 @@ import regex
 from spacy.tokens import Doc, Token
 from spacy.vocab import Vocab
 
-from .util import FuzzyFuncs, n_wise
+from ..process import FuzzyFuncs, n_wise
 
 
 class TokenSearcher:
