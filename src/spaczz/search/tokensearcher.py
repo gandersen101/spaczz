@@ -1,11 +1,11 @@
 """Module for TokenSearcher: flexible token searching in spaCy `Doc` objects."""
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
 from spacy.tokens import Doc, Token
 from spacy.vocab import Vocab
 
-from .util import FuzzyFuncs, n_wise
+from ..process import FuzzyFuncs, n_wise
 
 
 class TokenSearcher:
@@ -90,7 +90,7 @@ class TokenSearcher:
     def match(
         self,
         doc: Doc,
-        pattern: Sequence[Dict[str, Any]],
+        pattern: List[Dict[str, Any]],
         min_r: int = 75,
         fuzzy_func: str = "simple",
     ) -> List[List[Optional[Tuple[str, str]]]]:
@@ -115,6 +115,8 @@ class TokenSearcher:
 
         Raises:
             TypeError: doc must be a `Doc` object.
+            TypeError: pattern must be a `Sequence`.
+            ValueError: pattern cannot have zero tokens.
 
         Example:
             >>> import spacy
@@ -132,6 +134,12 @@ class TokenSearcher:
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
+        if not isinstance(pattern, list):
+            raise TypeError(
+                "pattern must be a list", "Make sure pattern is wrapped in a list.",
+            )
+        if len(pattern) == 0:
+            raise ValueError("pattern cannot have zero tokens.")
         matches = []
         for seq in n_wise(doc, len(pattern)):
             seq_matches = self._iter_pattern(seq, pattern, min_r, fuzzy_func)
@@ -176,7 +184,7 @@ class TokenSearcher:
     def _iter_pattern(
         self,
         seq: Tuple[Token, ...],
-        pattern: Sequence[Dict[str, Any]],
+        pattern: List[Dict[str, Any]],
         min_r: int,
         fuzzy_func: str,
     ) -> List[Optional[Tuple[str, str]]]:

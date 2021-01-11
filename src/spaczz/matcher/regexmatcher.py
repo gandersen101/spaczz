@@ -1,4 +1,4 @@
-"""Module for RegexMatcher class with an API semi-analogous to spaCy matchers."""
+"""Module for RegexMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
 from __future__ import annotations
 
 from collections import defaultdict

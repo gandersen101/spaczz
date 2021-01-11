@@ -1,7 +1,7 @@
-"""Tests for search util module."""
+"""Tests for process module."""
 import pytest
 
-from spaczz.search.util import FuzzyFuncs
+from spaczz.process import FuzzyFuncs
 
 
 def test_fuzzyfuncs_raises_value_error_w_unkown_match_type() -> None:

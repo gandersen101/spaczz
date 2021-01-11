@@ -5,7 +5,7 @@ from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
-from .util import FuzzyFuncs
+from ..process import FuzzyFuncs
 
 
 class FuzzySearcher(_PhraseSearcher):

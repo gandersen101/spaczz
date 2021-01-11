@@ -1,4 +1,4 @@
-"""Module for FuzzyMatcher with an API semi-analogous to spaCy matchers."""
+"""Module for FuzzyMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
 from __future__ import annotations
 
 from typing import Any

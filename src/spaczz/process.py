@@ -97,7 +97,7 @@ class FuzzyFuncs:
 
         Example:
             >>> import spacy
-            >>> from spaczz.search.util import FuzzyFuncs
+            >>> from spaczz.process import FuzzyFuncs
             >>> ff = FuzzyFuncs()
             >>> simple = ff.get("simple")
             >>> simple("hi", "hi")

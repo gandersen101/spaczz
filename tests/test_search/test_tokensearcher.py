@@ -45,13 +45,21 @@ def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
     ) == [[("TEXT", "acces"), None, None, ("TEXT", "databasE.")]]
 
 
+def test_match_multiple_matches(searcher: TokenSearcher, example: Doc) -> None:
+    """The searcher with lower-cased text will return multiple matches if found."""
+    assert searcher.match(example, [{"LOWER": {"FUZZY": "access"}}]) == [
+        [("LOWER", "ACESS")],
+        [("LOWER", "acces")],
+    ]
+
+
 def test_no_matches(searcher: TokenSearcher, example: Doc) -> None:
     """No matches returns empty list."""
     assert searcher.match(example, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
 
 
-def test_raises_type_error_when_not_doc(searcher: TokenSearcher, example: Doc) -> None:
-    """The searcher with lower-cased text is working as intended."""
+def test_raises_type_error_when_doc_not_doc(searcher: TokenSearcher) -> None:
+    """It raises a type error if doc is not a `Doc`."""
     with pytest.raises(TypeError):
         searcher.match(
             "example",
@@ -61,3 +69,21 @@ def test_raises_type_error_when_not_doc(searcher: TokenSearcher, example: Doc) -
                 {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
             ],
         )
+
+
+def test_raises_type_error_when_pattern_not_sequence(
+    searcher: TokenSearcher, example: Doc
+) -> None:
+    """It raises a type error if pattern is not a `Sequence`."""
+    with pytest.raises(TypeError):
+        searcher.match(
+            example, {"TEXT": "SQL"},
+        )
+
+
+def test_raises_value_error_when_pattern_has_zero_tokens(
+    searcher: TokenSearcher, example: Doc
+) -> None:
+    """It raises a value error if pattern has zero tokens."""
+    with pytest.raises(ValueError):
+        searcher.match(example, [])

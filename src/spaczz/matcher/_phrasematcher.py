@@ -1,4 +1,4 @@
-"""Module for _PhraseMatcher with an API semi-analogous to spaCy matchers."""
+"""Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -11,7 +11,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Sequence,
     Tuple,
     Union,
 )
@@ -186,7 +185,7 @@ class _PhraseMatcher:
     def add(
         self,
         label: str,
-        patterns: Sequence[Doc],
+        patterns: List[Doc],
         kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[
             Callable[[_PhraseMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
@@ -210,7 +209,7 @@ class _PhraseMatcher:
                 Default is `None`.
 
         Raises:
-            TypeError: If patterns is not an iterable of `Doc` objects.
+            TypeError: Patterns must be a list of `Doc` objects.
             TypeError: If kwargs is not an iterable dictionaries.
 
         Warnings:
@@ -231,6 +230,8 @@ class _PhraseMatcher:
             >>> "SOUND" in matcher
             True
         """
+        if not isinstance(patterns, list):
+            raise TypeError("Patterns must be a list of `Doc objects.")
         if kwargs is None:
             kwargs = [{} for _ in patterns]
         elif len(kwargs) < len(patterns):
@@ -250,11 +251,11 @@ class _PhraseMatcher:
             if isinstance(pattern, Doc):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise TypeError("Patterns must be an iterable of Doc objects.")
+                raise TypeError("Patterns must be a list of `Doc` objects.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise TypeError("Kwargs must be an iterable of dictionaries.")
+                raise TypeError("Kwargs must be a list of dictionaries.")
         self._callbacks[label] = on_match
 
     def remove(self, label: str) -> None:
