@@ -115,6 +115,8 @@ class TokenSearcher:
 
         Raises:
             TypeError: doc must be a `Doc` object.
+            TypeError: pattern must be a `Sequence`.
+            ValueError: pattern cannot have zero tokens.
 
         Example:
             >>> import spacy
@@ -132,6 +134,12 @@ class TokenSearcher:
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
+        if not isinstance(pattern, list):
+            raise TypeError(
+                "pattern must be a list", "Make sure pattern is wrapped in a list.",
+            )
+        if len(pattern) == 0:
+            raise ValueError("pattern cannot have zero tokens.")
         matches = []
         for seq in n_wise(doc, len(pattern)):
             seq_matches = self._iter_pattern(seq, pattern, min_r, fuzzy_func)

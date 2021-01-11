@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from typing import (
     Any,
     Callable,
@@ -11,7 +12,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Sequence,
     Tuple,
     Union,
 )
@@ -27,8 +27,17 @@ class SpaczzMatcher:
     """spaCy-like token matcher for finding flexible matches in `Doc` objects.
 
     Matches added patterns against the `Doc` object it is called on.
-    Accepts labeled patterns in the form of a sequence of dictionaries
+    Accepts labeled patterns in the form of a list of dictionaries
     where each dictionary describes an individual token.
+
+    Uses extended spaCy token matching patterns.
+    "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
+
+    For example:
+        {"TEXT": {"FREGEX": "(database){e<=1}"}},
+        {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
+
+    Make sure to use uppercase dictionary keys in patterns.
 
     Attributes:
         defaults: Keyword arguments to be used as default matching settings.
@@ -82,21 +91,24 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> doc = nlp("Ridley Scott was the director of Alien.")
-            >>> matcher.add("NAME", [nlp("Ridley Scott")])
+            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> doc = nlp("Rdley Scot was the director of Alien.")
+            >>> matcher.add("NAME", [
+                [{"TEXT": {"FUZZY": "Ridley"}},
+                {"TEXT": {"FUZZY": "Scott"}}]
+                ])
             >>> matcher(doc)
-            [('NAME', 0, 2, 100)]
+            [('NAME', 0, 2)]
         """
         mapped_patterns = defaultdict(list)
         matcher = Matcher(self.vocab)
         for label, patterns in self._patterns.items():
             for pattern in patterns:
                 mapped_patterns[label].extend(
-                    _mapback(
-                        self._searcher.match(doc, pattern, **self.defaults), pattern
+                    _spacyfy(
+                        self._searcher.match(doc, pattern, **self.defaults), pattern,
                     )
                 )
         for label in mapped_patterns.keys():
@@ -127,10 +139,10 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp("Kerouac")])
+            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> matcher.labels
             ('AUTHOR',)
         """
@@ -138,25 +150,22 @@ class SpaczzMatcher:
 
     @property
     def patterns(self) -> List[Dict[str, Any]]:
-        """Get all patterns and kwargs that were added to the matcher.
+        """Get all patterns that were added to the matcher.
 
         Returns:
-            The original patterns and kwargs,
-            one dictionary for each combination.
+            The original patterns, one dictionary for each combination.
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp("Kerouac")],
-                [{"ignore_case": False}])
+            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> matcher.patterns == [
                 {
                     "label": "AUTHOR",
-                    "pattern": "Kerouac",
-                    "type": "_phrase",
-                    "kwargs": {"ignore_case": False}
+                    "pattern": [{"TEXT": {"FUZZY": "Kerouac"}}],
+                    "type": "spaczz",
                     },
                     ]
             True
@@ -176,20 +185,27 @@ class SpaczzMatcher:
     def add(
         self,
         label: str,
-        patterns: Sequence[Sequence[Dict[str, Any]]],
+        patterns: List[List[Dict[str, Any]]],
         on_match: Optional[
             Callable[[SpaczzMatcher, Doc, int, List[Tuple[str, int, int]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a sequence of dictionary sequences where each dictionary
-        sequence represent an individual pattern and each dictionary represents
+        Patterns must be a list of dictionary lists where each dictionary
+        list represent an individual pattern and each dictionary represents
         an individual token.
+
+        Uses extended spaCy token matching patterns.
+        "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
+
+        For example:
+            {"TEXT": {"FREGEX": "(database){e<=1}"}},
+            {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: Sequence of dictionary sequences that will be matched
+            patterns: List of dictionary lists that will be matched
                 against the `Doc` object the matcher is called on.
             on_match: Optional callback function to modify the
                 `Doc` object the matcher is called on after matching.
@@ -197,19 +213,21 @@ class SpaczzMatcher:
 
         Raises:
             TypeError: If patterns is not an iterable of `Doc` objects.
-            TypeError: If kwargs is not an iterable dictionaries.
+            ValueError: pattern cannot have zero tokens.
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp("mooo")])
-            >>> "SOUND" in matcher
+            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
+            >>> "AUTHOR" in matcher
             True
         """
         for pattern in patterns:
-            if isinstance(pattern, Sequence):
+            if len(pattern) == 0:
+                raise ValueError("pattern cannot have zero tokens.")
+            if isinstance(pattern, list):
                 self._patterns[label].append(list(pattern))
             else:
                 raise TypeError("Patterns must be lists of dictionaries.")
@@ -226,12 +244,12 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp("mooo")])
-            >>> matcher.remove("SOUND")
-            >>> "SOUND" in matcher
+            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
+            >>> matcher.remove("AUTHOR")
+            >>> "AUTHOR" in matcher
             False
         """
         try:
@@ -268,17 +286,20 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
+            >>> from spaczz.matcher import SpaczzMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
+            >>> matcher = SpaczzMatcher(nlp.vocab)
             >>> doc_stream = (
-                    nlp("test doc1: Korvold"),
-                    nlp("test doc2: Prossh"),
+                    nlp("test doc1: Korvld"),
+                    nlp("test doc2: Prosh"),
                 )
-            >>> matcher.add("DRAGON", [nlp("Korvold"), nlp("Prossh")])
+            >>> matcher.add("DRAGON", [
+                [{"TEXT": {"FUZZY": "Korvold"}}],
+                [{"TEXT": {"FUZZY": "Prossh"}}]
+                ])
             >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4, 100)], [('DRAGON', 3, 4, 100)]]
+            [[('DRAGON', 3, 4)], [('DRAGON', 3, 4)]]
         """
         if as_tuples:
             for doc, context in stream:
@@ -296,19 +317,17 @@ class SpaczzMatcher:
                     yield doc
 
 
-def _mapback(
+def _spacyfy(
     matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
 ) -> List[List[Dict[str, Any]]]:
-    """Pass."""
+    """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
     new_patterns = []
     if matches:
         for match in matches:
-            new_pattern = pattern[:]
+            new_pattern = deepcopy(pattern)
             for i, token in enumerate(match):
                 if token:
                     del new_pattern[i][token[0]]
                     new_pattern[i]["TEXT"] = token[1]
             new_patterns.append(new_pattern)
-    else:
-        new_patterns.append(pattern)
     return new_patterns

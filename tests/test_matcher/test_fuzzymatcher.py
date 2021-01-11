@@ -82,7 +82,15 @@ def test_add_with_more_explicit_kwargs_than_patterns_warns(
         )
 
 
-def test_add_without_doc_objects_raises_error(matcher: FuzzyMatcher,) -> None:
+def test_add_where_patterns_is_not_list_raises_error(matcher: FuzzyMatcher,) -> None:
+    """Trying to add non Doc objects as patterns raises a TypeError."""
+    with pytest.raises(TypeError):
+        matcher.add("TEST", "Test1")
+
+
+def test_add_where_patterns_are_not_doc_objects_raises_error(
+    matcher: FuzzyMatcher,
+) -> None:
     """Trying to add non Doc objects as patterns raises a TypeError."""
     with pytest.raises(TypeError):
         matcher.add("TEST", ["Test1"])

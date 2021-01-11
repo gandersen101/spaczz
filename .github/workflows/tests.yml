@@ -1,8 +1,5 @@
 name: Tests
-on:
-  push:
-    branches:
-      - master
+on: push
 jobs:
   tests:
     runs-on: ${{matrix.os}}
