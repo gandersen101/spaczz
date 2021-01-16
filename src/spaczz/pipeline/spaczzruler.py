@@ -93,10 +93,10 @@ class SpaczzRuler:
         Raises:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
-        if not Span.get_extension(attr):
-            Span.set_extension(attr, default=False)
-            Span.set_extension(f"{attr}_ratio", default=None)
-            Span.set_extension(f"{attr}_counts", default=None)
+        # if not Span.get_extension(attr):
+        #     Span.set_extension(attr, default=False)
+        #     Span.set_extension(f"{attr}_ratio", default=None)
+        #     Span.set_extension(f"{attr}_counts", default=None)
         self.attr = attr
         self.nlp = nlp
         self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
@@ -160,7 +160,7 @@ class SpaczzRuler:
             fuzzy_matches.append(fuzzy_match[:3])
             current_ratio = fuzzy_match[3]
             best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
-            if current_ratio >= best_ratio:
+            if current_ratio > best_ratio:
                 ratio_lookup[fuzzy_match[:3]] = current_ratio
         regex_matches = []
         counts_lookup: Dict[Tuple[str, int, int], Tuple[int, int, int]] = {}
@@ -168,7 +168,7 @@ class SpaczzRuler:
             regex_matches.append(regex_match[:3])
             current_counts = regex_match[3]
             best_counts = counts_lookup.get(regex_match[:3])
-            if not best_counts or sum(current_counts) <= sum(best_counts):
+            if not best_counts or sum(current_counts) < sum(best_counts):
                 counts_lookup[regex_match[:3]] = current_counts
         matches = fuzzy_matches + regex_matches
         unique_matches = set(
@@ -193,15 +193,15 @@ class SpaczzRuler:
                             token.ent_id_ = ent_id
                 else:
                     span = Span(doc, start, end, label=match_id)
-                span._.set(self.attr, True)
-                span._.set(
-                    f"{self.attr}_ratio",
-                    ratio_lookup.get((match_id, start, end), None),
-                )
-                span._.set(
-                    f"{self.attr}_counts",
-                    counts_lookup.get((match_id, start, end), None),
-                )
+                # span._.set(self.attr, True)
+                # span._.set(
+                #     f"{self.attr}_ratio",
+                #     ratio_lookup.get((match_id, start, end), None),
+                # )
+                # span._.set(
+                #     f"{self.attr}_counts",
+                #     counts_lookup.get((match_id, start, end), None),
+                # )
                 new_entities.append(span)
                 entities = [
                     e for e in entities if not (e.start < end and e.end > start)

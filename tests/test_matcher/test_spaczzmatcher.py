@@ -9,10 +9,10 @@ from spaczz.matcher import SpaczzMatcher
 
 
 def add_name_ent(
-    matcher: SpaczzMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
+    matcher: SpaczzMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, None]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
-    _match_id, start, end = matches[i]
+    _match_id, start, end, _ = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)
 
@@ -122,9 +122,9 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: SpaczzMatcher, example: Doc) -> None:
     """Calling the matcher on a `Doc` object returns matches."""
     assert matcher(example) == [
-        ("DATA", 4, 7),
-        ("DATA", 13, 15),
-        ("NAME", 22, 23),
+        ("DATA", 4, 7, None),
+        ("DATA", 13, 15, None),
+        ("NAME", 22, 23, None),
     ]
 
 
@@ -186,7 +186,7 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
     )
     output = matcher.pipe(doc_stream, return_matches=True)
     matches = [entry[1] for entry in output]
-    assert matches == [[("DRAGON", 4, 5)], [("DRAGON", 4, 5)]]
+    assert matches == [[("DRAGON", 4, 5, None)], [("DRAGON", 4, 5, None)]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
@@ -202,6 +202,6 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
     matches = [(entry[0][1], entry[1]) for entry in output]
     assert matches == [
-        ([("DRAGON", 4, 5)], "Jund"),
-        ([("DRAGON", 4, 5)], "Jund"),
+        ([("DRAGON", 4, 5, None)], "Jund"),
+        ([("DRAGON", 4, 5, None)], "Jund"),
     ]
