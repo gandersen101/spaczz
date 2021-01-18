@@ -5,6 +5,10 @@ class RegexParseError(Exception):
     """General error for errors that may happen during regex compilation."""
 
 
+class AttrOverwriteWarning(Warning):
+    """It warns if custom attributes are being overwritten."""
+
+
 class FlexWarning(Warning):
     """It warns if flex value is changed if too large."""
 

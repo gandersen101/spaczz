@@ -41,6 +41,13 @@ spaczz.process
    :members:
 
 
+spaczz.attrs
+--------------------------
+
+.. automodule:: spaczz.attrs
+   :members:
+
+
 spaczz.util
 --------------------------
 
