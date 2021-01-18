@@ -19,7 +19,7 @@ DEFAULT_ENT_ID_SEP = "||"
 
 
 class SpaczzRuler:
-    """The SpaczzRuler adds fuzzy and multi-token regex matches to spaCy Doc.ents.
+    """The SpaczzRuler adds fuzzy and multi-token regex matches to spaCy `Doc.ents`.
 
     It can be combined with other spaCy NER components like the statistical
     EntityRecognizer and/or the EntityRuler to boost accuracy.

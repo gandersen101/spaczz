@@ -168,6 +168,13 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
     ) == (3, 4, 94)
 
 
+def test__optimize_where_bpl_equal_bpr(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns the intial match when flex value = 0."""
+    doc = nlp("trabalho, investimento e escolhas corajosas,")
+    query = nlp("Courtillier Musqué")
+    assert searcher.match(doc, query) == []
+
+
 def test__filter_overlapping_matches_filters_correctly(
     searcher: FuzzySearcher,
 ) -> None:

@@ -40,9 +40,8 @@ class SpaczzAttrs:
             except ValueError:
                 warnings.warn(
                     """One or more spaczz custom extensions has already been registered.
-                    These are being force overwritten.
-                    Please avoid defining personal custom extensions
-                    prepended with "spaczz_."
+                    These are being force overwritten. Please avoid defining personal,
+                    custom extensions prepended with "spaczz_".
                 """,
                     AttrOverwriteWarning,
                 )
