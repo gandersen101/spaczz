@@ -211,10 +211,14 @@ class _PhraseSearcher:
                     if rr > bmv_r:
                         bmv_r = rr
                         bp_r = p_r + f
-        r = self.compare(query, doc[bp_l:bp_r], *args, **kwargs)
-        if r >= min_r2:
-            return (bp_l, bp_r, r)
-        return None
+        if bp_l >= bp_r or bp_r <= bp_l:
+            return None
+        else:
+            r = self.compare(query, doc[bp_l:bp_r], *args, **kwargs)
+            if r >= min_r2:
+                return (bp_l, bp_r, r)
+            else:
+                return None
 
     def _scan(
         self, doc: Doc, query: Doc, min_r1: int, *args: Any, **kwargs: Any,
