@@ -49,7 +49,7 @@ class SpaczzRuler:
 
     name = "spaczz_ruler"
 
-    def __init__(self, nlp: Language, attr: str = "spaczz_ent", **cfg: Any) -> None:
+    def __init__(self, nlp: Language, **cfg: Any) -> None:
         """Initialize the spaczz ruler with a Language object and cfg parameters.
 
         All spaczz ruler cfg parameters are prepended with "spaczz_".
@@ -60,44 +60,35 @@ class SpaczzRuler:
 
 
         Args:
-            nlp: The shared nlp object to pass the vocab to the matchers
-                (not currently used by spaczz matchers) and process fuzzy patterns.
-            attr: Name of custom Span attribute that denotes whether an
-                entity was added via the spaczz ruler or not.
-                It also prepends the "_ratio" and "_counts" attributes, which denote
-                the fuzzy ratio and fuzzy regex counts respectively.
-                Default is "spaczz_ent".
+            nlp: The shared `Language` object to pass the vocab to the matchers
+                and process fuzzy patterns.
             **cfg: Other config parameters. The SpaczzRuler makes heavy use
                 of cfg to pass additional parameters down to the matchers.
                 spaczz config parameters start with "spaczz_" to keep them
                 from colliding with other cfg components.
                 SpaczzRuler cfg components include (with "spaczz_" prepended to them):
-                overwrite_ents (bool): Whether to overwrite exisiting Doc.ents
-                    with new matches. Default is False.
-                ent_id_sep (str): String to separate entity labels and ids on.
-                regex_config (Union[str, RegexConfig]): Config to use with the
-                    regex matcher. Default is "default". See RegexMatcher/RegexSearcher
-                    documentation for available parameter details.
-                fuzzy_defaults (Dict[str, Any]): Modified default parameters to use with
-                    the fuzzy matcher. Default is an empty dictionary -
-                    utilizing defaults.
-                regex_defaults (Dict[str, Any]): Modified default parameters to use with
-                    the regex matcher. Default is an empty dictionary -
-                    utilizing defaults. See RegexMatcher/RegexSearcher documentation
-                    for parameter details.
-                patterns (Iterable[Dict[str, Any]]): Patterns to initialize
-                    the ruler with. Default is None.
+                    `overwrite_ents` (bool): Whether to overwrite exisiting Doc.ents
+                        with new matches. Default is False.
+                    `ent_id_sep` (str): String to separate entity labels and ids on.
+                    `fuzzy_defaults` (Dict[str, Any]): Modified default parameters to
+                        use with the fuzzy matcher. Default is an empty dictionary -
+                        utilizing defaults.
+                    `regex_defaults` (Dict[str, Any]): Modified default parameters to
+                        use with the regex matcher. Default is an empty dictionary -
+                        utilizing defaults. See RegexMatcher/RegexSearcher documentation
+                        for parameter details.
+                    `regex_config` (Union[str, RegexConfig]): Config to use with the
+                        regex matcher. Default is "default".
+                        See RegexMatcher/RegexSearcher documentation for available
+                        parameter details.
+                    `patterns` (Iterable[Dict[str, Any]]): Patterns to initialize
+                        the ruler with. Default is None.
                 If SpaczzRuler is loaded as part of a model pipeline,
                 cfg will include all keyword arguments passed to `spacy.load()`.
 
         Raises:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
-        if not Span.get_extension(attr):
-            Span.set_extension(attr, default=False)
-            Span.set_extension(f"{attr}_ratio", default=None)
-            Span.set_extension(f"{attr}_counts", default=None)
-        self.attr = attr
         self.nlp = nlp
         self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
@@ -160,7 +151,7 @@ class SpaczzRuler:
             fuzzy_matches.append(fuzzy_match[:3])
             current_ratio = fuzzy_match[3]
             best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
-            if current_ratio >= best_ratio:
+            if current_ratio > best_ratio:
                 ratio_lookup[fuzzy_match[:3]] = current_ratio
         regex_matches = []
         counts_lookup: Dict[Tuple[str, int, int], Tuple[int, int, int]] = {}
@@ -168,7 +159,7 @@ class SpaczzRuler:
             regex_matches.append(regex_match[:3])
             current_counts = regex_match[3]
             best_counts = counts_lookup.get(regex_match[:3])
-            if not best_counts or sum(current_counts) <= sum(best_counts):
+            if not best_counts or sum(current_counts) < sum(best_counts):
                 counts_lookup[regex_match[:3]] = current_counts
         matches = fuzzy_matches + regex_matches
         unique_matches = set(
@@ -193,14 +184,8 @@ class SpaczzRuler:
                             token.ent_id_ = ent_id
                 else:
                     span = Span(doc, start, end, label=match_id)
-                span._.set(self.attr, True)
-                span._.set(
-                    f"{self.attr}_ratio",
-                    ratio_lookup.get((match_id, start, end), None),
-                )
-                span._.set(
-                    f"{self.attr}_counts",
-                    counts_lookup.get((match_id, start, end), None),
+                span = self._update_custom_attrs(
+                    span, match_id, start, end, ratio_lookup, counts_lookup
                 )
                 new_entities.append(span)
                 entities = [
@@ -388,7 +373,7 @@ class SpaczzRuler:
                             regex_pattern_ids.append(entry.get("id"))
                         else:
                             warnings.warn(
-                                f"""Spaczz pattern "type" must be "fuzzy" or "regex",\n
+                                f"""Spaczz pattern "type" must be "fuzzy" or "regex",
                                 not {entry["label"]}. Skipping this pattern.""",
                                 PatternTypeWarning,
                             )
@@ -657,3 +642,21 @@ class SpaczzRuler:
         else:
             ent_label = label
             return ent_label, None
+
+    @staticmethod
+    def _update_custom_attrs(
+        span: Span,
+        match_id: str,
+        start: int,
+        end: int,
+        ratio_lookup: Dict[Tuple[str, int, int], int],
+        counts_lookup: Dict[Tuple[str, int, int], Tuple[int, int, int]],
+    ) -> Span:
+        """Update custom attributes for matches."""
+        ratio = ratio_lookup.get((match_id, start, end), None)
+        counts = counts_lookup.get((match_id, start, end), None)
+        for token in span:
+            token._.spaczz_token = True
+            token._.spaczz_ratio = ratio
+            token._.spaczz_counts = counts
+        return span

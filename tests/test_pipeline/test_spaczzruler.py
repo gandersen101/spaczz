@@ -143,19 +143,19 @@ def test_calling_ruler(nlp: Language, patterns: List[Dict[str, Any]], doc: Doc) 
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
-    assert all(ent._.spaczz_ent for ent in ents)
-    assert ents[0]._.spaczz_ent_ratio == 86
-    assert ents[1]._.spaczz_ent_counts == (0, 0, 0)
+    assert all(ent._.spaczz_span for ent in ents)
+    assert ents[0]._.spaczz_ratio == 86
+    assert ents[1]._.spaczz_counts == (0, 0, 0)
     assert len(doc.ents) == 5
 
 
 def test_ruler_added_ents_have_custom_attr(
     nlp: Language, patterns: List[Dict[str, Any]], doc: Doc
 ) -> None:
-    """Ents added by ruler have "spaczz_ent" custom attribute."""
+    """Ents added by ruler have "spaczz_span" custom attribute."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     doc = ruler(doc)
-    assert all([ent._.spaczz_ent for ent in doc.ents])
+    assert all([ent._.spaczz_span for ent in doc.ents])
 
 
 def test_entities_that_would_overlap_keeps_longer_earlier_match(

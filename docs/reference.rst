@@ -34,6 +34,20 @@ spaczz.regex
    :members:
 
 
+spaczz.process
+--------------------------
+
+.. automodule:: spaczz.process
+   :members:
+
+
+spaczz.attrs
+--------------------------
+
+.. automodule:: spaczz.attrs
+   :members:
+
+
 spaczz.util
 --------------------------
 

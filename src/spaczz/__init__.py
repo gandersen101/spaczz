@@ -4,6 +4,9 @@ try:
 except ImportError:  # pragma: no cover
     from importlib_metadata import version, PackageNotFoundError  # type: ignore
 
+from spaczz.attrs import SpaczzAttrs
+
+SpaczzAttrs.initialize()
 
 try:
     __version__ = version(__name__)

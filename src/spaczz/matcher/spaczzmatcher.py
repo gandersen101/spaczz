@@ -73,21 +73,24 @@ class SpaczzMatcher:
         self._callbacks: Dict[
             str,
             Union[
-                Callable[[SpaczzMatcher, Doc, int, List[Tuple[str, int, int]]], None],
+                Callable[
+                    [SpaczzMatcher, Doc, int, List[Tuple[str, int, int, None]]], None
+                ],
                 None,
             ],
         ] = {}
         self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int]]:
+    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, None]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end) tuples, describing the matches.
+            A list of (key, start, end, None) tuples, describing the matches.
+            The final None is a placeholder for future match details.
 
         Example:
             >>> import spacy
@@ -100,7 +103,7 @@ class SpaczzMatcher:
                 {"TEXT": {"FUZZY": "Scott"}}]
                 ])
             >>> matcher(doc)
-            [('NAME', 0, 2)]
+            [('NAME', 0, 2, None)]
         """
         mapped_patterns = defaultdict(list)
         matcher = Matcher(self.vocab)
@@ -116,7 +119,7 @@ class SpaczzMatcher:
         matches = matcher(doc)
         if matches:
             return [
-                (self.vocab.strings[match_id], start, end)
+                (self.vocab.strings[match_id], start, end, None)
                 for match_id, start, end in matches
             ]
         else:
@@ -187,7 +190,7 @@ class SpaczzMatcher:
         label: str,
         patterns: List[List[Dict[str, Any]]],
         on_match: Optional[
-            Callable[[SpaczzMatcher, Doc, int, List[Tuple[str, int, int]]], None]
+            Callable[[SpaczzMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -299,7 +302,7 @@ class SpaczzMatcher:
                 ])
             >>> output = matcher.pipe(doc_stream, return_matches=True)
             >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4)], [('DRAGON', 3, 4)]]
+            [[('DRAGON', 3, 4, None)], [('DRAGON', 3, 4, None)]]
         """
         if as_tuples:
             for doc, context in stream:
