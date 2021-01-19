@@ -52,9 +52,21 @@ def test_compare_raises_error_with_unknown_func_name(
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns len(query) if set with "default"."""
+    """It returns max(len(query)-1, 0) if set with "default"."""
     query = nlp("Test query")
     assert searcher._calc_flex(query, "default") == 1
+
+
+def test__calc_flex_with_max(nlp: Language, searcher: FuzzySearcher) -> None:
+    """It returns len(query) if set with "max"."""
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, "max") == 2
+
+
+def test__calc_flex_with_min(nlp: Language, searcher: FuzzySearcher) -> None:
+    """It returns 0 if set with "min"."""
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, "min") == 0
 
 
 def test__calc_flex_passes_through_valid_value(
@@ -71,7 +83,18 @@ def test__calc_flex_warns_if_flex_longer_than_query(
     """It provides UserWarning if flex > len(query)."""
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
-        searcher._calc_flex(query, 5)
+        flex = searcher._calc_flex(query, 5)
+        assert flex == 2
+
+
+def test__calc_flex_warns_if_flex_less_than_0(
+    nlp: Language, searcher: FuzzySearcher
+) -> None:
+    """It provides UserWarning if flex < 0."""
+    query = nlp("Test query")
+    with pytest.warns(FlexWarning):
+        flex = searcher._calc_flex(query, -1)
+        assert flex == 0
 
 
 def test__calc_flex_raises_error_if_non_valid_value(
@@ -224,7 +247,7 @@ def test_match_return_empty_list_when_no_matches_after_adjust(
     assert searcher.match(doc, query) == []
 
 
-def test_match_raises_error_when_doc_not_Doc(
+def test_match_raises_error_when_doc_not_doc_obj(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It raises a TypeError if doc is not a Doc object."""
@@ -234,7 +257,7 @@ def test_match_raises_error_when_doc_not_Doc(
         searcher.match(doc, query)
 
 
-def test_match_raises_error_if_query_not_Doc(
+def test_match_raises_error_if_query_not_doc_obj(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It raises a TypeError if query not a doc."""
