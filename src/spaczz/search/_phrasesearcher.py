@@ -305,7 +305,7 @@ class _PhraseSearcher:
                         """,
                     FlexWarning,
                 )
-                flex = len(query)
+                flex = max(len(query) - 1, 0)
         else:
             raise TypeError("Flex must either be the string 'default' or an integer.")
         return flex
