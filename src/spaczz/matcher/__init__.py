@@ -3,12 +3,12 @@ from ._phrasematcher import _PhraseMatcher
 from .fuzzymatcher import FuzzyMatcher
 from .regexmatcher import RegexMatcher
 from .similaritymatcher import SimilarityMatcher
-from .spaczzmatcher import SpaczzMatcher
+from .tokenmatcher import TokenMatcher
 
 __all__ = [
     "_PhraseMatcher",
     "FuzzyMatcher",
     "RegexMatcher",
     "SimilarityMatcher",
-    "SpaczzMatcher",
+    "TokenMatcher",
 ]

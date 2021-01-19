@@ -251,6 +251,8 @@ class _PhraseSearcher:
             A dictionary of start index, match ratio pairs or None.
         """
         match_values: Dict[int, int] = dict()
+        if not len(query):
+            return None
         i = 0
         while i + len(query) <= len(doc):
             match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
@@ -294,12 +296,13 @@ class _PhraseSearcher:
             1
         """
         if flex == "default":
-            flex = len(query) - 1
+            flex = max(len(query) - 1, 0)
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
                     f"""Flex of size {flex} is greater than len(query).\n
-                        Setting flex to the default flex = len(query) - 1.""",
+                        Setting flex to the default flex = max(len(query) - 1, 0).
+                        """,
                     FlexWarning,
                 )
                 flex = len(query)

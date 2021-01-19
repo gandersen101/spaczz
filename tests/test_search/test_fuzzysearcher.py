@@ -116,6 +116,19 @@ def test__scan_with_no_matches(
     )
 
 
+def test__scan_returns_none_w_empty_query(
+    searcher: FuzzySearcher, nlp: Language, scan_example: Doc
+) -> None:
+    """It returns None if passed an empty query string."""
+    query = nlp("")
+    assert (
+        searcher._scan(
+            scan_example, query, fuzzy_func="simple", min_r1=25, ignore_case=True
+        )
+        is None
+    )
+
+
 def test__optimize_finds_better_match(searcher: FuzzySearcher, nlp: Language) -> None:
     """It optimizes the initial match to find a better match."""
     doc = nlp("Patient was prescribed Zithromax tablets.")
@@ -229,3 +242,30 @@ def test_match_raises_error_if_query_not_Doc(
     query = "Not a doc"
     with pytest.raises(TypeError):
         searcher.match(doc, query)
+
+
+def test_match_returns_empty_list_if_query_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty if query is empty string."""
+    doc = nlp("This is a doc")
+    query = nlp("")
+    assert searcher.match(doc, query) == []
+
+
+def test_match_returns_empty_list_if_doc_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty list if doc is empty string."""
+    doc = nlp("")
+    query = nlp("test")
+    assert searcher.match(doc, query) == []
+
+
+def test_match_returns_empty_list_if_doc_query_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty list if doc is empty string."""
+    doc = nlp("")
+    query = nlp("")
+    assert searcher.match(doc, query) == []
