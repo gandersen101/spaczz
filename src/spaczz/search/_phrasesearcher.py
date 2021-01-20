@@ -79,7 +79,7 @@ class _PhraseSearcher:
         doc: Doc,
         query: Doc,
         flex: Union[str, int] = "default",
-        min_r1: int = 25,
+        min_r1: int = 50,
         min_r2: int = 75,
         *args: Any,
         **kwargs: Any,
@@ -108,7 +108,7 @@ class _PhraseSearcher:
                 have their boundaries flexed and will be recompared
                 during match optimization.
                 Lower min_r1 will result in more fine-grained matching
-                but will run slower. Default is `25`.
+                but will run slower. Default is `50`.
             min_r2: Minimum match ratio required for
                 selection during match optimization.
                 Should be higher than min_r1 and "high" in general

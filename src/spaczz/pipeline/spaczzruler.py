@@ -58,7 +58,7 @@ class SpaczzRuler:
         For example, a fuzzy phrase pattern:
         {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
         Or, a token pattern:
-        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'spaczz'}
+        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}
 
 
         Args:
@@ -358,7 +358,7 @@ class SpaczzRuler:
         For example, a fuzzy phrase pattern:
         {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
         Or, a token pattern:
-        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'spaczz'}
+        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}
 
         To utilize regex flags, use inline flags.
 

@@ -27,8 +27,9 @@ class TokenMatcher:
     """spaCy-like token matcher for finding flexible matches in `Doc` objects.
 
     Matches added patterns against the `Doc` object it is called on.
-    Accepts labeled patterns in the form of a list of dictionaries
-    where each dictionary describes an individual token.
+    Accepts labeled patterns in the form of lists of dictionaries
+    where each list describes an individual pattern and each
+    dictionary describes an individual token.
 
     Uses extended spaCy token matching patterns.
     "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
