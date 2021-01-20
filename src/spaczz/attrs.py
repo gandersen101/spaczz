@@ -28,11 +28,13 @@ class SpaczzAttrs:
                 )
                 Token.set_extension("spaczz_ratio", default=None)
                 Token.set_extension("spaczz_counts", default=None)
+                Token.set_extension("spaczz_details", default=None)
 
                 Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
                 Span.set_extension("spaczz_counts", getter=cls.get_counts)
+                Span.set_extension("spaczz_details", getter=cls.get_details)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types)
@@ -40,9 +42,8 @@ class SpaczzAttrs:
             except ValueError:
                 warnings.warn(
                     """One or more spaczz custom extensions has already been registered.
-                    These are being force overwritten.
-                    Please avoid defining personal custom extensions
-                    prepended with "spaczz_."
+                    These are being force overwritten. Please avoid defining personal,
+                    custom extensions prepended with "spaczz_".
                 """,
                     AttrOverwriteWarning,
                 )
@@ -78,6 +79,8 @@ class SpaczzAttrs:
             types.add("fuzzy")
         if token._.spaczz_counts:
             types.add("regex")
+        if token._.spaczz_details:
+            types.add("token")
         return types
 
     @classmethod
@@ -88,6 +91,8 @@ class SpaczzAttrs:
             types.add("fuzzy")
         if cls.get_counts(span):
             types.add("regex")
+        if cls.get_details(span):
+            types.add("token")
         return types
 
     @classmethod
@@ -103,6 +108,14 @@ class SpaczzAttrs:
         """Getter for spaczz_counts `Span` attribute."""
         if cls._all_equal([token._.spaczz_counts for token in span]):
             return span[0]._.spaczz_counts
+        else:
+            return None
+
+    @classmethod
+    def get_details(cls: Type[T], span: Span) -> Optional[int]:
+        """Getter for current placeholder spaczz_details `Span` attribute."""
+        if cls._all_equal([token._.spaczz_details for token in span]):
+            return span[0]._.spaczz_details
         else:
             return None
 

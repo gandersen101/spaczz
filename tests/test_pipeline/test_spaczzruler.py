@@ -15,9 +15,11 @@ from spaczz.pipeline.spaczzruler import SpaczzRuler
 @pytest.fixture
 def doc(nlp: Language) -> Doc:
     """Doc for testing."""
-    return nlp.make_doc(
-        """Anderson, Grunt from 122 Fake Dr, Apt 55, Mawwah\n
-            NJ in the USA was prescribed Zithroman."""
+    return nlp(
+        """Anderson, Grunt from 122 Fake Dr, Apt 55, Mawwah
+            NJ in the USA was prescribed Zithroman.
+            Some of his favorite bands are
+            Converg and Protet the Zero."""
     )
 
 
@@ -36,6 +38,13 @@ def patterns() -> List[Dict[str, Any]]:
             "id": "Developer",
         },
         {
+            "label": "NAME",
+            "pattern": "Garth Andersen",
+            "type": "fuzzy",
+            "kwargs": {"fuzzy_func": "token_sort"},
+            "id": "Developer",
+        },
+        {
             "label": "STREET",
             "pattern": "street_addresses",
             "type": "regex",
@@ -48,6 +57,22 @@ def patterns() -> List[Dict[str, Any]]:
             "id": "USA",
         },
         {"label": "GPE", "pattern": r"(?:USR){e<=1}", "type": "regex", "id": "USA"},
+        {"label": "GPE", "pattern": r"(?:USSR){d<=1, s<=1}", "type": "regex"},
+        {
+            "label": "BAND",
+            "pattern": [{"LOWER": {"FREGEX": "(converge){e<=1}"}}],
+            "type": "token",
+        },
+        {
+            "label": "BAND",
+            "pattern": [
+                {"TEXT": {"FUZZY": "Protest"}},
+                {"IS_STOP": True},
+                {"TEXT": {"FUZZY": "Hero"}},
+            ],
+            "type": "token",
+            "id": "Metal",
+        },
     ]
     return patterns
 
@@ -74,10 +99,10 @@ def test_ruler_with_defaults_as_not_dict_raises_error(nlp: Language) -> None:
 def test_add_patterns(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
     """It adds patterns correctly."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    assert len(ruler) == 7
+    assert len(ruler) == len(patterns)
 
 
-def test_add_patterns_raises_error_if_not_spaczz_pattern(nlp: Language,) -> None:
+def test_add_patterns_raises_error_if_not_spaczz_pattern(nlp: Language) -> None:
     """It raises a ValueError if patterns not correct format."""
     ruler = SpaczzRuler(nlp)
     with pytest.raises(ValueError):
@@ -91,7 +116,7 @@ def test_add_patterns_raises_error_pattern_not_iter_of_dict(nlp: Language) -> No
         ruler.add_patterns({"label": "GPE", "pattern": "Montana"})
 
 
-def test_add_patterns_warns_if_spaczz_type_unrecognized(nlp: Language,) -> None:
+def test_add_patterns_warns_if_spaczz_type_unrecognized(nlp: Language) -> None:
     """It raises a ValueError if patterns not correct format."""
     ruler = SpaczzRuler(nlp)
     with pytest.warns(PatternTypeWarning):
@@ -107,7 +132,7 @@ def test_add_patterns_with_other_pipeline_components(
     ruler = SpaczzRuler(nlp)
     nlp.add_pipe(ruler, first=True)
     nlp.get_pipe("spaczz_ruler").add_patterns(patterns)
-    assert len(ruler) == 7
+    assert len(ruler) == len(patterns)
 
 
 def test_contains(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
@@ -119,8 +144,10 @@ def test_contains(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
 def test_labels(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
     """It returns all unique labels."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    assert all([label in ruler.labels for label in ["GPE", "STREET", "DRUG", "NAME"]])
-    assert len(ruler.labels) == 4
+    assert all(
+        [label in ruler.labels for label in ["GPE", "STREET", "DRUG", "NAME", "BAND"]]
+    )
+    assert len(ruler.labels) == 5
 
 
 def test_patterns(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
@@ -133,9 +160,12 @@ def test_ent_ids(nlp: Language, patterns: List[Dict[str, Any]]) -> None:
     """It returns all unique ent ids."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     assert all(
-        [ent_id in ruler.ent_ids for ent_id in ["Antibiotic", "Developer", "USA"]]
+        [
+            ent_id in ruler.ent_ids
+            for ent_id in ["Antibiotic", "Developer", "USA", "Metal"]
+        ]
     )
-    assert len(ruler.ent_ids) == 3
+    assert len(ruler.ent_ids) == 4
 
 
 def test_calling_ruler(nlp: Language, patterns: List[Dict[str, Any]], doc: Doc) -> None:
@@ -143,19 +173,12 @@ def test_calling_ruler(nlp: Language, patterns: List[Dict[str, Any]], doc: Doc) 
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
+    print(ents)
     assert all(ent._.spaczz_span for ent in ents)
     assert ents[0]._.spaczz_ratio == 86
     assert ents[1]._.spaczz_counts == (0, 0, 0)
-    assert len(doc.ents) == 5
-
-
-def test_ruler_added_ents_have_custom_attr(
-    nlp: Language, patterns: List[Dict[str, Any]], doc: Doc
-) -> None:
-    """Ents added by ruler have "spaczz_span" custom attribute."""
-    ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    doc = ruler(doc)
-    assert all([ent._.spaczz_span for ent in doc.ents])
+    assert ents[6]._.spaczz_details == 1
+    assert len(doc.ents) == 7
 
 
 def test_entities_that_would_overlap_keeps_longer_earlier_match(
@@ -227,14 +250,14 @@ def test_spaczz_ruler_serialize_bytes(
     """It serializes the ruler to bytes and reads from bytes correctly."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     assert len(ruler) == len(patterns)
-    assert len(ruler.labels) == 4
+    assert len(ruler.labels) == 5
     ruler_bytes = ruler.to_bytes()
     new_ruler = SpaczzRuler(nlp)
     assert len(new_ruler) == 0
     assert len(new_ruler.labels) == 0
     new_ruler = new_ruler.from_bytes(ruler_bytes)
     assert len(new_ruler) == len(patterns)
-    assert len(new_ruler.labels) == 4
+    assert len(new_ruler.labels) == 5
     assert len(new_ruler.patterns) == len(ruler.patterns)
     for pattern in ruler.patterns:
         assert pattern in new_ruler.patterns
@@ -247,14 +270,14 @@ def test_spaczz_ruler_to_from_disk(
     """It writes the ruler to disk and reads it back correctly."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns, spaczz_overwrite_ents=True)
     assert len(ruler) == len(patterns)
-    assert len(ruler.labels) == 4
+    assert len(ruler.labels) == 5
     with tempfile.TemporaryDirectory() as tmpdir:
         ruler.to_disk(f"{tmpdir}/ruler")
         assert os.path.isdir(f"{tmpdir}/ruler")
         new_ruler = SpaczzRuler(nlp)
         new_ruler = new_ruler.from_disk(f"{tmpdir}/ruler")
     assert len(new_ruler) == len(patterns)
-    assert len(new_ruler.labels) == 4
+    assert len(new_ruler.labels) == 5
     assert len(new_ruler.patterns) == len(ruler.patterns)
     for pattern in ruler.patterns:
         assert pattern in new_ruler.patterns
@@ -268,14 +291,14 @@ def test_spaczz_patterns_to_from_disk(
     """It writes the patterns to disk and reads them back correctly."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns, spaczz_overwrite_ents=True)
     assert len(ruler) == len(patterns)
-    assert len(ruler.labels) == 4
+    assert len(ruler.labels) == 5
     with tempfile.NamedTemporaryFile() as tmpfile:
         ruler.to_disk(f"{tmpfile.name}.jsonl")
         assert os.path.isfile(tmpfile.name)
         new_ruler = SpaczzRuler(nlp)
         new_ruler = new_ruler.from_disk(f"{tmpfile.name}.jsonl")
     assert len(new_ruler) == len(patterns)
-    assert len(new_ruler.labels) == 4
+    assert len(new_ruler.labels) == 5
     assert len(new_ruler.patterns) == len(ruler.patterns)
     for pattern in ruler.patterns:
         assert pattern in new_ruler.patterns

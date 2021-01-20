@@ -52,9 +52,21 @@ def test_compare_raises_error_with_unknown_func_name(
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns len(query) if set with "default"."""
+    """It returns max(len(query)-1, 0) if set with "default"."""
     query = nlp("Test query")
     assert searcher._calc_flex(query, "default") == 1
+
+
+def test__calc_flex_with_max(nlp: Language, searcher: FuzzySearcher) -> None:
+    """It returns len(query) if set with "max"."""
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, "max") == 2
+
+
+def test__calc_flex_with_min(nlp: Language, searcher: FuzzySearcher) -> None:
+    """It returns 0 if set with "min"."""
+    query = nlp("Test query")
+    assert searcher._calc_flex(query, "min") == 0
 
 
 def test__calc_flex_passes_through_valid_value(
@@ -71,7 +83,18 @@ def test__calc_flex_warns_if_flex_longer_than_query(
     """It provides UserWarning if flex > len(query)."""
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
-        searcher._calc_flex(query, 5)
+        flex = searcher._calc_flex(query, 5)
+        assert flex == 2
+
+
+def test__calc_flex_warns_if_flex_less_than_0(
+    nlp: Language, searcher: FuzzySearcher
+) -> None:
+    """It provides UserWarning if flex < 0."""
+    query = nlp("Test query")
+    with pytest.warns(FlexWarning):
+        flex = searcher._calc_flex(query, -1)
+        assert flex == 0
 
 
 def test__calc_flex_raises_error_if_non_valid_value(
@@ -111,6 +134,19 @@ def test__scan_with_no_matches(
     assert (
         searcher._scan(
             scan_example, query, fuzzy_func="simple", min_r1=30, ignore_case=True
+        )
+        is None
+    )
+
+
+def test__scan_returns_none_w_empty_query(
+    searcher: FuzzySearcher, nlp: Language, scan_example: Doc
+) -> None:
+    """It returns None if passed an empty query string."""
+    query = nlp("")
+    assert (
+        searcher._scan(
+            scan_example, query, fuzzy_func="simple", min_r1=25, ignore_case=True
         )
         is None
     )
@@ -168,6 +204,13 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
     ) == (3, 4, 94)
 
 
+def test__optimize_where_bpl_equal_bpr(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns the intial match when flex value = 0."""
+    doc = nlp("trabalho, investimento e escolhas corajosas,")
+    query = nlp("Courtillier Musqué")
+    assert searcher.match(doc, query) == []
+
+
 def test__filter_overlapping_matches_filters_correctly(
     searcher: FuzzySearcher,
 ) -> None:
@@ -204,7 +247,7 @@ def test_match_return_empty_list_when_no_matches_after_adjust(
     assert searcher.match(doc, query) == []
 
 
-def test_match_raises_error_when_doc_not_Doc(
+def test_match_raises_error_when_doc_not_doc_obj(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It raises a TypeError if doc is not a Doc object."""
@@ -214,7 +257,7 @@ def test_match_raises_error_when_doc_not_Doc(
         searcher.match(doc, query)
 
 
-def test_match_raises_error_if_query_not_Doc(
+def test_match_raises_error_if_query_not_doc_obj(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
     """It raises a TypeError if query not a doc."""
@@ -222,3 +265,30 @@ def test_match_raises_error_if_query_not_Doc(
     query = "Not a doc"
     with pytest.raises(TypeError):
         searcher.match(doc, query)
+
+
+def test_match_returns_empty_list_if_query_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty if query is empty string."""
+    doc = nlp("This is a doc")
+    query = nlp("")
+    assert searcher.match(doc, query) == []
+
+
+def test_match_returns_empty_list_if_doc_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty list if doc is empty string."""
+    doc = nlp("")
+    query = nlp("test")
+    assert searcher.match(doc, query) == []
+
+
+def test_match_returns_empty_list_if_doc_query_empty(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
+    """Returns empty list if doc is empty string."""
+    doc = nlp("")
+    query = nlp("")
+    assert searcher.match(doc, query) == []

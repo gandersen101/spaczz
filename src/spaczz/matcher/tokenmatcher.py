@@ -1,4 +1,4 @@
-"""Module for SpaczzMatcher with an API semi-analogous to spaCy's Matcher."""
+"""Module for TokenMatcher with an API semi-analogous to spaCy's Matcher."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -23,7 +23,7 @@ from spacy.vocab import Vocab
 from ..search import TokenSearcher
 
 
-class SpaczzMatcher:
+class TokenMatcher:
     """spaCy-like token matcher for finding flexible matches in `Doc` objects.
 
     Matches added patterns against the `Doc` object it is called on.
@@ -51,7 +51,7 @@ class SpaczzMatcher:
             Patterns added to the matcher.
     """
 
-    name = "spaczz_matcher"
+    name = "token_matcher"
 
     def __init__(self, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the base phrase matcher with the given defaults.
@@ -69,12 +69,12 @@ class SpaczzMatcher:
                 See `TokenSearcher.match()` documentation for details.
         """
         self.defaults = defaults
-        self.type = "spaczz"
+        self.type = "token"
         self._callbacks: Dict[
             str,
             Union[
                 Callable[
-                    [SpaczzMatcher, Doc, int, List[Tuple[str, int, int, None]]], None
+                    [TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None
                 ],
                 None,
             ],
@@ -94,9 +94,9 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> doc = nlp("Rdley Scot was the director of Alien.")
             >>> matcher.add("NAME", [
                 [{"TEXT": {"FUZZY": "Ridley"}},
@@ -142,9 +142,9 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> matcher.labels
             ('AUTHOR',)
@@ -160,15 +160,15 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> matcher.patterns == [
                 {
                     "label": "AUTHOR",
                     "pattern": [{"TEXT": {"FUZZY": "Kerouac"}}],
-                    "type": "spaczz",
+                    "type": "token",
                     },
                     ]
             True
@@ -190,7 +190,7 @@ class SpaczzMatcher:
         label: str,
         patterns: List[List[Dict[str, Any]]],
         on_match: Optional[
-            Callable[[SpaczzMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+            Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -220,9 +220,9 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> "AUTHOR" in matcher
             True
@@ -247,9 +247,9 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> matcher.add("AUTHOR", [[{"TEXT": {"FUZZY": "Kerouac"}}]])
             >>> matcher.remove("AUTHOR")
             >>> "AUTHOR" in matcher
@@ -289,9 +289,9 @@ class SpaczzMatcher:
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import SpaczzMatcher
+            >>> from spaczz.matcher import TokenMatcher
             >>> nlp = spacy.blank("en")
-            >>> matcher = SpaczzMatcher(nlp.vocab)
+            >>> matcher = TokenMatcher(nlp.vocab)
             >>> doc_stream = (
                     nlp("test doc1: Korvld"),
                     nlp("test doc2: Prosh"),

@@ -96,7 +96,10 @@ class _PhraseSearcher:
             query: `Doc` object to match against doc.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
-                Default is `"default"` (length of query - 1).
+                Can be an integer value with a max of `len(query)`
+                and a min of 0 (will warn and change if higher or lower),
+                "max", "min", or "default".
+                Default is `"default"`: `max(len(query) - 1, 0)`.
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general
@@ -251,6 +254,8 @@ class _PhraseSearcher:
             A dictionary of start index, match ratio pairs or None.
         """
         match_values: Dict[int, int] = dict()
+        if not len(query):
+            return None
         i = 0
         while i + len(query) <= len(doc):
             match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
@@ -266,23 +271,32 @@ class _PhraseSearcher:
     def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
         """Returns flex value based on initial value and query.
 
-        By default flex is set to the legth of query - 1.
-        If flex is a value greater than query,
+        By default flex is set to `max(len(query) - 1, 0)`.
+
+        If flex is an integer value greater than `len(query)`,
         flex will be set to `len(query)` instead.
+
+        If flex is an integer value less than 0,
+        flex will be set to 0 instead.
 
         Args:
             query: The `Doc` object to match with.
-            flex: Either `"default"` or an integer value.
+            flex: Either `"default"`: `max(len(query) - 1, 0)`,
+                `"max"`: `len(query)`,
+                `"min"`: `0`,
+                or an integer value.
 
         Returns:
             The new flex value.
 
         Raises:
-            TypeError: If flex is not "default" or an int.
+            TypeError: If flex is not "default", "max", "min", or an int.
 
         Warnings:
             FlexWarning:
                 If flex is > `len(query)`.
+            FlexWarning:
+                If flex is < 0.
 
         Example:
             >>> import spacy
@@ -294,17 +308,33 @@ class _PhraseSearcher:
             1
         """
         if flex == "default":
-            flex = len(query) - 1
+            flex = max(len(query) - 1, 0)
+        if flex == "max":
+            flex = len(query)
+        if flex == "min":
+            flex = 0
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than len(query).\n
-                        Setting flex to the default flex = len(query) - 1.""",
+                    f"""Flex of size {flex} is greater than len(query).
+                        Setting to the max, `len(query)`, instead.""",
                     FlexWarning,
                 )
                 flex = len(query)
+            if flex < 0:
+                warnings.warn(
+                    """Flex values less than 0 are not allowed.
+                    Setting flex to the min, 0, instead.""",
+                    FlexWarning,
+                )
+                flex = 0
         else:
-            raise TypeError("Flex must either be the string 'default' or an integer.")
+            raise TypeError(
+                (
+                    "Flex must either be the strings 'default',",
+                    "`max`, or `min`, or an integer.",
+                )
+            )
         return flex
 
     @staticmethod
