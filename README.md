@@ -38,7 +38,7 @@ pip install spaczz
 
 Spaczz's primary features are the `FuzzyMatcher`, `RegexMatcher`, and "fuzzy" `TokenMatcher` that function similarly to spaCy's `Matcher` and `PhraseMatcher`, and the `SpaczzRuler` which integrates the spaczz matchers into a spaCy pipeline component similar to spaCy's `EntityRuler`.
 
-### Fuzzy Matcher
+### FuzzyMatcher
 
 The basic usage of the fuzzy matcher is similar to spaCy's `PhraseMatcher` except it returns the fuzzy ratio along with match id, start and end information, so make sure to include a variable for the ratio when unpacking results.
 
@@ -168,7 +168,7 @@ The full list of keyword arguments available for fuzzy matching rules includes:
 - `min_r2`: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
 - `flex`: Number of tokens to move match span boundaries left and right during match optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower), `"max"`, `"min"`, or `"default"`. Default is `"default"`: `max(len(query) - 1, 0)`.
 
-### Regex Matcher
+### RegexMatcher
 
 The basic usage of the regex matcher is also fairly similar to spaCy's `PhraseMatcher`. It accepts regex patterns as strings so flags must be inline. Regexes are compiled with the [regex](https://pypi.org/project/regex/) package so approximate "fuzzy" matching is supported. To provide access to these "fuzzy" match results the matcher returns the fuzzy count values along with match id, start and end information, so make sure to include a variable for the counts when unpacking results.
 
