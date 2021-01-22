@@ -16,8 +16,8 @@ Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 - *Spaczz now includes a `TokenMatcher` that provides token pattern support like spaCy's `Matcher`. It provides all the same functionality as spaCy's `Matcher` but adds fuzzy and fuzzy-regex support. However, it will likely run much slower than it's spaCy counterpart so it should only be used as needed for fuzzy matching purposes.*
 - *Spaczz's custom attributes have been reworked and now initialize within spaczz's root `__init__`. These are set via spaczz pipeline components (currently just the `SpaczzRuler`) The only downside is that I had to remove the `attr` parameter from the `SpaczzRuler` to enable this.*
 - *The `flex` parameter available to fuzzy and similarity phrase matching now accepts the strings `"max"`: `len(pattern)` and `"min"`: `0`.*
-- *The `flex` parameter now defaults to `max(len(pattern) - 1, 0)` instead of `len(query)` as this generally makes more sense. Single-token patterns shouldn't have their boundaries extended during optimization by default.
-- *`min_r1` for the fuzzy phrase matcher is now `50`, this is still low but not so low that it filters almost nothing out in the initial document scan.
+- *The `flex` parameter now defaults to `max(len(pattern) - 1, 0)` instead of `len(pattern)` as this generally makes more sense. Single-token patterns shouldn't have their boundaries extended during optimization by default.*
+- *`min_r1` for the fuzzy phrase matcher is now `50`, this is still low but not so low that it filters almost nothing out in the initial document scan.*
 - *Bug fixes to phrase searching that could cause index errors in spaCy `Span` objects.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
