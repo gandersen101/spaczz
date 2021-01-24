@@ -638,6 +638,12 @@ To contribute to spaczz's development, fork the repository then install spaczz a
 poetry install # Within spaczz's root directory.
 ```
 
+You may also need to run the below to commit changes.
+
+```python
+poetry run pre-commit install
+```
+
 The only package that will not be installed via Poetry but is used for testing and in-documentation examples is the spaCy medium English model (en-core-web-md). This will need to be installed separately. The command below should do the trick:
 
 

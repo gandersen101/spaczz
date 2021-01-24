@@ -77,7 +77,7 @@ def test_raises_type_error_when_pattern_not_sequence(
     """It raises a type error if pattern is not a `Sequence`."""
     with pytest.raises(TypeError):
         searcher.match(
-            example, {"TEXT": "SQL"},
+            example, {"TEXT": "SQL"},  # type: ignore
         )
 
 

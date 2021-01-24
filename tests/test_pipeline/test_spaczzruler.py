@@ -52,12 +52,12 @@ def patterns() -> List[Dict[str, Any]]:
         },
         {
             "label": "GPE",
-            "pattern": r"(?i)[U](nited|\.?) ?[S](tates|\.?)",
+            "pattern": "(?i)[U](nited|\\.?) ?[S](tates|\\.?)",
             "type": "regex",
             "id": "USA",
         },
-        {"label": "GPE", "pattern": r"(?:USR){e<=1}", "type": "regex", "id": "USA"},
-        {"label": "GPE", "pattern": r"(?:USSR){d<=1, s<=1}", "type": "regex"},
+        {"label": "GPE", "pattern": "(?:USR){e<=1}", "type": "regex", "id": "USA"},
+        {"label": "GPE", "pattern": "(?:USSR){d<=1, s<=1}", "type": "regex"},
         {
             "label": "BAND",
             "pattern": [{"LOWER": {"FREGEX": "(converge){e<=1}"}}],
@@ -74,7 +74,7 @@ def patterns() -> List[Dict[str, Any]]:
             "id": "Metal",
         },
     ]
-    return patterns
+    return patterns  # type: ignore
 
 
 def test_empty_default_ruler(nlp: Language) -> None:
@@ -113,7 +113,7 @@ def test_add_patterns_raises_error_pattern_not_iter_of_dict(nlp: Language) -> No
     """It raises a TypeError if pattern not iterable of dicts."""
     ruler = SpaczzRuler(nlp)
     with pytest.raises(TypeError):
-        ruler.add_patterns({"label": "GPE", "pattern": "Montana"})
+        ruler.add_patterns({"label": "GPE", "pattern": "Montana"})  # type: ignore
 
 
 def test_add_patterns_warns_if_spaczz_type_unrecognized(nlp: Language) -> None:

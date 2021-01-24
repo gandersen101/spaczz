@@ -12,7 +12,6 @@ from typing import (
     List,
     Optional,
     Tuple,
-    Union,
 )
 import warnings
 
@@ -64,11 +63,10 @@ class _PhraseMatcher:
         self.type = "_phrase"
         self._callbacks: Dict[
             str,
-            Union[
+            Optional[
                 Callable[
                     [_PhraseMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
-                ],
-                None,
+                ]
             ],
         ] = {}
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
@@ -188,7 +186,7 @@ class _PhraseMatcher:
         patterns: List[Doc],
         kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[_PhraseMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
+            Callable[[Any, Doc, int, List[Tuple[str, int, int, int]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.

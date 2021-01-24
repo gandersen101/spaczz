@@ -103,7 +103,7 @@ def test__calc_flex_raises_error_if_non_valid_value(
     """It raises TypeError if flex is not an int or "default"."""
     query = nlp("Test query.")
     with pytest.raises(TypeError):
-        searcher._calc_flex(query, None)
+        searcher._calc_flex(query, None)  # type: ignore
 
 
 def test__scan_returns_matches_over_min_r1(

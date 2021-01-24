@@ -74,7 +74,7 @@ def test_adding_patterns(matcher: TokenMatcher) -> None:
 def test_add_without_sequence_of_patterns_raises_error(matcher: TokenMatcher,) -> None:
     """Trying to add non-sequences of patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", [{"TEXT": "error"}])
+        matcher.add("TEST", [{"TEXT": "error"}])  # type: ignore
 
 
 def test_add_with_zero_len_pattern(matcher: TokenMatcher) -> None:
