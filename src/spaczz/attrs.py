@@ -1,15 +1,12 @@
 """Custom spaCy attributes for spaczz."""
 from __future__ import annotations
 
-from typing import Iterable, Optional, Set, Tuple, Type, TypeVar
+from typing import Iterable, Optional, Set, Tuple, Type
 import warnings
 
 from spacy.tokens import Doc, Span, Token
 
 from .exceptions import AttrOverwriteWarning
-
-
-T = TypeVar("T", bound="SpaczzAttrs")
 
 
 class SpaczzAttrs:
@@ -18,7 +15,7 @@ class SpaczzAttrs:
     _initialized = False
 
     @classmethod
-    def initialize(cls: Type[T]) -> None:
+    def initialize(cls: Type[SpaczzAttrs]) -> None:
         """Initializes and registers custom attributes."""
         if not cls._initialized:
             try:
@@ -84,7 +81,7 @@ class SpaczzAttrs:
         return types
 
     @classmethod
-    def get_span_types(cls: Type[T], span: Span) -> Set[str]:
+    def get_span_types(cls: Type[SpaczzAttrs], span: Span) -> Set[str]:
         """Getter for spaczz_types `Span` attribute."""
         types = set()
         if cls.get_ratio(span):
@@ -96,7 +93,7 @@ class SpaczzAttrs:
         return types
 
     @classmethod
-    def get_ratio(cls: Type[T], span: Span) -> Optional[int]:
+    def get_ratio(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
         """Getter for spaczz_ratio `Span` attribute."""
         if cls._all_equal([token._.spaczz_ratio for token in span]):
             return span[0]._.spaczz_ratio
@@ -104,7 +101,9 @@ class SpaczzAttrs:
             return None
 
     @classmethod
-    def get_counts(cls: Type[T], span: Span) -> Optional[Tuple[int, int, int]]:
+    def get_counts(
+        cls: Type[SpaczzAttrs], span: Span
+    ) -> Optional[Tuple[int, int, int]]:
         """Getter for spaczz_counts `Span` attribute."""
         if cls._all_equal([token._.spaczz_counts for token in span]):
             return span[0]._.spaczz_counts
@@ -112,7 +111,7 @@ class SpaczzAttrs:
             return None
 
     @classmethod
-    def get_details(cls: Type[T], span: Span) -> Optional[int]:
+    def get_details(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
         """Getter for current placeholder spaczz_details `Span` attribute."""
         if cls._all_equal([token._.spaczz_details for token in span]):
             return span[0]._.spaczz_details

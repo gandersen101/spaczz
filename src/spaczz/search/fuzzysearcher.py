@@ -1,4 +1,6 @@
 """Module for FuzzySearcher: fuzzy matching in spaCy `Doc` objects."""
+from __future__ import annotations
+
 from typing import Any, Union
 
 from spacy.tokens import Doc, Span, Token
@@ -39,7 +41,7 @@ class FuzzySearcher(_PhraseSearcher):
             "quick_lev" = `quick_lev_ratio`
     """
 
-    def __init__(self, vocab: Vocab) -> None:
+    def __init__(self: FuzzySearcher, vocab: Vocab) -> None:
         """Initializes a fuzzy searcher.
 
         Args:
@@ -54,7 +56,7 @@ class FuzzySearcher(_PhraseSearcher):
         self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs(match_type="phrase")
 
     def compare(
-        self,
+        self: FuzzySearcher,
         a: Union[Doc, Span, Token],
         b: Union[Doc, Span, Token],
         ignore_case: bool = True,

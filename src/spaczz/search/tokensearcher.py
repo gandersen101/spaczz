@@ -1,4 +1,6 @@
 """Module for TokenSearcher: flexible token searching in spaCy `Doc` objects."""
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
@@ -36,7 +38,7 @@ class TokenSearcher:
             "quick_lev" = `quick_lev_ratio`
     """
 
-    def __init__(self, vocab: Vocab) -> None:
+    def __init__(self: TokenSearcher, vocab: Vocab) -> None:
         """Initializes a token searcher.
 
         Args:
@@ -51,7 +53,11 @@ class TokenSearcher:
         self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs(match_type="token")
 
     def fuzzy_compare(
-        self, a: str, b: str, ignore_case: bool = True, fuzzy_func: str = "simple",
+        self: TokenSearcher,
+        a: str,
+        b: str,
+        ignore_case: bool = True,
+        fuzzy_func: str = "simple",
     ) -> int:
         """Peforms fuzzy matching between two strings.
 
@@ -88,7 +94,7 @@ class TokenSearcher:
         return round(self._fuzzy_funcs.get(fuzzy_func)(a, b))
 
     def match(
-        self,
+        self: TokenSearcher,
         doc: Doc,
         pattern: List[Dict[str, Any]],
         min_r: int = 75,
@@ -182,7 +188,7 @@ class TokenSearcher:
             return False
 
     def _iter_pattern(
-        self,
+        self: TokenSearcher,
         seq: Tuple[Token, ...],
         pattern: List[Dict[str, Any]],
         min_r: int,

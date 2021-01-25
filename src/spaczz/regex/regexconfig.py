@@ -1,4 +1,6 @@
 """Module for RegexPredef class."""
+from __future__ import annotations
+
 from typing import Any
 
 import regex
@@ -16,7 +18,7 @@ class RegexConfig:
         _predefs: Regex patterns available.
     """
 
-    def __init__(self, empty: bool = False) -> None:
+    def __init__(self: RegexConfig, empty: bool = False) -> None:
         """Initializes the regex config.
 
         Args:
@@ -29,7 +31,7 @@ class RegexConfig:
         else:
             self._predefs = {}
 
-    def parse_regex(self, regex_str: str, predef: bool = False,) -> Any:
+    def parse_regex(self: RegexConfig, regex_str: str, predef: bool = False,) -> Any:
         """Parses a string into a regex pattern.
 
         Will treat string as a key name for a predefined regex
@@ -80,7 +82,7 @@ class RegexConfig:
                 raise RegexParseError(e)
         return compiled_regex
 
-    def get_predef(self, predef: str) -> Any:
+    def get_predef(self: RegexConfig, predef: str) -> Any:
         """Returns a regex pattern from the predefined patterns available.
 
         Args:

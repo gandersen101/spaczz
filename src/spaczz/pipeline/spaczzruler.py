@@ -47,7 +47,7 @@ class SpaczzRuler:
 
     name = "spaczz_ruler"
 
-    def __init__(self, nlp: Language, **cfg: Any) -> None:
+    def __init__(self: SpaczzRuler, nlp: Language, **cfg: Any) -> None:
         """Initialize the spaczz ruler with a Language object and cfg parameters.
 
         All spaczz ruler cfg parameters are prepended with `"spaczz_"`.
@@ -138,7 +138,7 @@ class SpaczzRuler:
         if patterns is not None:
             self.add_patterns(patterns)
 
-    def __call__(self, doc: Doc) -> Doc:
+    def __call__(self: SpaczzRuler, doc: Doc) -> Doc:
         """Find matches in document and add them as entities.
 
         Args:
@@ -220,7 +220,7 @@ class SpaczzRuler:
         doc.ents = entities + new_entities
         return doc
 
-    def __contains__(self, label: str) -> bool:
+    def __contains__(self: SpaczzRuler, label: str) -> bool:
         """Whether a label is present in the patterns."""
         return (
             label in self.fuzzy_patterns
@@ -228,7 +228,7 @@ class SpaczzRuler:
             or label in self.token_patterns
         )
 
-    def __len__(self) -> int:
+    def __len__(self: SpaczzRuler) -> int:
         """The number of all patterns added to the ruler."""
         n_fuzzy_patterns = sum(len(p["patterns"]) for p in self.fuzzy_patterns.values())
         n_regex_patterns = sum(len(p["patterns"]) for p in self.regex_patterns.values())
@@ -236,7 +236,7 @@ class SpaczzRuler:
         return n_fuzzy_patterns + n_regex_patterns + n_token_patterns
 
     @property
-    def ent_ids(self) -> Tuple[Optional[str], ...]:
+    def ent_ids(self: SpaczzRuler) -> Tuple[Optional[str], ...]:
         """All entity ids present in the match patterns id properties.
 
         Returns:
@@ -265,7 +265,7 @@ class SpaczzRuler:
         return all_ent_ids_tuple
 
     @property
-    def labels(self) -> Tuple[str, ...]:
+    def labels(self: SpaczzRuler) -> Tuple[str, ...]:
         """All labels present in the ruler.
 
         Returns:
@@ -294,7 +294,7 @@ class SpaczzRuler:
         return tuple(all_labels)
 
     @property
-    def patterns(self) -> List[Dict[str, Any]]:
+    def patterns(self: SpaczzRuler) -> List[Dict[str, Any]]:
         """Get all patterns and kwargs that were added to the ruler.
 
         Returns:
@@ -349,7 +349,7 @@ class SpaczzRuler:
                 all_patterns.append(p)
         return all_patterns
 
-    def add_patterns(self, patterns: Iterable[Dict[str, Any]],) -> None:
+    def add_patterns(self: SpaczzRuler, patterns: Iterable[Dict[str, Any]],) -> None:
         """Add patterns to the ruler.
 
         A pattern must be a spaczz pattern:
@@ -476,46 +476,9 @@ class SpaczzRuler:
 
             self._add_patterns(fuzzy_patterns, regex_patterns, token_patterns)
 
-    def _add_patterns(
-        self,
-        fuzzy_patterns: List[Dict[str, Any]],
-        regex_patterns: List[Dict[str, Any]],
-        token_patterns: List[Dict[str, Any]],
-    ) -> None:
-        """Helper function for add_patterns."""
-        for entry in fuzzy_patterns + regex_patterns + token_patterns:
-            label = entry["label"]
-            if "id" in entry:
-                ent_label = label
-                label = self._create_label(label, entry["id"])
-                self._ent_ids[label] = (ent_label, entry["id"])
-            pattern = entry["pattern"]
-            if isinstance(pattern, Doc):
-                self.fuzzy_patterns[label]["patterns"].append(pattern)
-                self.fuzzy_patterns[label]["kwargs"].append(entry["kwargs"])
-            elif isinstance(pattern, str):
-                self.regex_patterns[label]["patterns"].append(pattern)
-                self.regex_patterns[label]["kwargs"].append(entry["kwargs"])
-            elif isinstance(pattern, list):
-                self.token_patterns[label].append(pattern)
-            else:
-                raise ValueError(
-                    (
-                        "One or more patterns do not conform",
-                        "to spaczz pattern structure:",
-                        "{label (str), pattern (str or list), type (str),",
-                        "optional kwargs (Dict[str, Any]),",
-                        "and optional id (str)}.",
-                    )
-                )
-        for label, patterns in self.fuzzy_patterns.items():
-            self.fuzzy_matcher.add(label, patterns["patterns"], patterns["kwargs"])
-        for label, patterns in self.regex_patterns.items():
-            self.regex_matcher.add(label, patterns["patterns"], patterns["kwargs"])
-        for label, _token_patterns in self.token_patterns.items():
-            self.token_matcher.add(label, _token_patterns)
-
-    def from_bytes(self, patterns_bytes: bytes, **kwargs: Any) -> SpaczzRuler:
+    def from_bytes(
+        self: SpaczzRuler, patterns_bytes: bytes, **kwargs: Any
+    ) -> SpaczzRuler:
         """Load the spaczz ruler from a bytestring.
 
         Args:
@@ -548,7 +511,7 @@ class SpaczzRuler:
             self.add_patterns(cfg)
         return self
 
-    def to_bytes(self, **kwargs: Any) -> bytes:
+    def to_bytes(self: SpaczzRuler, **kwargs: Any) -> bytes:
         """Serialize the spaczz ruler patterns to a bytestring.
 
         Args:
@@ -578,7 +541,9 @@ class SpaczzRuler:
         )
         return srsly.msgpack_dumps(serial)
 
-    def from_disk(self, path: Union[str, Path], **kwargs: Any) -> SpaczzRuler:
+    def from_disk(
+        self: SpaczzRuler, path: Union[str, Path], **kwargs: Any
+    ) -> SpaczzRuler:
         """Load the spaczz ruler from a file.
 
         Expects a file containing newline-delimited JSON (JSONL)
@@ -627,7 +592,7 @@ class SpaczzRuler:
             read_from_disk(path, deserializers_patterns, {})
         return self
 
-    def to_disk(self, path: Union[str, Path], **kwargs: Any) -> None:
+    def to_disk(self: SpaczzRuler, path: Union[str, Path], **kwargs: Any) -> None:
         """Save the spaczz ruler patterns to a directory.
 
         The patterns will be saved as newline-delimited JSON (JSONL).
@@ -668,7 +633,46 @@ class SpaczzRuler:
         else:
             write_to_disk(path, serializers, {})
 
-    def _create_label(self, label: str, ent_id: Union[str, None]) -> str:
+    def _add_patterns(
+        self: SpaczzRuler,
+        fuzzy_patterns: List[Dict[str, Any]],
+        regex_patterns: List[Dict[str, Any]],
+        token_patterns: List[Dict[str, Any]],
+    ) -> None:
+        """Helper function for add_patterns."""
+        for entry in fuzzy_patterns + regex_patterns + token_patterns:
+            label = entry["label"]
+            if "id" in entry:
+                ent_label = label
+                label = self._create_label(label, entry["id"])
+                self._ent_ids[label] = (ent_label, entry["id"])
+            pattern = entry["pattern"]
+            if isinstance(pattern, Doc):
+                self.fuzzy_patterns[label]["patterns"].append(pattern)
+                self.fuzzy_patterns[label]["kwargs"].append(entry["kwargs"])
+            elif isinstance(pattern, str):
+                self.regex_patterns[label]["patterns"].append(pattern)
+                self.regex_patterns[label]["kwargs"].append(entry["kwargs"])
+            elif isinstance(pattern, list):
+                self.token_patterns[label].append(pattern)
+            else:
+                raise ValueError(
+                    (
+                        "One or more patterns do not conform",
+                        "to spaczz pattern structure:",
+                        "{label (str), pattern (str or list), type (str),",
+                        "optional kwargs (Dict[str, Any]),",
+                        "and optional id (str)}.",
+                    )
+                )
+        for label, patterns in self.fuzzy_patterns.items():
+            self.fuzzy_matcher.add(label, patterns["patterns"], patterns["kwargs"])
+        for label, patterns in self.regex_patterns.items():
+            self.regex_matcher.add(label, patterns["patterns"], patterns["kwargs"])
+        for label, _token_patterns in self.token_patterns.items():
+            self.token_matcher.add(label, _token_patterns)
+
+    def _create_label(self: SpaczzRuler, label: str, ent_id: Union[str, None]) -> str:
         """Join Entity label with ent_id if the pattern has an id attribute.
 
         Args:
@@ -682,7 +686,7 @@ class SpaczzRuler:
             label = "{}{}{}".format(label, self.ent_id_sep, ent_id)
         return label
 
-    def _split_label(self, label: str) -> Tuple[str, Union[str, None]]:
+    def _split_label(self: SpaczzRuler, label: str) -> Tuple[str, Union[str, None]]:
         """Split Entity label into ent_label and ent_id if it contains self.ent_id_sep.
 
         Args:

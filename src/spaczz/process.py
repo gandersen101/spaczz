@@ -1,4 +1,6 @@
 """Module for various text/doc processing functions/classes."""
+from __future__ import annotations
+
 from itertools import tee
 from typing import Any, Callable, Dict, Iterable
 
@@ -50,7 +52,7 @@ class FuzzyFuncs:
             if match_type = "token".
     """
 
-    def __init__(self, match_type: str = "phrase") -> None:
+    def __init__(self: FuzzyFuncs, match_type: str = "phrase") -> None:
         """Initializes a fuzzyfuncs container.
 
         Args:
@@ -83,7 +85,7 @@ class FuzzyFuncs:
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
 
-    def get(self, fuzzy_func: str) -> Callable[[str, str], float]:
+    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[[str, str], float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:

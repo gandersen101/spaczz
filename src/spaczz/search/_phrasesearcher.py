@@ -1,4 +1,6 @@
 """Module for _PhraseSearcher: flexible phrase searching in spaCy `Doc` objects."""
+from __future__ import annotations
+
 from itertools import chain
 from typing import Any, Dict, List, Tuple, Union
 import warnings
@@ -23,7 +25,7 @@ class _PhraseSearcher:
             Included for consistency and potential future-state.
     """
 
-    def __init__(self, vocab: Vocab) -> None:
+    def __init__(self: _PhraseSearcher, vocab: Vocab) -> None:
         """Initializes a base phrase searcher.
 
         Args:
@@ -37,7 +39,7 @@ class _PhraseSearcher:
         self.vocab = vocab
 
     def compare(
-        self,
+        self: _PhraseSearcher,
         a: Union[Doc, Span, Token],
         b: Union[Doc, Span, Token],
         ignore_case: bool = True,
@@ -75,7 +77,7 @@ class _PhraseSearcher:
             return 0
 
     def match(
-        self,
+        self: _PhraseSearcher,
         doc: Doc,
         query: Doc,
         flex: Union[str, int] = "default",
@@ -150,7 +152,7 @@ class _PhraseSearcher:
             return []
 
     def _optimize(
-        self,
+        self: _PhraseSearcher,
         doc: Doc,
         query: Doc,
         match_values: Dict[int, int],
@@ -224,7 +226,12 @@ class _PhraseSearcher:
                 return None
 
     def _scan(
-        self, doc: Doc, query: Doc, min_r1: int, *args: Any, **kwargs: Any,
+        self: _PhraseSearcher,
+        doc: Doc,
+        query: Doc,
+        min_r1: int,
+        *args: Any,
+        **kwargs: Any,
     ) -> Union[Dict[int, int], None]:
         """Returns a dictionary of potential match start indices and match ratios.
 

@@ -31,7 +31,7 @@ class SimilarityMatcher(_PhraseMatcher):
 
     name = "similarity_matcher"
 
-    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: SimilarityMatcher, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the similarity matcher with the given defaults.
 
         Args:

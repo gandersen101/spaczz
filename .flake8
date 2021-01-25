@@ -12,15 +12,14 @@
 # S = bandit warnings
 # W = pycodestyle warnings
 select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
-# ANN101 = missing self annotation, ignore
 # E203 = slice notation whitespace, invalid
 # E501 = line length, handled by bugbear B950
 # W503 = bin op line break, invalid
-ignore = ANN101, E203, E501, W503
+ignore = E203, E501, W503
 # up to 88 allowed by bugbear B950
 max-line-length = 80
 max-complexity = 18
 application-import-names = spaczz,tests
 import-order-style = google
 docstring-convention = google
-per-file-ignores = tests/*:S101, src/spaczz/util.py:ANN
+per-file-ignores = tests/*:S101
