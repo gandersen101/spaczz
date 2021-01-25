@@ -1,6 +1,23 @@
 [flake8]
+# ANN = Missing type annotation warnings
+# B = bugbear
+# B9 = bugbear opinions
+# BLK = black style warnings
+# C = mccabe code complexity
+# D = missing/incorrect docstring warnings
+# DAR = darglint warnings
+# E = pycodestyle errors
+# F = pyflakes errors
+# I = import order warnings
+# S = bandit warnings
+# W = pycodestyle warnings
 select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
+# ANN101 = missing self annotation, ignore
+# E203 = slice notation whitespace, invalid
+# E501 = line length, handled by bugbear B950
+# W503 = bin op line break, invalid
 ignore = ANN101, E203, E501, W503
+# up to 88 allowed by bugbear B950
 max-line-length = 80
 max-complexity = 18
 application-import-names = spaczz,tests
