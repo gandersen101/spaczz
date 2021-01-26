@@ -83,6 +83,7 @@ class _PhraseSearcher:
         flex: Union[str, int] = "default",
         min_r1: int = 50,
         min_r2: int = 75,
+        thresh: int = 100,
         *args: Any,
         **kwargs: Any,
     ) -> List[Tuple[int, int, int]]:
@@ -98,10 +99,10 @@ class _PhraseSearcher:
             query: `Doc` object to match against doc.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
-                Can be an integer value with a max of `len(query)`
+                Can be an integer value with a max of `max(len(query) - 1, 0)`
                 and a min of 0 (will warn and change if higher or lower),
                 "max", "min", or "default".
-                Default is `"default"`: `max(len(query) - 1, 0)`.
+                Default is `"default"`: `len(query) // 2`.
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
                 This should be lower than min_r2 and "low" in general
@@ -116,6 +117,8 @@ class _PhraseSearcher:
                 Should be higher than min_r1 and "high" in general
                 to ensure only quality matches are returned.
                 Default is `75`.
+            thresh: If this ratio is exceeded in initial scan,
+                no optimization will be attempted. Default is `100`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -132,12 +135,22 @@ class _PhraseSearcher:
         if not isinstance(query, Doc):
             raise TypeError("query must be a Doc object.")
         flex = self._calc_flex(query, flex)
+        if not flex:
+            min_r1 = min_r2
         match_values = self._scan(doc, query, min_r1, *args, **kwargs)
         if match_values:
             positions = list(match_values.keys())
             matches_w_nones = [
                 self._optimize(
-                    doc, query, match_values, pos, flex, min_r2, *args, **kwargs,
+                    doc,
+                    query,
+                    match_values,
+                    pos,
+                    flex,
+                    min_r2,
+                    thresh,
+                    *args,
+                    **kwargs,
                 )
                 for pos in positions
             ]
@@ -159,6 +172,7 @@ class _PhraseSearcher:
         pos: int,
         flex: int,
         min_r2: int,
+        thresh: int,
         *args: Any,
         **kwargs: Any,
     ) -> Union[Tuple[int, int, int], None]:
@@ -182,6 +196,8 @@ class _PhraseSearcher:
             min_r2: Minimum match ratio required
                 to pass optimization. This should be high enough
                 to only return quality matches.
+            thresh: If this ratio is exceeded in initial scan,
+                no optimization will be attempted. Default is `100`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -192,9 +208,8 @@ class _PhraseSearcher:
         """
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
-        bmv_l = match_values[p_l]
-        bmv_r = match_values[p_l]
-        if flex:
+        bmv_l, bmv_r = [match_values[pos]] * 2
+        if flex or not max(bmv_l, bmv_r) >= thresh:
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
                     ll = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
@@ -219,7 +234,7 @@ class _PhraseSearcher:
         if bp_l >= bp_r or bp_r <= bp_l:
             return None
         else:
-            r = self.compare(query, doc[bp_l:bp_r], *args, **kwargs)
+            r = max(bmv_l, bmv_r)
             if r >= min_r2:
                 return (bp_l, bp_r, r)
             else:
@@ -260,9 +275,9 @@ class _PhraseSearcher:
         Returns:
             A dictionary of start index, match ratio pairs or None.
         """
-        match_values: Dict[int, int] = dict()
         if not len(query):
             return None
+        match_values: Dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
             match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
@@ -278,18 +293,18 @@ class _PhraseSearcher:
     def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
         """Returns flex value based on initial value and query.
 
-        By default flex is set to `max(len(query) - 1, 0)`.
+        By default flex is set to `len(query) // 2`.
 
-        If flex is an integer value greater than `len(query)`,
-        flex will be set to `len(query)` instead.
+        If flex is an integer value greater than `max(len(query) - 1, 0)`,
+        flex will be set to that value instead.
 
         If flex is an integer value less than 0,
         flex will be set to 0 instead.
 
         Args:
             query: The `Doc` object to match with.
-            flex: Either `"default"`: `max(len(query) - 1, 0)`,
-                `"max"`: `len(query)`,
+            flex: Either `"default"`: `len(query) // 2`,
+                `"max"`: `max(len(query) - 1, 0)`,
                 `"min"`: `0`,
                 or an integer value.
 
@@ -301,7 +316,7 @@ class _PhraseSearcher:
 
         Warnings:
             FlexWarning:
-                If flex is > `len(query)`.
+                If flex is > `max(len(query) - 1, 0)`.
             FlexWarning:
                 If flex is < 0.
 
@@ -315,16 +330,16 @@ class _PhraseSearcher:
             1
         """
         if flex == "default":
-            flex = max(len(query) - 1, 0)
+            flex = len(query) // 2
         if flex == "max":
-            flex = len(query)
+            flex = max(len(query) - 1, 0)
         if flex == "min":
             flex = 0
         elif isinstance(flex, int):
-            if flex > len(query):
+            if flex > max(len(query) - 1, 0):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than len(query).
-                        Setting to the max, `len(query)`, instead.""",
+                    f"""Flex of size {flex} is greater than `max(len(query) - 1, 0)`.
+                        Setting to that value instead.""",
                     FlexWarning,
                 )
                 flex = len(query)

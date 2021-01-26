@@ -52,14 +52,14 @@ def test_compare_raises_error_with_unknown_func_name(
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns max(len(query)-1, 0) if set with "default"."""
+    """It returns len(query) // 2 if set with "default"."""
     query = nlp("Test query")
     assert searcher._calc_flex(query, "default") == 1
 
 
 def test__calc_flex_with_max(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns len(query) if set with "max"."""
-    query = nlp("Test query")
+    """It returns max(len(query) - 1, 0) if set with "max"."""
+    query = nlp("Test query two")
     assert searcher._calc_flex(query, "max") == 2
 
 
@@ -166,6 +166,7 @@ def test__optimize_finds_better_match(searcher: FuzzySearcher, nlp: Language) ->
         min_r2=70,
         ignore_case=True,
         flex=1,
+        thresh=100,
     ) == (3, 5, 97)
 
 
@@ -184,6 +185,7 @@ def test__optimize_finds_better_match2(
         min_r2=70,
         ignore_case=True,
         flex=4,
+        thresh=100,
     ) == (8, 11, 89)
 
 
@@ -201,10 +203,13 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
         min_r2=70,
         ignore_case=True,
         flex=0,
+        thresh=100,
     ) == (3, 4, 94)
 
 
-def test__optimize_where_bpl_equal_bpr(searcher: FuzzySearcher, nlp: Language) -> None:
+def test__optimize_where_bpl_would_equal_bpr(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
     """It returns the intial match when flex value = 0."""
     doc = nlp("trabalho, investimento e escolhas corajosas,")
     query = nlp("Courtillier Musqué")
