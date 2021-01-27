@@ -195,7 +195,7 @@ def test__optimize_where_bpl_would_equal_bpr(
     """It returns the intial match when flex value = 0."""
     doc = nlp("trabalho, investimento e escolhas corajosas,")
     query = nlp("Courtillier Musqué")
-    assert searcher.match(doc, query) == []
+    assert searcher.match(doc, query, flex="max") == []
 
 
 def test__filter_overlapping_matches_filters_correctly(
@@ -213,6 +213,24 @@ def test_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> Non
     assert searcher.match(doc, query, ignore_case=False) == [
         (0, 1, 92),
         (6, 7, 83),
+    ]
+
+
+def test_match_finds_best_matches2(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns all the fuzzy matches that meet threshold correctly sorted."""
+    doc = nlp("My favorite wine is white goldriesling.")
+    query = nlp("gold riesling")
+    assert searcher.match(doc, query) == [
+        (5, 6, 96),
+    ]
+
+
+def test_match_finds_best_matches3(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns all the fuzzy matches that meet threshold correctly sorted."""
+    doc = nlp("My favorite wine is white gold riesling.")
+    query = nlp("goldriesling")
+    assert searcher.match(doc, query, flex="max") == [
+        (5, 7, 96),
     ]
 
 

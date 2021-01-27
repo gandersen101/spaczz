@@ -208,37 +208,38 @@ class _PhraseSearcher:
         """
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
-        bmv_l, bmv_r = [match_values[pos]] * 2
-        if flex and not max(bmv_l, bmv_r) >= thresh:
+        r = match_values[pos]
+        if flex and not r >= thresh:
+            optim_r = r
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
-                    ll = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
-                    if ll > bmv_l:
-                        bmv_l = ll
+                    new_r = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_l = p_l - f
-                if p_l + f < p_r:
-                    lr = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
-                    if lr > bmv_l:
-                        bmv_l = lr
+                if p_l + f < min(p_r, bp_r):
+                    new_r = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_l = p_l + f
-                if p_r - f > p_l:
-                    rl = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
-                    if rl > bmv_r:
-                        bmv_r = rl
+                if p_r - f > max(p_l, bp_l):
+                    new_r = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
-                    rr = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
-                    if rr > bmv_r:
-                        bmv_r = rr
+                    new_r = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_r = p_r + f
-        if bp_l >= bp_r or bp_r <= bp_l:
-            return None
+                if optim_r <= r:
+                    break
+                else:
+                    r = optim_r
+        if r >= min_r2:
+            return (bp_l, bp_r, r)
         else:
-            r = max(bmv_l, bmv_r)
-            if r >= min_r2:
-                return (bp_l, bp_r, r)
-            else:
-                return None
+            return None
 
     def _scan(
         self: _PhraseSearcher,
