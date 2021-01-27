@@ -99,7 +99,7 @@ class _PhraseSearcher:
             query: `Doc` object to match against doc.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
-                Can be an integer value with a max of `max(len(query) - 1, 0)`
+                Can be an integer value with a max of `len(query)`
                 and a min of 0 (will warn and change if higher or lower),
                 "max", "min", or "default".
                 Default is `"default"`: `len(query) // 2`.
@@ -209,7 +209,7 @@ class _PhraseSearcher:
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
         bmv_l, bmv_r = [match_values[pos]] * 2
-        if flex or not max(bmv_l, bmv_r) >= thresh:
+        if flex and not max(bmv_l, bmv_r) >= thresh:
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
                     ll = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
@@ -295,7 +295,7 @@ class _PhraseSearcher:
 
         By default flex is set to `len(query) // 2`.
 
-        If flex is an integer value greater than `max(len(query) - 1, 0)`,
+        If flex is an integer value greater than `len(query)`,
         flex will be set to that value instead.
 
         If flex is an integer value less than 0,
@@ -304,7 +304,7 @@ class _PhraseSearcher:
         Args:
             query: The `Doc` object to match with.
             flex: Either `"default"`: `len(query) // 2`,
-                `"max"`: `max(len(query) - 1, 0)`,
+                `"max"`: `len(query)`,
                 `"min"`: `0`,
                 or an integer value.
 
@@ -316,7 +316,7 @@ class _PhraseSearcher:
 
         Warnings:
             FlexWarning:
-                If flex is > `max(len(query) - 1, 0)`.
+                If flex is > `len(query)`.
             FlexWarning:
                 If flex is < 0.
 
@@ -332,13 +332,13 @@ class _PhraseSearcher:
         if flex == "default":
             flex = len(query) // 2
         if flex == "max":
-            flex = max(len(query) - 1, 0)
+            flex = len(query)
         if flex == "min":
             flex = 0
         elif isinstance(flex, int):
-            if flex > max(len(query) - 1, 0):
+            if flex > len(query):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than `max(len(query) - 1, 0)`.
+                    f"""Flex of size {flex} is greater than `len(query)`.
                         Setting to that value instead.""",
                     FlexWarning,
                 )

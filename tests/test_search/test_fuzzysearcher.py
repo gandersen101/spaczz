@@ -58,9 +58,9 @@ def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None
 
 
 def test__calc_flex_with_max(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns max(len(query) - 1, 0) if set with "max"."""
+    """It returns len(query) if set with "max"."""
     query = nlp("Test query two")
-    assert searcher._calc_flex(query, "max") == 2
+    assert searcher._calc_flex(query, "max") == 3
 
 
 def test__calc_flex_with_min(nlp: Language, searcher: FuzzySearcher) -> None:
@@ -84,7 +84,7 @@ def test__calc_flex_warns_if_flex_longer_than_query(
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
         flex = searcher._calc_flex(query, 5)
-        assert flex == 2
+    assert flex == 2
 
 
 def test__calc_flex_warns_if_flex_less_than_0(
@@ -94,7 +94,7 @@ def test__calc_flex_warns_if_flex_less_than_0(
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
         flex = searcher._calc_flex(query, -1)
-        assert flex == 0
+    assert flex == 0
 
 
 def test__calc_flex_raises_error_if_non_valid_value(
@@ -152,28 +152,10 @@ def test__scan_returns_none_w_empty_query(
     )
 
 
-def test__optimize_finds_better_match(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It optimizes the initial match to find a better match."""
-    doc = nlp("Patient was prescribed Zithromax tablets.")
-    query = nlp("zithromax tablet")
-    match_values = {0: 30, 2: 50, 3: 97, 4: 50}
-    assert searcher._optimize(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=1,
-        thresh=100,
-    ) == (3, 5, 97)
-
-
-def test__optimize_finds_better_match2(
+def test__optimize_finds_better_match_with_max_flex(
     searcher: FuzzySearcher, nlp: Language, adjust_example: Doc
 ) -> None:
-    """It optimizes the initial match to find a better match."""
+    """It optimizes the initial match to find a better match when flex = max."""
     query = nlp("Kareem Abdul-Jabbar")
     match_values = {0: 33, 1: 39, 2: 41, 3: 33, 5: 37, 6: 59, 7: 84}
     assert searcher._optimize(
