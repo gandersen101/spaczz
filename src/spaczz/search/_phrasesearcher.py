@@ -117,7 +117,7 @@ class _PhraseSearcher:
                 Should be higher than min_r1 and "high" in general
                 to ensure only quality matches are returned.
                 Default is `75`.
-            thresh: If this ratio is exceeded in initial scan,
+            thresh: If this ratio is exceeded in initial scan
                 no optimization will be attempted. Default is `100`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.

@@ -23,3 +23,7 @@ class PatternTypeWarning(Warning):
 
 class MissingVectorsWarning(Warning):
     """It warns if the spaCy Vocab does not have word vectors."""
+
+
+class RatioWarning(Warning):
+    """It warns if match ratio values are incompatible with each other."""
