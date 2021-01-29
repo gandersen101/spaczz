@@ -101,7 +101,6 @@ def lint(session: Session) -> None:
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
     args = session.posargs or locations
-    # session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "mypy")
     session.run("mypy", *args)
 
