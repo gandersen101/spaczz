@@ -8,7 +8,7 @@ import warnings
 from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
-from ..exceptions import FlexWarning
+from ..exceptions import FlexWarning, RatioWarning
 
 
 class _PhraseSearcher:
@@ -97,28 +97,28 @@ class _PhraseSearcher:
         Args:
             doc: `Doc` object to search over.
             query: `Doc` object to match against doc.
-            flex: Number of tokens to move match span boundaries
-                left and right during match optimization.
+            flex: Number of tokens to move match match boundaries
+                left and right during optimization.
                 Can be an integer value with a max of `len(query)`
-                and a min of 0 (will warn and change if higher or lower),
-                "max", "min", or "default".
+                and a min of `0` (will warn and change if higher or lower),
+                or the strings "max", "min", or "default".
                 Default is `"default"`: `len(query) // 2`.
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
-                This should be lower than min_r2 and "low" in general
-                because match span boundaries are not flexed initially.
-                0 means all spans of query length in doc will
-                have their boundaries flexed and will be recompared
-                during match optimization.
-                Lower min_r1 will result in more fine-grained matching
-                but will run slower. Default is `50`.
+                If `flex == 0`, `min_r1` will be overwritten by `min_r2`.
+                If `flex > 0`, `min_r1` must be lower than `min_r2`
+                and "low" in general because match boundaries are
+                not flexed initially.
+                Default is `50`.
             min_r2: Minimum match ratio required for
                 selection during match optimization.
-                Should be higher than min_r1 and "high" in general
+                Needs to be higher than `min_r1` and "high" in general
                 to ensure only quality matches are returned.
                 Default is `75`.
             thresh: If this ratio is exceeded in initial scan
-                no optimization will be attempted. Default is `100`.
+                no optimization will be attempted.
+                If `flex == 0`, `thresh` has no effect.
+                Default is `100`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -135,8 +135,7 @@ class _PhraseSearcher:
         if not isinstance(query, Doc):
             raise TypeError("query must be a Doc object.")
         flex = self._calc_flex(query, flex)
-        if not flex:
-            min_r1 = min_r2
+        min_r1, min_r2, thresh = self._check_ratios(min_r1, min_r2, thresh, flex)
         match_values = self._scan(doc, query, min_r1, *args, **kwargs)
         if match_values:
             positions = list(match_values.keys())
@@ -197,7 +196,7 @@ class _PhraseSearcher:
                 to pass optimization. This should be high enough
                 to only return quality matches.
             thresh: If this ratio is exceeded in initial scan,
-                no optimization will be attempted. Default is `100`.
+                no optimization will be attempted.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -339,15 +338,15 @@ class _PhraseSearcher:
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than `len(query)`.
-                        Setting to that value instead.""",
+                    f"""`flex` of size {flex} is greater than `len(query)`.
+                        Setting to that max value instead.""",
                     FlexWarning,
                 )
                 flex = len(query)
             if flex < 0:
                 warnings.warn(
-                    """Flex values less than 0 are not allowed.
-                    Setting flex to the min, 0, instead.""",
+                    """`flex` values less than `0` are not allowed.
+                    Setting to the min, `0`, instead.""",
                     FlexWarning,
                 )
                 flex = 0
@@ -359,6 +358,30 @@ class _PhraseSearcher:
                 )
             )
         return flex
+
+    @staticmethod
+    def _check_ratios(
+        min_r1: int, min_r2: int, thresh: int, flex: int
+    ) -> Tuple(int, int, int):
+        """Ensures ratios are not set to illegal values."""
+        if flex:
+            if min_r1 > min_r2:
+                warnings.warn(
+                    """`min_r1` > `min_r2`,
+                setting `min_r1` equal to `min_r2`""",
+                    RatioWarning,
+                )
+                min_r1 = min_r2
+            if thresh < min_r2:
+                warnings.warn(
+                    """`thresh` < `min_r2`,
+                setting `thresh` equal to `min_r2`""",
+                    RatioWarning,
+                )
+                thresh = min_r2
+        else:
+            min_r1 = min_r2
+        return min_r1, min_r2, thresh
 
     @staticmethod
     def _filter_overlapping_matches(

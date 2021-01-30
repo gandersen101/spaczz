@@ -5,7 +5,7 @@ import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.exceptions import FlexWarning
+from spaczz.exceptions import FlexWarning, RatioWarning
 from spaczz.search import FuzzySearcher
 
 
@@ -104,6 +104,35 @@ def test__calc_flex_raises_error_if_non_valid_value(
     query = nlp("Test query.")
     with pytest.raises(TypeError):
         searcher._calc_flex(query, None)  # type: ignore
+
+
+def test__check_ratios_passes_valid_values_w_flex(searcher: FuzzySearcher) -> None:
+    """It passes through valid ratios with no changes."""
+    assert searcher._check_ratios(50, 75, 100, 1) == (50, 75, 100)
+
+
+def test__check_ratios_passes_valid_values_wo_flex(searcher: FuzzySearcher) -> None:
+    """It passes through valid ratios changing `min_r1` to equal `min_r2`."""
+    assert searcher._check_ratios(50, 75, 100, 0) == (75, 75, 100)
+
+
+def test__check_ratios_ignores_issues_wo_flex(searcher: FuzzySearcher) -> None:
+    """Changes `min_r1` to equal `min_r2` but ignores unnecessary `thresh`."""
+    assert searcher._check_ratios(80, 75, 70, 0) == (75, 75, 70)
+
+
+def test__check_ratios_warns_if_minr1_greater_min_r2(searcher: FuzzySearcher) -> None:
+    """It raises a `RatioWarning`."""
+    with pytest.warns(RatioWarning):
+        ratios = searcher._check_ratios(80, 75, 100, 1)
+    assert ratios == (75, 75, 100)
+
+
+def test__check_ratios_warns_if_thresh_less_min_r2(searcher: FuzzySearcher) -> None:
+    """It raises a `RatioWarning`."""
+    with pytest.warns(RatioWarning):
+        ratios = searcher._check_ratios(50, 75, 70, 1)
+    assert ratios == (50, 75, 75)
 
 
 def test__scan_returns_matches_over_min_r1(
