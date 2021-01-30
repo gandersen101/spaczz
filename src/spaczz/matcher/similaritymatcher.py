@@ -45,10 +45,6 @@ class SimilarityMatcher(_PhraseMatcher):
                 be used as default matching settings.
                 These arguments will become the new defaults for matching.
                 See `SimilaritySearcher` documentation for details.
-
-        Warnings:
-            UserWarning:
-                If vocab does not contain any word vectors.
         """
         super().__init__(vocab=vocab, **defaults)
         self.type = "similarity"

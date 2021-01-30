@@ -1,7 +1,7 @@
 """Module for TokenSearcher: flexible token searching in spaCy `Doc` objects."""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import regex
 from spacy.tokens import Doc, Token
@@ -96,10 +96,10 @@ class TokenSearcher:
     def match(
         self: TokenSearcher,
         doc: Doc,
-        pattern: List[Dict[str, Any]],
+        pattern: list[dict[str, Any]],
         min_r: int = 75,
         fuzzy_func: str = "simple",
-    ) -> List[List[Optional[Tuple[str, str]]]]:
+    ) -> list[list[Optional[tuple[str, str]]]]:
         """Finds potential token pattern matches in a `Doc` object.
 
         Make sure to use uppercase dictionary keys in patterns.
@@ -189,13 +189,13 @@ class TokenSearcher:
 
     def _iter_pattern(
         self: TokenSearcher,
-        seq: Tuple[Token, ...],
-        pattern: List[Dict[str, Any]],
+        seq: tuple[Token, ...],
+        pattern: list[dict[str, Any]],
         min_r: int,
         fuzzy_func: str,
-    ) -> List[Optional[Tuple[str, str]]]:
+    ) -> list[Optional[tuple[str, str]]]:
         """Evaluates each token in a pattern against a doc token sequence."""
-        seq_matches: List[Optional[Tuple[str, str]]] = []
+        seq_matches: list[Optional[tuple[str, str]]] = []
         for i, token in enumerate(pattern):
             pattern_dict, case, case_bool = self._parse_case(token)
             if isinstance(pattern_dict, dict):
@@ -222,7 +222,7 @@ class TokenSearcher:
         return seq_matches
 
     @staticmethod
-    def _parse_case(token: Dict[str, Any]) -> Tuple[Union[str, dict, None], str, bool]:
+    def _parse_case(token: dict[str, Any]) -> tuple[Union[str, dict, None], str, bool]:
         """Parses the case of a token pattern."""
         if token.get("TEXT"):
             return token.get("TEXT"), "TEXT", False
@@ -230,7 +230,7 @@ class TokenSearcher:
             return token.get("LOWER"), "LOWER", True
 
     @staticmethod
-    def _parse_type(pattern_dict: Dict[str, Any]) -> Tuple[str, str]:
+    def _parse_type(pattern_dict: dict[str, Any]) -> tuple[str, str]:
         """Parses the type of a token pattern."""
         fuzzy_text = pattern_dict.get("FUZZY")
         regex_text = pattern_dict.get("FREGEX")

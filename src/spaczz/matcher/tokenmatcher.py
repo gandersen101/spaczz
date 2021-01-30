@@ -7,12 +7,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -71,19 +68,19 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
             Union[
                 Callable[
-                    [TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None
+                    [TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None
                 ],
                 None,
             ],
         ] = {}
-        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(list)
+        self._patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self: TokenMatcher, doc: Doc) -> List[Tuple[str, int, int, None]]:
+    def __call__(self: TokenMatcher, doc: Doc) -> list[tuple[str, int, int, None]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -135,7 +132,7 @@ class TokenMatcher:
         return len(self._patterns)
 
     @property
-    def labels(self: TokenMatcher) -> Tuple[str, ...]:
+    def labels(self: TokenMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -153,7 +150,7 @@ class TokenMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: TokenMatcher) -> List[Dict[str, Any]]:
+    def patterns(self: TokenMatcher) -> list[dict[str, Any]]:
         """Get all patterns that were added to the matcher.
 
         Returns:
@@ -189,9 +186,9 @@ class TokenMatcher:
     def add(
         self: TokenMatcher,
         label: str,
-        patterns: List[List[Dict[str, Any]]],
+        patterns: list[list[dict[str, Any]]],
         on_match: Optional[
-            Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+            Callable[[TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -322,8 +319,8 @@ class TokenMatcher:
 
 
 def _spacyfy(
-    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
-) -> List[List[Dict[str, Any]]]:
+    matches: list[list[Optional[tuple[str, str]]]], pattern: list[dict[str, Any]]
+) -> list[list[dict[str, Any]]]:
     """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
     new_patterns = []
     if matches:

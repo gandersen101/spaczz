@@ -6,13 +6,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 import warnings
@@ -73,7 +69,7 @@ class RegexMatcher:
         """
         self.defaults = defaults
         self.type = "regex"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
             Optional[
                 Callable[
@@ -81,7 +77,7 @@ class RegexMatcher:
                         RegexMatcher,
                         Doc,
                         int,
-                        List[Tuple[str, int, int, Tuple[int, int, int]]],
+                        list[tuple[str, int, int, tuple[int, int, int]]],
                     ],
                     None,
                 ],
@@ -94,7 +90,7 @@ class RegexMatcher:
 
     def __call__(
         self: RegexMatcher, doc: Doc
-    ) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
+    ) -> list[tuple[str, int, int, tuple[int, int, int]]]:
         r"""Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -145,7 +141,7 @@ class RegexMatcher:
         return len(self._patterns)
 
     @property
-    def labels(self: RegexMatcher) -> Tuple[str, ...]:
+    def labels(self: RegexMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -163,7 +159,7 @@ class RegexMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: RegexMatcher) -> List[Dict[str, Any]]:
+    def patterns(self: RegexMatcher) -> list[dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -203,15 +199,15 @@ class RegexMatcher:
     def add(
         self: RegexMatcher,
         label: str,
-        patterns: Sequence[str],
-        kwargs: Optional[List[Dict[str, Any]]] = None,
+        patterns: list[str],
+        kwargs: Optional[list[dict[str, Any]]] = None,
         on_match: Optional[
             Callable[
                 [
                     RegexMatcher,
                     Doc,
                     int,
-                    List[Tuple[str, int, int, Tuple[int, int, int]]],
+                    list[tuple[str, int, int, tuple[int, int, int]]],
                 ],
                 None,
             ]
@@ -240,11 +236,11 @@ class RegexMatcher:
             TypeError: If kwargs is not a iterable of dictionaries.
 
         Warnings:
-            UserWarning:
+            KwargsWarning:
                 If there are more patterns than kwargs
                 default regex matching settings will be used
                 for extra patterns.
-            UserWarning:
+            KwargsWarning:
                 If there are more kwargs dictionaries than patterns,
                 the extra kwargs will be ignored.
 

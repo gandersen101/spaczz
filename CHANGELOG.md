@@ -1,3 +1,8 @@
+*v0.4.1 Release Notes:*
+- *Spaczz's phrase searching algorithm has been further optimized so both the `FuzzyMatcher` and `SimilarityMatcher` should run considerably faster.*
+- *The `FuzzyMatcher` and `SimilarityMatcher` now include a `thresh` parameter that defaults to `100`. When matching, if `flex > 0` and the match ratio is >= `thresh` during the initial scan of the document, no optimization will be attempted. By default perfect matches don't need to be run through match optimization.*
+- *PEP585 code updates.*
+
 *v0.4.0 Release Notes:*
 - *Spaczz now includes a `TokenMatcher` that provides token pattern support like spaCy's `Matcher`. It provides all the same functionality as spaCy's `Matcher` but adds fuzzy and fuzzy-regex support. However, it adds additional overhead to it's spaCy counterpart so it should only be used as needed for fuzzy matching purposes.*
 - *Spaczz's custom attributes have been reworked and now initialize within spaczz's root `__init__`. These are set via spaczz pipeline components (currently just the `SpaczzRuler`) The only downside is that I had to remove the `attr` parameter from the `SpaczzRuler` to enable this.*

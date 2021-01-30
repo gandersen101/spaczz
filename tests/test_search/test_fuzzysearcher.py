@@ -1,5 +1,5 @@
 """Tests for fuzzysearcher module."""
-from typing import Dict
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
@@ -16,7 +16,7 @@ def searcher(nlp: Language) -> FuzzySearcher:
 
 
 @pytest.fixture
-def initial_matches() -> Dict[int, int]:
+def initial_matches() -> dict[int, int]:
     """Example initial fuzzy matches."""
     return {1: 30, 4: 50, 5: 50, 8: 100, 9: 100}
 

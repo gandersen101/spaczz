@@ -1,7 +1,7 @@
 """Custom spaCy attributes for spaczz."""
 from __future__ import annotations
 
-from typing import Iterable, Optional, Set, Tuple, Type
+from typing import Iterable, Optional, Type
 import warnings
 
 from spacy.tokens import Doc, Span, Token
@@ -69,7 +69,7 @@ class SpaczzAttrs:
         return all([token._.spaczz_token for token in span])
 
     @staticmethod
-    def get_token_types(token: Token) -> Set[str]:
+    def get_token_types(token: Token) -> set[str]:
         """Getter for spaczz_types `Token` attribute."""
         types = set()
         if token._.spaczz_ratio:
@@ -81,7 +81,7 @@ class SpaczzAttrs:
         return types
 
     @classmethod
-    def get_span_types(cls: Type[SpaczzAttrs], span: Span) -> Set[str]:
+    def get_span_types(cls: Type[SpaczzAttrs], span: Span) -> set[str]:
         """Getter for spaczz_types `Span` attribute."""
         types = set()
         if cls.get_ratio(span):
@@ -103,7 +103,7 @@ class SpaczzAttrs:
     @classmethod
     def get_counts(
         cls: Type[SpaczzAttrs], span: Span
-    ) -> Optional[Tuple[int, int, int]]:
+    ) -> Optional[tuple[int, int, int]]:
         """Getter for spaczz_counts `Span` attribute."""
         if cls._all_equal([token._.spaczz_counts for token in span]):
             return span[0]._.spaczz_counts
@@ -124,7 +124,7 @@ class SpaczzAttrs:
         return any([token._.spaczz_token for token in doc])
 
     @staticmethod
-    def get_doc_types(doc: Doc) -> Set[str]:
+    def get_doc_types(doc: Doc) -> set[str]:
         """Getter for spaczz_types `Doc` attribute."""
         types = set()
         for token in doc:

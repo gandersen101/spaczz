@@ -6,12 +6,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Tuple,
 )
 import warnings
 
@@ -61,16 +58,16 @@ class _PhraseMatcher:
         """
         self.defaults = defaults
         self.type = "_phrase"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
-            Optional[Callable[[Any, Doc, int, List[Tuple[str, int, int, int]]], None]],
+            Optional[Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]],
         ] = {}  # Any type due to inheritence typing issue.
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
         self._searcher = _PhraseSearcher(vocab=vocab)
 
-    def __call__(self: _PhraseMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:
+    def __call__(self: _PhraseMatcher, doc: Doc) -> list[tuple[str, int, int, int]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -120,7 +117,7 @@ class _PhraseMatcher:
         return len(self._patterns)
 
     @property
-    def labels(self: _PhraseMatcher) -> Tuple[str, ...]:
+    def labels(self: _PhraseMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -138,7 +135,7 @@ class _PhraseMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: _PhraseMatcher) -> List[Dict[str, Any]]:
+    def patterns(self: _PhraseMatcher) -> list[dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -179,10 +176,10 @@ class _PhraseMatcher:
     def add(
         self: _PhraseMatcher,
         label: str,
-        patterns: List[Doc],
-        kwargs: Optional[List[Dict[str, Any]]] = None,
+        patterns: list[Doc],
+        kwargs: Optional[list[dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[Any, Doc, int, List[Tuple[str, int, int, int]]], None]
+            Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]
         ] = None,  # Any type due to inheritence typing issue.
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -207,11 +204,11 @@ class _PhraseMatcher:
             TypeError: If kwargs is not an iterable dictionaries.
 
         Warnings:
-            UserWarning:
+            KwargsWarning:
                 If there are more patterns than kwargs
                 default matching settings will be used
                 for extra patterns.
-            UserWarning:
+            KwargsWarning:
                 If there are more kwargs dicts than patterns,
                 the extra kwargs will be ignored.
 

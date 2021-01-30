@@ -1,5 +1,5 @@
 """Tests for the regexmatcher module."""
-from typing import List, Tuple
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
@@ -13,7 +13,7 @@ def add_gpe_ent(
     matcher: RegexMatcher,
     doc: Doc,
     i: int,
-    matches: List[Tuple[str, int, int, Tuple[int, int, int]]],
+    matches: list[tuple[str, int, int, tuple[int, int, int]]],
 ) -> None:
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
     _match_id, start, end, _fuzzy_counts = matches[i]
@@ -87,7 +87,7 @@ def test_add_without_string_pattern_raises_error(
 def test_add_str_pattern_outside_list_raises_error(matcher: RegexMatcher) -> None:
     """Trying to add string as patterns, not iterable of strings, raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", "Test1")
+        matcher.add("TEST", "Test1")  # type: ignore
 
 
 def test_add_where_kwargs_are_not_dicts_raises_error(matcher: RegexMatcher) -> None:
