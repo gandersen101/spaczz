@@ -1,11 +1,11 @@
 """Tests for fuzzysearcher module."""
-from typing import Dict
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.exceptions import FlexWarning
+from spaczz.exceptions import FlexWarning, RatioWarning
 from spaczz.search import FuzzySearcher
 
 
@@ -16,7 +16,7 @@ def searcher(nlp: Language) -> FuzzySearcher:
 
 
 @pytest.fixture
-def initial_matches() -> Dict[int, int]:
+def initial_matches() -> dict[int, int]:
     """Example initial fuzzy matches."""
     return {1: 30, 4: 50, 5: 50, 8: 100, 9: 100}
 
@@ -52,15 +52,15 @@ def test_compare_raises_error_with_unknown_func_name(
 
 
 def test__calc_flex_with_default(nlp: Language, searcher: FuzzySearcher) -> None:
-    """It returns max(len(query)-1, 0) if set with "default"."""
+    """It returns len(query) // 2 if set with "default"."""
     query = nlp("Test query")
     assert searcher._calc_flex(query, "default") == 1
 
 
 def test__calc_flex_with_max(nlp: Language, searcher: FuzzySearcher) -> None:
     """It returns len(query) if set with "max"."""
-    query = nlp("Test query")
-    assert searcher._calc_flex(query, "max") == 2
+    query = nlp("Test query two")
+    assert searcher._calc_flex(query, "max") == 3
 
 
 def test__calc_flex_with_min(nlp: Language, searcher: FuzzySearcher) -> None:
@@ -84,7 +84,7 @@ def test__calc_flex_warns_if_flex_longer_than_query(
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
         flex = searcher._calc_flex(query, 5)
-        assert flex == 2
+    assert flex == 2
 
 
 def test__calc_flex_warns_if_flex_less_than_0(
@@ -94,7 +94,7 @@ def test__calc_flex_warns_if_flex_less_than_0(
     query = nlp("Test query")
     with pytest.warns(FlexWarning):
         flex = searcher._calc_flex(query, -1)
-        assert flex == 0
+    assert flex == 0
 
 
 def test__calc_flex_raises_error_if_non_valid_value(
@@ -103,7 +103,36 @@ def test__calc_flex_raises_error_if_non_valid_value(
     """It raises TypeError if flex is not an int or "default"."""
     query = nlp("Test query.")
     with pytest.raises(TypeError):
-        searcher._calc_flex(query, None)
+        searcher._calc_flex(query, None)  # type: ignore
+
+
+def test__check_ratios_passes_valid_values_w_flex(searcher: FuzzySearcher) -> None:
+    """It passes through valid ratios with no changes."""
+    assert searcher._check_ratios(50, 75, 100, 1) == (50, 75, 100)
+
+
+def test__check_ratios_passes_valid_values_wo_flex(searcher: FuzzySearcher) -> None:
+    """It passes through valid ratios changing `min_r1` to equal `min_r2`."""
+    assert searcher._check_ratios(50, 75, 100, 0) == (75, 75, 100)
+
+
+def test__check_ratios_ignores_issues_wo_flex(searcher: FuzzySearcher) -> None:
+    """Changes `min_r1` to equal `min_r2` but ignores unnecessary `thresh`."""
+    assert searcher._check_ratios(80, 75, 70, 0) == (75, 75, 70)
+
+
+def test__check_ratios_warns_if_minr1_greater_min_r2(searcher: FuzzySearcher) -> None:
+    """It raises a `RatioWarning`."""
+    with pytest.warns(RatioWarning):
+        ratios = searcher._check_ratios(80, 75, 100, 1)
+    assert ratios == (75, 75, 100)
+
+
+def test__check_ratios_warns_if_thresh_less_min_r2(searcher: FuzzySearcher) -> None:
+    """It raises a `RatioWarning`."""
+    with pytest.warns(RatioWarning):
+        ratios = searcher._check_ratios(50, 75, 70, 1)
+    assert ratios == (50, 75, 75)
 
 
 def test__scan_returns_matches_over_min_r1(
@@ -152,27 +181,10 @@ def test__scan_returns_none_w_empty_query(
     )
 
 
-def test__optimize_finds_better_match(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It optimizes the initial match to find a better match."""
-    doc = nlp("Patient was prescribed Zithromax tablets.")
-    query = nlp("zithromax tablet")
-    match_values = {0: 30, 2: 50, 3: 97, 4: 50}
-    assert searcher._optimize(
-        doc,
-        query,
-        match_values,
-        pos=3,
-        fuzzy_func="simple",
-        min_r2=70,
-        ignore_case=True,
-        flex=1,
-    ) == (3, 5, 97)
-
-
-def test__optimize_finds_better_match2(
+def test__optimize_finds_better_match_with_max_flex(
     searcher: FuzzySearcher, nlp: Language, adjust_example: Doc
 ) -> None:
-    """It optimizes the initial match to find a better match."""
+    """It optimizes the initial match to find a better match when flex = max."""
     query = nlp("Kareem Abdul-Jabbar")
     match_values = {0: 33, 1: 39, 2: 41, 3: 33, 5: 37, 6: 59, 7: 84}
     assert searcher._optimize(
@@ -184,6 +196,7 @@ def test__optimize_finds_better_match2(
         min_r2=70,
         ignore_case=True,
         flex=4,
+        thresh=100,
     ) == (8, 11, 89)
 
 
@@ -201,14 +214,17 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
         min_r2=70,
         ignore_case=True,
         flex=0,
+        thresh=100,
     ) == (3, 4, 94)
 
 
-def test__optimize_where_bpl_equal_bpr(searcher: FuzzySearcher, nlp: Language) -> None:
+def test__optimize_where_bpl_would_equal_bpr(
+    searcher: FuzzySearcher, nlp: Language
+) -> None:
     """It returns the intial match when flex value = 0."""
     doc = nlp("trabalho, investimento e escolhas corajosas,")
     query = nlp("Courtillier Musqué")
-    assert searcher.match(doc, query) == []
+    assert searcher.match(doc, query, flex="max") == []
 
 
 def test__filter_overlapping_matches_filters_correctly(
@@ -226,6 +242,24 @@ def test_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> Non
     assert searcher.match(doc, query, ignore_case=False) == [
         (0, 1, 92),
         (6, 7, 83),
+    ]
+
+
+def test_match_finds_best_matches2(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns all the fuzzy matches that meet threshold correctly sorted."""
+    doc = nlp("My favorite wine is white goldriesling.")
+    query = nlp("gold riesling")
+    assert searcher.match(doc, query) == [
+        (5, 6, 96),
+    ]
+
+
+def test_match_finds_best_matches3(searcher: FuzzySearcher, nlp: Language) -> None:
+    """It returns all the fuzzy matches that meet threshold correctly sorted."""
+    doc = nlp("My favorite wine is white gold riesling.")
+    query = nlp("goldriesling")
+    assert searcher.match(doc, query, flex="max") == [
+        (5, 7, 96),
     ]
 
 

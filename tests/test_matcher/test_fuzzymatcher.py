@@ -1,5 +1,5 @@
 """Tests for the fuzzymatcher module."""
-from typing import List, Tuple
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
@@ -10,7 +10,7 @@ from spaczz.matcher.fuzzymatcher import FuzzyMatcher
 
 
 def add_name_ent(
-    matcher: FuzzyMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
+    matcher: FuzzyMatcher, doc: Doc, i: int, matches: list[tuple[str, int, int, int]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _ratio = matches[i]
@@ -82,10 +82,10 @@ def test_add_with_more_explicit_kwargs_than_patterns_warns(
         )
 
 
-def test_add_where_patterns_is_not_list_raises_error(matcher: FuzzyMatcher,) -> None:
+def test_add_where_patterns_is_not_list_raises_error(matcher: FuzzyMatcher) -> None:
     """Trying to add non Doc objects as patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", "Test1")
+        matcher.add("TEST", "Test1")  # type: ignore
 
 
 def test_add_where_patterns_are_not_doc_objects_raises_error(
@@ -101,15 +101,15 @@ def test_add_where_kwargs_are_not_dicts_raises_error(
 ) -> None:
     """Trying to add non Dict objects as kwargs raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", [nlp.make_doc("Test1")], ["ignore_case"])
+        matcher.add("TEST", [nlp.make_doc("Test1")], ["ignore_case"])  # type: ignore
 
 
-def test_len_returns_count_of_labels_in_matcher(matcher: FuzzyMatcher,) -> None:
+def test_len_returns_count_of_labels_in_matcher(matcher: FuzzyMatcher) -> None:
     """It returns the sum of unique labels in the matcher."""
     assert len(matcher) == 3
 
 
-def test_in_returns_bool_of_label_in_matcher(matcher: FuzzyMatcher,) -> None:
+def test_in_returns_bool_of_label_in_matcher(matcher: FuzzyMatcher) -> None:
     """It returns whether a label is in the matcher."""
     assert "ANIMAL" in matcher
 

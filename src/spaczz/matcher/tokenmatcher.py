@@ -7,12 +7,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -54,7 +51,7 @@ class TokenMatcher:
 
     name = "token_matcher"
 
-    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: TokenMatcher, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the base phrase matcher with the given defaults.
 
         Args:
@@ -71,19 +68,19 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
             Union[
                 Callable[
-                    [TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None
+                    [TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None
                 ],
                 None,
             ],
         ] = {}
-        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(list)
+        self._patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, None]]:
+    def __call__(self: TokenMatcher, doc: Doc) -> list[tuple[str, int, int, None]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -126,16 +123,16 @@ class TokenMatcher:
         else:
             return []
 
-    def __contains__(self, label: str) -> bool:
+    def __contains__(self: TokenMatcher, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self) -> int:
+    def __len__(self: TokenMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     @property
-    def labels(self) -> Tuple[str, ...]:
+    def labels(self: TokenMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -153,7 +150,7 @@ class TokenMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self) -> List[Dict[str, Any]]:
+    def patterns(self: TokenMatcher) -> list[dict[str, Any]]:
         """Get all patterns that were added to the matcher.
 
         Returns:
@@ -182,16 +179,16 @@ class TokenMatcher:
         return all_patterns
 
     @property
-    def vocab(self) -> Vocab:
+    def vocab(self: TokenMatcher) -> Vocab:
         """Returns the spaCy `Vocab` object utilized."""
         return self._searcher.vocab
 
     def add(
-        self,
+        self: TokenMatcher,
         label: str,
-        patterns: List[List[Dict[str, Any]]],
+        patterns: list[list[dict[str, Any]]],
         on_match: Optional[
-            Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+            Callable[[TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None]
         ] = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -237,7 +234,7 @@ class TokenMatcher:
                 raise TypeError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
-    def remove(self, label: str) -> None:
+    def remove(self: TokenMatcher, label: str) -> None:
         """Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -265,7 +262,7 @@ class TokenMatcher:
             )
 
     def pipe(
-        self,
+        self: TokenMatcher,
         stream: Iterable[Doc],
         batch_size: int = 1000,
         return_matches: bool = False,
@@ -322,8 +319,8 @@ class TokenMatcher:
 
 
 def _spacyfy(
-    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
-) -> List[List[Dict[str, Any]]]:
+    matches: list[list[Optional[tuple[str, str]]]], pattern: list[dict[str, Any]]
+) -> list[list[dict[str, Any]]]:
     """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
     new_patterns = []
     if matches:

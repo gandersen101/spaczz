@@ -1,5 +1,5 @@
 """Tests for tokenmatcher module."""
-from typing import List, Tuple
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
@@ -9,7 +9,7 @@ from spaczz.matcher import TokenMatcher
 
 
 def add_name_ent(
-    matcher: TokenMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, None]]
+    matcher: TokenMatcher, doc: Doc, i: int, matches: list[tuple[str, int, int, None]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _ = matches[i]
@@ -74,7 +74,7 @@ def test_adding_patterns(matcher: TokenMatcher) -> None:
 def test_add_without_sequence_of_patterns_raises_error(matcher: TokenMatcher,) -> None:
     """Trying to add non-sequences of patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", [{"TEXT": "error"}])
+        matcher.add("TEST", [{"TEXT": "error"}])  # type: ignore
 
 
 def test_add_with_zero_len_pattern(matcher: TokenMatcher) -> None:

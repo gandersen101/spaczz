@@ -1,5 +1,5 @@
 """Tests for the regexmatcher module."""
-from typing import List, Tuple
+from __future__ import annotations
 
 import pytest
 from spacy.language import Language
@@ -10,10 +10,13 @@ from spaczz.matcher.regexmatcher import RegexMatcher
 
 
 def add_gpe_ent(
-    matcher: RegexMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int]]
+    matcher: RegexMatcher,
+    doc: Doc,
+    i: int,
+    matches: list[tuple[str, int, int, tuple[int, int, int]]],
 ) -> None:
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
-    match_id, start, end, _fuzzy_counts = matches[i]
+    _match_id, start, end, _fuzzy_counts = matches[i]
     entity = Span(doc, start, end, label="GPE")
     doc.ents += (entity,)
 
@@ -81,24 +84,24 @@ def test_add_without_string_pattern_raises_error(
         matcher.add("TEST", [nlp.make_doc("Test1")])
 
 
-def test_add_str_pattern_outside_list_raises_error(matcher: RegexMatcher,) -> None:
+def test_add_str_pattern_outside_list_raises_error(matcher: RegexMatcher) -> None:
     """Trying to add string as patterns, not iterable of strings, raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", "Test1")
+        matcher.add("TEST", "Test1")  # type: ignore
 
 
-def test_add_where_kwargs_are_not_dicts_raises_error(matcher: RegexMatcher,) -> None:
+def test_add_where_kwargs_are_not_dicts_raises_error(matcher: RegexMatcher) -> None:
     """Trying to add non Dict objects as kwargs raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", ["Test1"], ["ignore_case"])
+        matcher.add("TEST", ["Test1"], ["ignore_case"])  # type: ignore
 
 
-def test_len_returns_count_of_labels_in_matcher(matcher: RegexMatcher,) -> None:
+def test_len_returns_count_of_labels_in_matcher(matcher: RegexMatcher) -> None:
     """It returns the correct length of labels."""
     assert len(matcher) == 3
 
 
-def test_in_returns_bool_of_label_in_matcher(matcher: RegexMatcher,) -> None:
+def test_in_returns_bool_of_label_in_matcher(matcher: RegexMatcher) -> None:
     """It returns whether a label is present."""
     assert "GPE" in matcher
 

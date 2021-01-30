@@ -1,4 +1,6 @@
 """Module for SimilaritySearcher: vector similarity matching in spaCy `Doc` objects."""
+from __future__ import annotations
+
 from typing import Any, Union
 import warnings
 
@@ -34,7 +36,7 @@ class SimilaritySearcher(_PhraseSearcher):
             Included for consistency and potential future-state.
     """
 
-    def __init__(self, vocab: Vocab) -> None:
+    def __init__(self: SimilaritySearcher, vocab: Vocab) -> None:
         """Initializes a similarity searcher.
 
         Args:
@@ -46,19 +48,19 @@ class SimilaritySearcher(_PhraseSearcher):
                 with spaCy pipelines.
 
         Warnings:
-            UserWarning:
+            MissingVectorsWarning:
                 If vocab does not contain any word vectors.
         """
         super().__init__(vocab=vocab)
         if vocab.vectors.n_keys == 0:
             warnings.warn(
-                """The spaCy Vocab object has no word vectors.\n
+                """The spaCy Vocab object has no word vectors.
                 Similarity results may not be useful.""",
                 MissingVectorsWarning,
             )
 
     def compare(
-        self,
+        self: SimilaritySearcher,
         a: Union[Doc, Span, Token],
         b: Union[Doc, Span, Token],
         *args: Any,

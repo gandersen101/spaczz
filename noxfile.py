@@ -9,7 +9,7 @@ from nox.sessions import Session
 
 
 package = "spaczz"
-nox.options.sessions = "lint", "mypy", "safety", "tests", "typeguard"
+nox.options.sessions = "lint", "mypy", "safety", "tests"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 
 
@@ -151,14 +151,15 @@ def tests(session: Session) -> None:
     session.run("pytest", *args)
 
 
-@nox.session(python=["3.9", "3.8", "3.7"])
-def typeguard(session: Session) -> None:
-    """Runtime type checking using Typeguard."""
-    args = session.posargs
-    session.run("poetry", "install", "--no-dev", external=True)
-    install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
-    session.run("python", "-m", "spacy", "download", "en_core_web_md")
-    session.run("pytest", f"--typeguard-packages={package}", *args)
+# Typeguard does not seem to currently work with PEP585
+# @nox.session(python=["3.9", "3.8", "3.7"])
+# def typeguard(session: Session) -> None:
+#     """Runtime type checking using Typeguard."""
+#     args = session.posargs
+#     session.run("poetry", "install", "--no-dev", external=True)
+#     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
+#     session.run("python", "-m", "spacy", "download", "en_core_web_md")
+#     session.run("pytest", f"--typeguard-packages={package}", *args)
 
 
 @nox.session(python=["3.9", "3.8", "3.7"])

@@ -87,4 +87,4 @@ def test_multi_match_raises_error_if_regex_str_not_str(
     """It raises a type error if regex_str is not a string."""
     doc = nlp("My phone number is (555) 555-5555.")
     with pytest.raises(TypeError):
-        searcher.match(doc, 1, predef=True)
+        searcher.match(doc, 1, predef=True)  # type: ignore

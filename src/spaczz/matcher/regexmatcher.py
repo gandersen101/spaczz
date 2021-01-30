@@ -6,13 +6,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     Union,
 )
 import warnings
@@ -48,7 +44,10 @@ class RegexMatcher:
     name = "regex_matcher"
 
     def __init__(
-        self, vocab: Vocab, config: Union[str, RegexConfig] = "default", **defaults: Any
+        self: RegexMatcher,
+        vocab: Vocab,
+        config: Union[str, RegexConfig] = "default",
+        **defaults: Any,
     ) -> None:
         """Initializes the regex matcher with the given config and defaults.
 
@@ -70,7 +69,7 @@ class RegexMatcher:
         """
         self.defaults = defaults
         self.type = "regex"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
             Optional[
                 Callable[
@@ -78,7 +77,7 @@ class RegexMatcher:
                         RegexMatcher,
                         Doc,
                         int,
-                        List[Tuple[str, int, int, Tuple[int, int, int]]],
+                        list[tuple[str, int, int, tuple[int, int, int]]],
                     ],
                     None,
                 ],
@@ -89,7 +88,9 @@ class RegexMatcher:
         )
         self._searcher = RegexSearcher(vocab=vocab, config=config)
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
+    def __call__(
+        self: RegexMatcher, doc: Doc
+    ) -> list[tuple[str, int, int, tuple[int, int, int]]]:
         r"""Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -131,16 +132,16 @@ class RegexMatcher:
         else:
             return []
 
-    def __contains__(self, label: str) -> bool:
+    def __contains__(self: RegexMatcher, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self) -> int:
+    def __len__(self: RegexMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     @property
-    def labels(self) -> Tuple[str, ...]:
+    def labels(self: RegexMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -158,7 +159,7 @@ class RegexMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self) -> List[Dict[str, Any]]:
+    def patterns(self: RegexMatcher) -> list[dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -191,22 +192,22 @@ class RegexMatcher:
         return all_patterns
 
     @property
-    def vocab(self) -> Vocab:
+    def vocab(self: RegexMatcher) -> Vocab:
         """Returns the spaCy `Vocab` object utilized."""
         return self._searcher.vocab
 
     def add(
-        self,
+        self: RegexMatcher,
         label: str,
-        patterns: Sequence[str],
-        kwargs: Optional[List[Dict[str, Any]]] = None,
+        patterns: list[str],
+        kwargs: Optional[list[dict[str, Any]]] = None,
         on_match: Optional[
             Callable[
                 [
                     RegexMatcher,
                     Doc,
                     int,
-                    List[Tuple[str, int, int, Tuple[int, int, int]]],
+                    list[tuple[str, int, int, tuple[int, int, int]]],
                 ],
                 None,
             ]
@@ -235,11 +236,11 @@ class RegexMatcher:
             TypeError: If kwargs is not a iterable of dictionaries.
 
         Warnings:
-            UserWarning:
+            KwargsWarning:
                 If there are more patterns than kwargs
                 default regex matching settings will be used
                 for extra patterns.
-            UserWarning:
+            KwargsWarning:
                 If there are more kwargs dictionaries than patterns,
                 the extra kwargs will be ignored.
 
@@ -280,7 +281,7 @@ class RegexMatcher:
                 raise TypeError("Kwargs must be an iterable of dictionaries.")
         self._callbacks[label] = on_match
 
-    def remove(self, label: str) -> None:
+    def remove(self: RegexMatcher, label: str) -> None:
         r"""Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -308,7 +309,7 @@ class RegexMatcher:
             )
 
     def pipe(
-        self,
+        self: RegexMatcher,
         stream: Iterable[Doc],
         batch_size: int = 1000,
         return_matches: bool = False,

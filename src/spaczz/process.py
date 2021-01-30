@@ -1,12 +1,14 @@
 """Module for various text/doc processing functions/classes."""
+from __future__ import annotations
+
 from itertools import tee
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Iterable
 
 from rapidfuzz import fuzz
 from spacy.tokens import Doc
 
 
-def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
+def map_chars_to_tokens(doc: Doc) -> dict[int, int]:
     """Maps characters in a `Doc` object to tokens."""
     chars_to_tokens = {}
     for token in doc:
@@ -35,7 +37,7 @@ class FuzzyFuncs:
         match_type (str): Whether the fuzzy matching functions
             should support multi-token strings ("phrase") or
             only single-token strings ("token").
-        _fuzzy_funcs (Dict[str, Callable[[str, str], int]]):
+        _fuzzy_funcs (dict[str, Callable[[str, str], int]]):
             The available fuzzy matching functions:
             "simple" = `ratio`
             "partial" = `partial_ratio`
@@ -50,7 +52,7 @@ class FuzzyFuncs:
             if match_type = "token".
     """
 
-    def __init__(self, match_type: str = "phrase") -> None:
+    def __init__(self: FuzzyFuncs, match_type: str = "phrase") -> None:
         """Initializes a fuzzyfuncs container.
 
         Args:
@@ -63,7 +65,7 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+            self._fuzzy_funcs: dict[str, Callable[[str, str], int]] = {
                 "simple": fuzz.ratio,
                 "partial": fuzz.partial_ratio,
                 "token_set": fuzz.token_set_ratio,
@@ -83,7 +85,7 @@ class FuzzyFuncs:
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
 
-    def get(self, fuzzy_func: str) -> Callable[[str, str], float]:
+    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[[str, str], float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:

@@ -31,7 +31,7 @@ class SimilarityMatcher(_PhraseMatcher):
 
     name = "similarity_matcher"
 
-    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: SimilarityMatcher, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the similarity matcher with the given defaults.
 
         Args:
@@ -45,10 +45,6 @@ class SimilarityMatcher(_PhraseMatcher):
                 be used as default matching settings.
                 These arguments will become the new defaults for matching.
                 See `SimilaritySearcher` documentation for details.
-
-        Warnings:
-            UserWarning:
-                If vocab does not contain any word vectors.
         """
         super().__init__(vocab=vocab, **defaults)
         self.type = "similarity"

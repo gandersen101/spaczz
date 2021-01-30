@@ -6,13 +6,9 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Tuple,
-    Union,
 )
 import warnings
 
@@ -45,7 +41,7 @@ class _PhraseMatcher:
 
     name = "_phrase_matcher"
 
-    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: _PhraseMatcher, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the base phrase matcher with the given defaults.
 
         Args:
@@ -62,21 +58,16 @@ class _PhraseMatcher:
         """
         self.defaults = defaults
         self.type = "_phrase"
-        self._callbacks: Dict[
+        self._callbacks: dict[
             str,
-            Union[
-                Callable[
-                    [_PhraseMatcher, Doc, int, List[Tuple[str, int, int, int]]], None
-                ],
-                None,
-            ],
-        ] = {}
+            Optional[Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]],
+        ] = {}  # Any type due to inheritence typing issue.
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
         self._searcher = _PhraseSearcher(vocab=vocab)
 
-    def __call__(self, doc: Doc) -> List[Tuple[str, int, int, int]]:
+    def __call__(self: _PhraseMatcher, doc: Doc) -> list[tuple[str, int, int, int]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -117,16 +108,16 @@ class _PhraseMatcher:
         else:
             return []
 
-    def __contains__(self, label: str) -> bool:
+    def __contains__(self: _PhraseMatcher, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self) -> int:
+    def __len__(self: _PhraseMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     @property
-    def labels(self) -> Tuple[str, ...]:
+    def labels(self: _PhraseMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -144,7 +135,7 @@ class _PhraseMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self) -> List[Dict[str, Any]]:
+    def patterns(self: _PhraseMatcher) -> list[dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -178,18 +169,18 @@ class _PhraseMatcher:
         return all_patterns
 
     @property
-    def vocab(self) -> Vocab:
+    def vocab(self: _PhraseMatcher) -> Vocab:
         """Returns the spaCy `Vocab` object utilized."""
         return self._searcher.vocab
 
     def add(
-        self,
+        self: _PhraseMatcher,
         label: str,
-        patterns: List[Doc],
-        kwargs: Optional[List[Dict[str, Any]]] = None,
+        patterns: list[Doc],
+        kwargs: Optional[list[dict[str, Any]]] = None,
         on_match: Optional[
-            Callable[[_PhraseMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
-        ] = None,
+            Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]
+        ] = None,  # Any type due to inheritence typing issue.
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -213,11 +204,11 @@ class _PhraseMatcher:
             TypeError: If kwargs is not an iterable dictionaries.
 
         Warnings:
-            UserWarning:
+            KwargsWarning:
                 If there are more patterns than kwargs
                 default matching settings will be used
                 for extra patterns.
-            UserWarning:
+            KwargsWarning:
                 If there are more kwargs dicts than patterns,
                 the extra kwargs will be ignored.
 
@@ -258,7 +249,7 @@ class _PhraseMatcher:
                 raise TypeError("Kwargs must be a list of dictionaries.")
         self._callbacks[label] = on_match
 
-    def remove(self, label: str) -> None:
+    def remove(self: _PhraseMatcher, label: str) -> None:
         """Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -286,7 +277,7 @@ class _PhraseMatcher:
             )
 
     def pipe(
-        self,
+        self: _PhraseMatcher,
         stream: Iterable[Doc],
         batch_size: int = 1000,
         return_matches: bool = False,

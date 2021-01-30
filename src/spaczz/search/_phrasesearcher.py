@@ -1,12 +1,14 @@
 """Module for _PhraseSearcher: flexible phrase searching in spaCy `Doc` objects."""
+from __future__ import annotations
+
 from itertools import chain
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 import warnings
 
 from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
-from ..exceptions import FlexWarning
+from ..exceptions import FlexWarning, RatioWarning
 
 
 class _PhraseSearcher:
@@ -23,7 +25,7 @@ class _PhraseSearcher:
             Included for consistency and potential future-state.
     """
 
-    def __init__(self, vocab: Vocab) -> None:
+    def __init__(self: _PhraseSearcher, vocab: Vocab) -> None:
         """Initializes a base phrase searcher.
 
         Args:
@@ -37,7 +39,7 @@ class _PhraseSearcher:
         self.vocab = vocab
 
     def compare(
-        self,
+        self: _PhraseSearcher,
         a: Union[Doc, Span, Token],
         b: Union[Doc, Span, Token],
         ignore_case: bool = True,
@@ -75,15 +77,16 @@ class _PhraseSearcher:
             return 0
 
     def match(
-        self,
+        self: _PhraseSearcher,
         doc: Doc,
         query: Doc,
         flex: Union[str, int] = "default",
         min_r1: int = 50,
         min_r2: int = 75,
+        thresh: int = 100,
         *args: Any,
         **kwargs: Any,
-    ) -> List[Tuple[int, int, int]]:
+    ) -> list[tuple[int, int, int]]:
         """Returns phrase matches in a `Doc` object.
 
         Finds phrase matches in the doc based on the query,
@@ -94,26 +97,28 @@ class _PhraseSearcher:
         Args:
             doc: `Doc` object to search over.
             query: `Doc` object to match against doc.
-            flex: Number of tokens to move match span boundaries
-                left and right during match optimization.
+            flex: Number of tokens to move match match boundaries
+                left and right during optimization.
                 Can be an integer value with a max of `len(query)`
-                and a min of 0 (will warn and change if higher or lower),
-                "max", "min", or "default".
-                Default is `"default"`: `max(len(query) - 1, 0)`.
+                and a min of `0` (will warn and change if higher or lower),
+                or the strings "max", "min", or "default".
+                Default is `"default"`: `len(query) // 2`.
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
-                This should be lower than min_r2 and "low" in general
-                because match span boundaries are not flexed initially.
-                0 means all spans of query length in doc will
-                have their boundaries flexed and will be recompared
-                during match optimization.
-                Lower min_r1 will result in more fine-grained matching
-                but will run slower. Default is `50`.
+                If `flex == 0`, `min_r1` will be overwritten by `min_r2`.
+                If `flex > 0`, `min_r1` must be lower than `min_r2`
+                and "low" in general because match boundaries are
+                not flexed initially.
+                Default is `50`.
             min_r2: Minimum match ratio required for
                 selection during match optimization.
-                Should be higher than min_r1 and "high" in general
+                Needs to be higher than `min_r1` and "high" in general
                 to ensure only quality matches are returned.
                 Default is `75`.
+            thresh: If this ratio is exceeded in initial scan,
+                and `flex > 0`, no optimization will be attempted.
+                If `flex == 0`, `thresh` has no effect.
+                Default is `100`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -130,12 +135,21 @@ class _PhraseSearcher:
         if not isinstance(query, Doc):
             raise TypeError("query must be a Doc object.")
         flex = self._calc_flex(query, flex)
+        min_r1, min_r2, thresh = self._check_ratios(min_r1, min_r2, thresh, flex)
         match_values = self._scan(doc, query, min_r1, *args, **kwargs)
         if match_values:
             positions = list(match_values.keys())
             matches_w_nones = [
                 self._optimize(
-                    doc, query, match_values, pos, flex, min_r2, *args, **kwargs,
+                    doc,
+                    query,
+                    match_values,
+                    pos,
+                    flex,
+                    min_r2,
+                    thresh,
+                    *args,
+                    **kwargs,
                 )
                 for pos in positions
             ]
@@ -150,16 +164,17 @@ class _PhraseSearcher:
             return []
 
     def _optimize(
-        self,
+        self: _PhraseSearcher,
         doc: Doc,
         query: Doc,
-        match_values: Dict[int, int],
+        match_values: dict[int, int],
         pos: int,
         flex: int,
         min_r2: int,
+        thresh: int,
         *args: Any,
         **kwargs: Any,
-    ) -> Union[Tuple[int, int, int], None]:
+    ) -> Union[tuple[int, int, int], None]:
         """Optimizes a potential match by flexing match span boundaries.
 
         For a span match from _scan that has match ratio
@@ -180,6 +195,8 @@ class _PhraseSearcher:
             min_r2: Minimum match ratio required
                 to pass optimization. This should be high enough
                 to only return quality matches.
+            thresh: If this ratio is exceeded in initial scan,
+                no optimization will be attempted.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
@@ -190,42 +207,47 @@ class _PhraseSearcher:
         """
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
-        bmv_l = match_values[p_l]
-        bmv_r = match_values[p_l]
-        if flex:
+        r = match_values[pos]
+        if flex and not r >= thresh:
+            optim_r = r
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
-                    ll = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
-                    if ll > bmv_l:
-                        bmv_l = ll
+                    new_r = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_l = p_l - f
-                if p_l + f < p_r:
-                    lr = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
-                    if lr > bmv_l:
-                        bmv_l = lr
+                if p_l + f < min(p_r, bp_r):
+                    new_r = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_l = p_l + f
-                if p_r - f > p_l:
-                    rl = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
-                    if rl > bmv_r:
-                        bmv_r = rl
+                if p_r - f > max(p_l, bp_l):
+                    new_r = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
-                    rr = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
-                    if rr > bmv_r:
-                        bmv_r = rr
+                    new_r = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
                         bp_r = p_r + f
-        if bp_l >= bp_r or bp_r <= bp_l:
-            return None
+                if optim_r <= r:
+                    break
+                else:
+                    r = optim_r
+        if r >= min_r2:
+            return (bp_l, bp_r, r)
         else:
-            r = self.compare(query, doc[bp_l:bp_r], *args, **kwargs)
-            if r >= min_r2:
-                return (bp_l, bp_r, r)
-            else:
-                return None
+            return None
 
     def _scan(
-        self, doc: Doc, query: Doc, min_r1: int, *args: Any, **kwargs: Any,
-    ) -> Union[Dict[int, int], None]:
+        self: _PhraseSearcher,
+        doc: Doc,
+        query: Doc,
+        min_r1: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Union[dict[int, int], None]:
         """Returns a dictionary of potential match start indices and match ratios.
 
         Iterates through the doc by spans of query length,
@@ -253,9 +275,9 @@ class _PhraseSearcher:
         Returns:
             A dictionary of start index, match ratio pairs or None.
         """
-        match_values: Dict[int, int] = dict()
         if not len(query):
             return None
+        match_values: dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
             match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
@@ -271,17 +293,17 @@ class _PhraseSearcher:
     def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
         """Returns flex value based on initial value and query.
 
-        By default flex is set to `max(len(query) - 1, 0)`.
+        By default flex is set to `len(query) // 2`.
 
         If flex is an integer value greater than `len(query)`,
-        flex will be set to `len(query)` instead.
+        flex will be set to that value instead.
 
         If flex is an integer value less than 0,
         flex will be set to 0 instead.
 
         Args:
             query: The `Doc` object to match with.
-            flex: Either `"default"`: `max(len(query) - 1, 0)`,
+            flex: Either `"default"`: `len(query) // 2`,
                 `"max"`: `len(query)`,
                 `"min"`: `0`,
                 or an integer value.
@@ -308,7 +330,7 @@ class _PhraseSearcher:
             1
         """
         if flex == "default":
-            flex = max(len(query) - 1, 0)
+            flex = len(query) // 2
         if flex == "max":
             flex = len(query)
         if flex == "min":
@@ -316,15 +338,15 @@ class _PhraseSearcher:
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    f"""Flex of size {flex} is greater than len(query).
-                        Setting to the max, `len(query)`, instead.""",
+                    f"""`flex` of size {flex} is greater than `len(query)`.
+                        Setting to that max value instead.""",
                     FlexWarning,
                 )
                 flex = len(query)
             if flex < 0:
                 warnings.warn(
-                    """Flex values less than 0 are not allowed.
-                    Setting flex to the min, 0, instead.""",
+                    """`flex` values less than `0` are not allowed.
+                    Setting to the min, `0`, instead.""",
                     FlexWarning,
                 )
                 flex = 0
@@ -338,9 +360,33 @@ class _PhraseSearcher:
         return flex
 
     @staticmethod
+    def _check_ratios(
+        min_r1: int, min_r2: int, thresh: int, flex: int
+    ) -> tuple[int, int, int]:
+        """Ensures ratios are not set to illegal values."""
+        if flex:
+            if min_r1 > min_r2:
+                warnings.warn(
+                    """`min_r1` > `min_r2`,
+                setting `min_r1` equal to `min_r2`""",
+                    RatioWarning,
+                )
+                min_r1 = min_r2
+            if thresh < min_r2:
+                warnings.warn(
+                    """`thresh` < `min_r2`,
+                setting `thresh` equal to `min_r2`""",
+                    RatioWarning,
+                )
+                thresh = min_r2
+        else:
+            min_r1 = min_r2
+        return min_r1, min_r2, thresh
+
+    @staticmethod
     def _filter_overlapping_matches(
-        matches: List[Tuple[int, int, int]]
-    ) -> List[Tuple[int, int, int]]:
+        matches: list[tuple[int, int, int]]
+    ) -> list[tuple[int, int, int]]:
         """Prevents multiple match spans from overlapping.
 
         Expects matches to be pre-sorted by descending ratio
@@ -364,7 +410,7 @@ class _PhraseSearcher:
             >>> searcher._filter_overlapping_matches(matches)
             [(1, 3, 80)]
         """
-        filtered_matches: List[Tuple[int, int, int]] = []
+        filtered_matches: list[tuple[int, int, int]] = []
         for match in matches:
             if not set(range(match[0], match[1])).intersection(
                 chain(*[set(range(n[0], n[1])) for n in filtered_matches])

@@ -31,7 +31,7 @@ class FuzzyMatcher(_PhraseMatcher):
 
     name = "fuzzy_matcher"
 
-    def __init__(self, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: FuzzyMatcher, vocab: Vocab, **defaults: Any) -> None:
         """Initializes the fuzzy matcher with the given defaults.
 
         Args:
