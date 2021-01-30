@@ -12,18 +12,26 @@ Fuzzy matching is currently performed with matchers from [RapidFuzz](https://git
 
 Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 
+*Note: Python 3.9.1 and Numpy on MacOS can have issues. This is not a spaczz issue. Try Python 3.9.0 instead.*
+
+*v0.4.1 Release Notes:*
+- *Spaczz's phrase searching algorithm has been further optimized so both the `FuzzyMatcher` and `SimilarityMatcher` should run considerably faster.*
+- *The `FuzzyMatcher` and `SimilarityMatcher` now include a `thresh` parameter that defaults to `100`. When matching, if `flex > 0` and the match ratio is >= `thresh` during the initial scan of the document, no optimization will be attempted. By default perfect matches don't need to be run through match optimization.*
+- *`flex` now defaults to `len(pattern) // 2`. This creates more meaningful difference between `"default"` and `"max"` with longer patterns.*
+- *PEP585 code updates.*
+
 *v0.4.0 Release Notes:*
-- *Spaczz now includes a `TokenMatcher` that provides token pattern support like spaCy's `Matcher`. It provides all the same functionality as spaCy's `Matcher` but adds fuzzy and fuzzy-regex support. However, it will likely run much slower than it's spaCy counterpart so it should only be used as needed for fuzzy matching purposes.*
+- *Spaczz now includes a `TokenMatcher` that provides token pattern support like spaCy's `Matcher`. It provides all the same functionality as spaCy's `Matcher` but adds fuzzy and fuzzy-regex support. However, it adds additional overhead to it's spaCy counterpart so it should only be used as needed for fuzzy matching purposes.*
 - *Spaczz's custom attributes have been reworked and now initialize within spaczz's root `__init__`. These are set via spaczz pipeline components (currently just the `SpaczzRuler`) The only downside is that I had to remove the `attr` parameter from the `SpaczzRuler` to enable this.*
 - *The `flex` parameter available to fuzzy and similarity phrase matching now accepts the strings `"max"`: `len(pattern)` and `"min"`: `0`.*
-- *The `flex` parameter now defaults to `max(len(pattern) - 1, 0)` instead of `len(query)` as this generally makes more sense. Single-token patterns shouldn't have their boundaries extended during optimization by default.
-- *`min_r1` for the fuzzy phrase matcher is now `50`, this is still low but not so low that it filters almost nothing out in the initial document scan.
+- *The `flex` parameter now defaults to `max(len(pattern) - 1, 0)` instead of `len(query)` as this generally makes more sense. Single-token patterns shouldn't have their boundaries extended during optimization by default.*
+- *`min_r1` for the fuzzy phrase matcher is now `50`, this is still low but not so low that it filters almost nothing out in the initial document scan.*
 - *Bug fixes to phrase searching that could cause index errors in spaCy `Span` objects.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
 
 <h1>Table of Contents<span class="tocSkip"></span></h1>
-<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#Fuzzy-Matcher" data-toc-modified-id="Fuzzy-Matcher-2.1">FuzzyMatcher</a></span></li><li><span><a href="#Regex-Matcher" data-toc-modified-id="Regex-Matcher-2.2">RegexMatcher</a></span></li><li><span><a href="#SimilarityMatcher" data-toc-modified-id="SimilarityMatcher-2.3">SimilarityMatcher</a></span></li><li><span><a href="#TokenMatcher" data-toc-modified-id="TokenMatcher-2.4">TokenMatcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.5">SpaczzRuler</a></span></li><li><span><a href="#Custom-Attributes" data-toc-modified-id="Custom-Attributes-2.6">Custom Attributes</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.7">Saving/Loading</a></span></li></ul></li><li><span><a href="#Limitations" data-toc-modified-id="Limitations-3">Limitations</a></span></li><li><span><a href="#Roadmap" data-toc-modified-id="Roadmap-4">Roadmap</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
+<div class="toc"><ul class="toc-item"><li><span><a href="#Installation" data-toc-modified-id="Installation-1">Installation</a></span></li><li><span><a href="#Basic-Usage" data-toc-modified-id="Basic-Usage-2">Basic Usage</a></span><ul class="toc-item"><li><span><a href="#FuzzyMatcher" data-toc-modified-id="FuzzyMatcher-2.1">FuzzyMatcher</a></span></li><li><span><a href="#RegexMatcher" data-toc-modified-id="RegexMatcher-2.2">RegexMatcher</a></span></li><li><span><a href="#SimilarityMatcher" data-toc-modified-id="SimilarityMatcher-2.3">SimilarityMatcher</a></span></li><li><span><a href="#TokenMatcher" data-toc-modified-id="TokenMatcher-2.4">TokenMatcher</a></span></li><li><span><a href="#SpaczzRuler" data-toc-modified-id="SpaczzRuler-2.5">SpaczzRuler</a></span></li><li><span><a href="#Custom-Attributes" data-toc-modified-id="Custom-Attributes-2.6">Custom Attributes</a></span></li><li><span><a href="#Saving/Loading" data-toc-modified-id="Saving/Loading-2.7">Saving/Loading</a></span></li></ul></li><li><span><a href="#Performance" data-toc-modified-id="Performance-3">Performance</a></span></li><li><span><a href="#Roadmap" data-toc-modified-id="Roadmap-4">Roadmap</a></span></li><li><span><a href="#Development" data-toc-modified-id="Development-5">Development</a></span></li><li><span><a href="#References" data-toc-modified-id="References-6">References</a></span></li></ul></div>
 
 ## Installation
 
@@ -164,9 +172,10 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "quick_lev" = `quick_lev_ratio`
        Default is `"simple"`.
 - `ignore_case`: If strings should be lower-cased before comparison or not. Default is `True`.
-- `min_r1`: Minimum fuzzy match ratio required for selection during the intial search over doc. This should be lower than `min_r2` and "low" in general because match span boundaries are not flexed initially. `0` means all spans of query length in doc will have their boundaries flexed and will be re-compared during match optimization. Lower `min_r1` will result in more fine-grained matching but will run slower. Default is `50`.
-- `min_r2`: Minimum fuzzy match ratio required for selection during match optimization. Should be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
-- `flex`: Number of tokens to move match span boundaries left and right during match optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower), `"max"`, `"min"`, or `"default"`. Default is `"default"`: `max(len(query) - 1, 0)`.
+- `flex`: Number of tokens to move match match boundaries left and right during optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower),or the strings "max", "min", or "default". Default is `"default"`: `len(query) // 2`.
+- `min_r1`: Minimum match ratio required forselection during the intial search over doc. If `flex == 0`, `min_r1` will be overwritten by `min_r2`. If `flex > 0`, `min_r1` must be lower than `min_r2` and "low" in general because match boundaries are not flexed initially. Default is `50`.
+- `min_r2`: Minimum match ratio required for selection during match optimization. Needs to be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
+- `thresh`: If this ratio is exceeded in initial scan, and `flex > 0`, no optimization will be attempted. If `flex == 0`, `thresh` has no effect. Default is `100`.
 
 ### RegexMatcher
 
@@ -283,9 +292,10 @@ Also as a somewhat experimental feature, the similarity matcher is not currently
 
 The full list of keyword arguments available for similarity matching rules includes:
 
+- `flex`: Number of tokens to move match span boundaries left and right during match optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower), `"max"`, `"min"`, or `"default"`. Default is `"default"`: `len(query) // 2`.
 - `min_r1`: Minimum similarity match ratio required for selection during the intial search over doc. This should be lower than `min_r2` and "low" in general because match span boundaries are not flexed initially. `0` means all spans of query length in doc will have their boundaries flexed and will be re-compared during match optimization. Lower `min_r1` will result in more fine-grained matching but will run slower. Default is `50`.
 - `min_r2`: Minimum similarity match ratio required for selection during match optimization. Should be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
-- `flex`: Number of tokens to move match span boundaries left and right during match optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower), `"max"`, `"min"`, or `"default"`. Default is `"default"`: `max(len(query) - 1, 0)`.
+- `thresh`: If this ratio is exceeded in initial scan no optimization will be attempted. Default is `100`.
 
 ### TokenMatcher
 
@@ -596,9 +606,17 @@ spaczz_ruler.patterns
 
 
 
-## Limitations
+## Performance
 
 Spaczz is written in pure Python and it's matchers do not currently utilize spaCy language vocabularies, which means following it's logic should be easy to those familiar with Python. However this means spaczz components will run slower and likely consume more memory than their spaCy counterparts, especially as more patterns are added and documents get longer. It is therefore recommended to use spaCy components like the EntityRuler for entities with little uncertainty, like consistent spelling errors. Use spaczz components when there are not viable spaCy alternatives.
+
+I am actively working on performance optimizations to spaczz but it is a gradual process.
+
+The `FuzzyMatcher`, and even more so, the `SimilarityMatcher` are the slowest spaczz components. The primary methods for speeding these components up are by decreasing the `flex` parameter towards `0`, or if `flex > 0`, increasing the `min_r1` parameter towards the value of `min_r2` and/or lowering the `thresh` parameter towards `min_r2`. Be aware that all of these "speed-ups" come at the opportunity cost of potentially improved matches.
+
+As mentioned in the `SimilarityMatcher` description, utilizing a GPU will also help speed up it's matching process.
+
+I will likely develop some heuristic-based API options (while retaining all the current options) in the future to simplify this "tuning" process.
 
 ## Roadmap
 
@@ -608,6 +626,7 @@ I am always open and receptive to feature requests but just be aware, as a solo-
 
 1. Bug fixes - both breaking and behavioral. Hopefully these will be minimal.
 2. Initial performance optimizations discussed in [#41](https://github.com/gandersen101/spaczz/issues/41).
+    1. Mostly addressed in v0.4.1
 3. General ease-of-use enhancements.
 4. Enhanced error/warning handling and messaging.
 5. Building out Read the Docs.
@@ -640,15 +659,16 @@ poetry install # Within spaczz's root directory.
 
 You may also need to run the below to commit changes.
 
+
 ```python
 poetry run pre-commit install
 ```
 
-The only package that will not be installed via Poetry but is used for testing and in-documentation examples is the spaCy medium English model (en-core-web-md). This will need to be installed separately. The command below should do the trick:
+The only other package that will not be installed via Poetry but is used for testing and in-documentation examples is the spaCy medium English model (`en-core-web-md`). This will need to be installed separately. The command below should do the trick:
 
 
 ```python
-poetry run python -m spacy download("en_core_web_md")
+poetry run python -m spacy download "en_core_web_md"
 ```
 
 ## References
@@ -656,6 +676,6 @@ poetry run python -m spacy download("en_core_web_md")
 - Spaczz tries to stay as close to [spaCy](https://spacy.io/)'s API as possible. Whenever it made sense to use existing spaCy code within spaczz this was done.
 - Fuzzy matching is performed using [RapidFuzz](https://github.com/maxbachmann/rapidfuzz).
 - Regexes are performed using the [regex](https://pypi.org/project/regex/) library.
-- The search algorithm for fuzzy matching was heavily influnced by Stack Overflow user *Ulf Aslak*'s answer in this [thread](https://stackoverflow.com/questions/36013295/find-best-substring-match).
+- The search algorithm for phrased-based fuzzy and similarity matching was heavily influnced by Stack Overflow user Ulf Aslak's answer in this [thread](https://stackoverflow.com/questions/36013295/find-best-substring-match).
 - Spaczz's predefined regex patterns were borrowed from the [commonregex](https://github.com/madisonmay/CommonRegex) package.
 - Spaczz's development and CI/CD patterns were inspired by Claudio Jolowicz's [*Hypermodern Python*](https://cjolowicz.github.io/posts/hypermodern-python-01-setup/) article series.
