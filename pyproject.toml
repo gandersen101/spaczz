@@ -40,8 +40,6 @@ rstcheck = "^3.3.1"
 sphinx-autodoc-typehints = "^1.11.0"
 sphinx-autobuild = "0.*"
 codecov = "^2.1.7"
-nox = "^2020.12.31"
-pre-commit = "^2.10.0"
 
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
