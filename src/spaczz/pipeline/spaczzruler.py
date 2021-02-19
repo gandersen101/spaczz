@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, OrderedDict
+from itertools import chain
 from pathlib import Path
 from typing import Any, DefaultDict, Iterable, Optional, Union
 import warnings
@@ -162,18 +163,18 @@ class SpaczzRuler:
         fuzzy_matches = []
         ratio_lookup: dict[tuple[str, int, int], int] = {}
         for fuzzy_match in self.fuzzy_matcher(doc):
-            fuzzy_matches.append(fuzzy_match[:3])
             current_ratio = fuzzy_match[3]
             best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
             if current_ratio > best_ratio:
+                fuzzy_matches.append(fuzzy_match[:3])
                 ratio_lookup[fuzzy_match[:3]] = current_ratio
         regex_matches = []
         counts_lookup: dict[tuple[str, int, int], tuple[int, int, int]] = {}
         for regex_match in self.regex_matcher(doc):
-            regex_matches.append(regex_match[:3])
             current_counts = regex_match[3]
             best_counts = counts_lookup.get(regex_match[:3])
             if not best_counts or sum(current_counts) < sum(best_counts):
+                regex_matches.append(regex_match[:3])
                 counts_lookup[regex_match[:3]] = current_counts
         token_matches = []
         details_lookup: dict[tuple[str, int, int], int] = {}
@@ -181,16 +182,11 @@ class SpaczzRuler:
             token_matches.append(token_match[:3])
             details_lookup[token_match[:3]] = 1
         matches = fuzzy_matches + regex_matches + token_matches
-        unique_matches = set(
-            [(match_id, start, end) for match_id, start, end in matches if start != end]
-        )
-        sorted_matches = sorted(
-            unique_matches, key=lambda m: (m[2] - m[1], m[1]), reverse=True
-        )
+        unique_matches = self._filter_overlapping_matches(matches)
         entities = list(doc.ents)
         new_entities = []
         seen_tokens: set[int] = set()
-        for match_id, start, end in sorted_matches:
+        for match_id, start, end in unique_matches:
             if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
                 continue
             # check for end - 1 here because boundaries are inclusive
@@ -701,6 +697,42 @@ class SpaczzRuler:
         else:
             ent_label = label
             return ent_label, None
+
+    @staticmethod
+    def _filter_overlapping_matches(
+        matches: list[tuple[str, int, int]]
+    ) -> list[tuple[str, int, int]]:
+        """Prevents multiple match spans from overlapping.
+
+        Expects matches to be pre-sorted by matcher priority,
+        with each matcher's matches being pre-sorted by descending length,
+        then ascending start index, then descending match score
+        If more than one match span includes the same tokens
+        the first of these match spans in matches is kept.
+
+        Args:
+            matches: List of match span tuples
+                (match_id, start_index, end_index).
+
+        Returns:
+            The filtered list of match span tuples.
+
+        Example:
+            >>> import spacy
+            >>> from spaczz.pipeline import SpaczzRuler
+            >>> nlp = spacy.blank("en")
+            >>> ruler = SpaczzRuler(nlp)
+            >>> matches = [("TEST", 1, 3), ("TEST, 1, 2)]
+            >>> ruler._filter_overlapping_matches(matches)
+            [("TEST", 1, 3)]
+        """
+        filtered_matches: list[tuple[int, int, int]] = []
+        for match in matches:
+            if not set(range(match[1], match[2])).intersection(
+                chain(*[set(range(n[1], n[2])) for n in filtered_matches])
+            ):
+                filtered_matches.append(match)
+        return filtered_matches
 
     @staticmethod
     def _update_custom_attrs(
