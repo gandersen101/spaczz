@@ -722,11 +722,11 @@ class SpaczzRuler:
             >>> from spaczz.pipeline import SpaczzRuler
             >>> nlp = spacy.blank("en")
             >>> ruler = SpaczzRuler(nlp)
-            >>> matches = [("TEST", 1, 3), ("TEST, 1, 2)]
+            >>> matches = [("TEST", 1, 3), ("TEST", 1, 2)]
             >>> ruler._filter_overlapping_matches(matches)
-            [("TEST", 1, 3)]
+            [('TEST', 1, 3)]
         """
-        filtered_matches: list[tuple[int, int, int]] = []
+        filtered_matches: list[tuple[str, int, int]] = []
         for match in matches:
             if not set(range(match[1], match[2])).intersection(
                 chain(*[set(range(n[1], n[2])) for n in filtered_matches])
