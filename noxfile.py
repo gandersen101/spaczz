@@ -120,7 +120,13 @@ def safety(session: Session) -> None:
             external=True,
         )
         install_with_constraints(session, "safety")
-        session.run("safety", "check", f"--file={req_path}", "--full-report")
+        session.run(
+            "safety",
+            "check",
+            f"--file={req_path}",
+            "--full-report",
+            "--ignore=39462",  # tornado issue 2981
+        )
         os.unlink(req_path)
     else:
         with tempfile.NamedTemporaryFile() as requirements:
@@ -135,7 +141,11 @@ def safety(session: Session) -> None:
             )
             install_with_constraints(session, "safety")
             session.run(
-                "safety", "check", f"--file={requirements.name}", "--full-report"
+                "safety",
+                "check",
+                f"--file={requirements.name}",
+                "--full-report",
+                "--ignore=39462",  # tornado issue 2981
             )
 
 

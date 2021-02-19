@@ -197,9 +197,9 @@ def test_calling_ruler_with_overwrite_ents(
     nlp: Language, patterns: list[dict[str, Any]], doc: Doc
 ) -> None:
     """It overwrites existing entities."""
-    sr = SpaczzRuler(nlp, spaczz_patterns=patterns, spaczz_overwrite_ents=True)
+    ruler = SpaczzRuler(nlp, spaczz_patterns=patterns, spaczz_overwrite_ents=True)
     doc.ents += (Span(doc, 2, 4, label="WRONG"),)
-    doc = sr(doc)
+    doc = ruler(doc)
     assert "WRONG" not in [ent.label_ for ent in doc.ents]
 
 

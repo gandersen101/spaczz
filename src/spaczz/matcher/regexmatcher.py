@@ -123,7 +123,9 @@ class RegexMatcher:
                     for match in matches_w_label:
                         matches.add(match)
         if matches:
-            sorted_matches = sorted(matches, key=lambda x: (x[1], -x[2] - x[1]))
+            sorted_matches = sorted(
+                matches, key=lambda x: (x[1], -x[2] - x[1], sum(x[3]))
+            )
             for i, (label, _start, _end, _subs) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
