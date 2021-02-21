@@ -211,8 +211,6 @@ This already shows some improvement, but let's re-generate our patterns in a pro
 
 With short enough patterns (less than 5-6 or so characters long) fuzzy matching becomes less useful. Using the default fuzzy matching settings "Chad" matches with "had" with a ratio of 75 and there isn't a ratio between that and an 100% match. Setting a `min_r2` of say `95` with these short patterns is effectively setting it to `100`. Therefore, short patterns are probably better used with spaCy's `EntityRuler` for it's far superior speed.
 
-Another way to frame this is that spaczz, and basic fuzzy matching in general, is not an effective tool for performing fine-grained and context-aware spell checking. This would be an awesome feature, but is beyond the current scope of spaczz.
-
 
 ```python
 raw_patterns = srsly.read_json(path / "patterns/raw_countries.json")

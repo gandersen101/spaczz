@@ -5,19 +5,21 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import (
     Any,
-    Callable,
     DefaultDict,
     Generator,
     Iterable,
     Optional,
-    Union,
 )
+import warnings
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from .._types import TokenCallback
+from ..exceptions import PipeDeprecation
 from ..search import TokenSearcher
+from ..util import unpickle_matcher
 
 
 class TokenMatcher:
@@ -68,15 +70,7 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: dict[
-            str,
-            Union[
-                Callable[
-                    [TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None
-                ],
-                None,
-            ],
-        ] = {}
+        self._callbacks: dict[str, TokenCallback] = {}
         self._patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
@@ -130,6 +124,19 @@ class TokenMatcher:
     def __len__(self: TokenMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
+
+    def __reduce__(
+        self: TokenMatcher,
+    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+        """Interface for pickling the matcher."""
+        data = (
+            self.__class__,
+            self.vocab,
+            self._patterns,
+            self._callbacks,
+            self.defaults,
+        )
+        return (unpickle_matcher, data)
 
     @property
     def labels(self: TokenMatcher) -> tuple[str, ...]:
@@ -187,9 +194,7 @@ class TokenMatcher:
         self: TokenMatcher,
         label: str,
         patterns: list[list[dict[str, Any]]],
-        on_match: Optional[
-            Callable[[TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None]
-        ] = None,
+        on_match: TokenCallback = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -284,24 +289,13 @@ class TokenMatcher:
 
         Yields:
             `Doc` objects, in order.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import TokenMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = TokenMatcher(nlp.vocab)
-            >>> doc_stream = (
-                    nlp("test doc1: Korvld"),
-                    nlp("test doc2: Prosh"),
-                )
-            >>> matcher.add("DRAGON", [
-                [{"TEXT": {"FUZZY": "Korvold"}}],
-                [{"TEXT": {"FUZZY": "Prossh"}}]
-                ])
-            >>> output = matcher.pipe(doc_stream, return_matches=True)
-            >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4, None)], [('DRAGON', 3, 4, None)]]
         """
+        warnings.warn(
+            """As of spaCy v3.0 and spaczz v0.5 matcher.poipe methods are deprecated.
+        If you need to match on a stream of documents, you can use nlp.pipe and
+        call the matcher on each Doc object.""",
+            PipeDeprecation,
+        )
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)

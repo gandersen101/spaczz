@@ -1,4 +1,4 @@
-"""Module for various text/doc processing functions/classes."""
+"""Module for various doc/text processing classes/functions."""
 from __future__ import annotations
 
 from itertools import tee

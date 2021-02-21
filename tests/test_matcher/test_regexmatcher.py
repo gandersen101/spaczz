@@ -1,6 +1,9 @@
 """Tests for the regexmatcher module."""
 from __future__ import annotations
 
+import pickle
+import warnings
+
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -149,6 +152,12 @@ def test_matcher_returns_empty_list_if_no_matches(
     assert matcher(doc) == []
 
 
+def test_matcher_with_empty_doc(matcher: RegexMatcher, nlp: Language) -> None:
+    """Calling the matcher on an empty Doc returns empty list."""
+    doc = nlp("")
+    assert matcher(doc) == []
+
+
 def test_matcher_uses_on_match_callback(matcher: RegexMatcher, doc: Doc) -> None:
     """It utilizes callback on match functions passed when called on a Doc object."""
     matcher(doc)
@@ -157,50 +166,75 @@ def test_matcher_uses_on_match_callback(matcher: RegexMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
-    doc_stream = (
-        nlp.make_doc("test doc 1: United States"),
-        nlp.make_doc("test doc 2: US"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream)
-    assert list(output) == list(doc_stream)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            nlp.make_doc("test doc 1: United States"),
+            nlp.make_doc("test doc 2: US"),
+        )
+        matcher = RegexMatcher(nlp.vocab)
+        output = matcher.pipe(doc_stream)
+        assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
-    doc_stream = (
-        (nlp.make_doc("test doc 1: United States"), "Country"),
-        (nlp.make_doc("test doc 2: US"), "Country"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream, as_tuples=True)
-    assert list(output) == list(doc_stream)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            (nlp.make_doc("test doc 1: United States"), "Country"),
+            (nlp.make_doc("test doc 2: US"), "Country"),
+        )
+        matcher = RegexMatcher(nlp.vocab)
+        output = matcher.pipe(doc_stream, as_tuples=True)
+        assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
-    doc_stream = (
-        nlp.make_doc("test doc 1: United States"),
-        nlp.make_doc("test doc 2: US"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-    output = matcher.pipe(doc_stream, return_matches=True)
-    matches = [entry[1] for entry in output]
-    assert matches == [[("GPE", 4, 6, (0, 0, 0))], [("GPE", 4, 5, (0, 0, 0))]]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            nlp.make_doc("test doc 1: United States"),
+            nlp.make_doc("test doc 2: US"),
+        )
+        matcher = RegexMatcher(nlp.vocab)
+        matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
+        output = matcher.pipe(doc_stream, return_matches=True)
+        matches = [entry[1] for entry in output]
+        assert matches == [[("GPE", 4, 6, (0, 0, 0))], [("GPE", 4, 5, (0, 0, 0))]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects, matches, and context as a tuple."""
-    doc_stream = (
-        (nlp.make_doc("test doc 1: United States"), "Country"),
-        (nlp.make_doc("test doc 2: US"), "Country"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
-    matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [
-        ([("GPE", 4, 6, (0, 0, 0))], "Country"),
-        ([("GPE", 4, 5, (0, 0, 0))], "Country"),
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            (nlp.make_doc("test doc 1: United States"), "Country"),
+            (nlp.make_doc("test doc 2: US"), "Country"),
+        )
+        matcher = RegexMatcher(nlp.vocab)
+        matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
+        output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+        matches = [(entry[0][1], entry[1]) for entry in output]
+        assert matches == [
+            ([("GPE", 4, 6, (0, 0, 0))], "Country"),
+            ([("GPE", 4, 5, (0, 0, 0))], "Country"),
+        ]
+
+
+def test_pickling_matcher(matcher: RegexMatcher) -> None:
+    """It pickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    assert type(bytestring) == bytes
+
+
+def test_unpickling_matcher(matcher: RegexMatcher, doc: Doc) -> None:
+    """It unpickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    matcher = pickle.loads(bytestring)
+    assert matcher(doc) == [
+        ("STREET", 3, 6, (0, 0, 0)),
+        ("ZIP", 10, 11, (0, 0, 0)),
+        ("GPE", 13, 14, (0, 0, 0)),
     ]

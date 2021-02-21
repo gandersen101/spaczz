@@ -17,7 +17,7 @@ class _PhraseSearcher:
     Phrase matching is done on the token level.
 
     Not intended for use as-is. All methods and attributes except
-    the `.compare()` method are shared with the `FuzzySearcher` and
+    the `.compare` method are shared with the `FuzzySearcher` and
     `SimilaritySearcher`.
 
     Attributes:
@@ -40,13 +40,13 @@ class _PhraseSearcher:
 
     def compare(
         self: _PhraseSearcher,
-        a: Union[Doc, Span, Token],
-        b: Union[Doc, Span, Token],
+        query: Union[Doc, Span, Token],
+        reference: Union[Doc, Span, Token],
         ignore_case: bool = True,
         *args: Any,
         **kwargs: Any,
     ) -> int:
-        """Base method for comparing two spaCy containers.
+        """Base method for comparing two spaCy container objects.
 
         Tests the equality between the unicode string representation
         of each container (`Doc`, `Span`, `Token`) and returns
@@ -55,23 +55,23 @@ class _PhraseSearcher:
         Will be overwritten in child classes.
 
         Args:
-            a: First container for comparison.
-            b: Second container for comparison.
-            ignore_case: Whether to lower-case a and b
+            query: First container for comparison.
+            reference: Second container for comparison.
+            ignore_case: Whether to lower-case `query` and `reference`
                 before comparison or not. Default is `True`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            100 if equal, 0 if not.
+            `100` if equal, `0` if not.
         """
         if ignore_case:
-            a_text = a.text.lower()
-            b_text = b.text.lower()
+            query_text = query.text.lower()
+            reference_text = reference.text.lower()
         else:
-            a_text = a.text
-            b_text = b.text
-        if a_text == b_text:
+            query_text = query.text
+            reference_text = reference.text
+        if query_text == reference_text:
             return 100
         else:
             return 0
@@ -89,15 +89,15 @@ class _PhraseSearcher:
     ) -> list[tuple[int, int, int]]:
         """Returns phrase matches in a `Doc` object.
 
-        Finds phrase matches in the doc based on the query,
-        assuming the minimum match ratios (min_r1 and min_r2) are met.
+        Finds phrase matches in `doc` based on the `query`,
+        assuming the minimum match ratios (`min_r1` and `min_r2`) are met.
         Matches will be sorted by descending matching score,
         then ascending start index.
 
         Args:
             doc: `Doc` object to search over.
             query: `Doc` object to match against doc.
-            flex: Number of tokens to move match match boundaries
+            flex: Number of tokens to move match match span boundaries
                 left and right during optimization.
                 Can be an integer value with a max of `len(query)`
                 and a min of `0` (will warn and change if higher or lower),
@@ -123,7 +123,7 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A list of tuples of match span start indices,
+            A `list` of tuples of match start indices,
             end indices, and match ratios.
 
         Raises:
@@ -177,19 +177,20 @@ class _PhraseSearcher:
     ) -> Union[tuple[int, int, int], None]:
         """Optimizes a potential match by flexing match span boundaries.
 
-        For a span match from _scan that has match ratio
-        greater than or equal to min_r1 the span boundaries
+        For a match span from `._scan` that has match ratio
+        greater than or equal to `min_r1` the span boundaries
         will be extended both left and right by flex number
         of tokens and matched back to the original query.
         The optimal start and end index are then returned
-        along with the span's match ratio.
+        along with the span's match ratio of the match ratio
+        exceeds `min_r2`.
 
         Args:
             doc: `Doc` object being searched over.
             query: `Doc` object to match against doc.
             match_values: Dictionary of initial match spans
                 start indices and match ratios.
-            pos: Start index of span being optimized.
+            pos: Start index of match being optimized.
             flex: Number of tokens to move match span boundaries
                 left and right during match optimization.
             min_r2: Minimum match ratio required
@@ -201,8 +202,8 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A tuple of left boundary index,
-            right boudary index, and match ratio
+            A `tuple` of match start index,
+            end index, and match ratio
             or `None`.
         """
         p_l, bp_l = [pos] * 2
@@ -248,32 +249,32 @@ class _PhraseSearcher:
         *args: Any,
         **kwargs: Any,
     ) -> Union[dict[int, int], None]:
-        """Returns a dictionary of potential match start indices and match ratios.
+        """Returns a `dict` of potential match start indices and match ratios.
 
-        Iterates through the doc by spans of query length,
+        Iterates through the `doc` by spans of `query` length,
         and matches each span against query.
 
         If a span's match ratio is greater than or equal to the
-        min_r1 it is added to a dict with it's start index
+        `min_r1` it is added to a dict with it's start index
         as the key and it's ratio as the value.
 
         Args:
             doc: `Doc` object to search over.
             query: `Doc` object to match against doc.
             min_r1: Minimum match ratio required for
-                selection during the intial search over doc.
-                This should be lower than min_r2 and "low" in general
+                selection during the intial search over `doc`.
+                This should be lower than `min_r2` and "low" in general
                 because match span boundaries are not flexed here.
-                0 means all spans of query length in doc will
+                `0` means all spans of query length in doc will
                 have their boundaries flexed and will be recompared
                 during match optimization.
-                Lower min_r1 will result in more fine-grained matching
+                Lower `min_r1` will result in more fine-grained matching
                 but will run slower.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A dictionary of start index, match ratio pairs or None.
+            A `dict` of match start index, match ratio pairs or `None`.
         """
         if not len(query):
             return None
@@ -291,15 +292,15 @@ class _PhraseSearcher:
 
     @staticmethod
     def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
-        """Returns flex value based on initial value and query.
+        """Returns `flex` value based on initial value and the `query`.
 
-        By default flex is set to `len(query) // 2`.
+        By default `flex` is set to `len(query) // 2`.
 
-        If flex is an integer value greater than `len(query)`,
-        flex will be set to that value instead.
+        If `flex` is an integer value greater than `len(query)`,
+        `flex` will be set to that value instead.
 
-        If flex is an integer value less than 0,
-        flex will be set to 0 instead.
+        If `flex` is an integer value less than `0`,
+        `flex` will be set to `0` instead.
 
         Args:
             query: The `Doc` object to match with.
@@ -309,16 +310,16 @@ class _PhraseSearcher:
                 or an integer value.
 
         Returns:
-            The new flex value.
+            The new `flex` value.
 
         Raises:
-            TypeError: If flex is not "default", "max", "min", or an int.
+            TypeError: If `flex` is not `"default"`, `"max"`, `"min"`, or an `int`.
 
         Warnings:
             FlexWarning:
-                If flex is > `len(query)`.
+                If `flex` is > `len(query)`.
             FlexWarning:
-                If flex is < 0.
+                If `flex` is < `0`.
 
         Example:
             >>> import spacy
@@ -338,24 +339,21 @@ class _PhraseSearcher:
         elif isinstance(flex, int):
             if flex > len(query):
                 warnings.warn(
-                    f"""`flex` of size {flex} is greater than `len(query)`.
+                    f"""flex of size {flex} is greater than len(query).
                         Setting to that max value instead.""",
                     FlexWarning,
                 )
                 flex = len(query)
             if flex < 0:
                 warnings.warn(
-                    """`flex` values less than `0` are not allowed.
-                    Setting to the min, `0`, instead.""",
+                    """flex values less than 0 are not allowed.
+                    Setting to the min, 0, instead.""",
                     FlexWarning,
                 )
                 flex = 0
         else:
             raise TypeError(
-                (
-                    "Flex must either be the strings 'default',",
-                    "`max`, or `min`, or an integer.",
-                )
+                ("Flex must either be the strings default,", "max, or min, or an int.",)
             )
         return flex
 
@@ -363,19 +361,19 @@ class _PhraseSearcher:
     def _check_ratios(
         min_r1: int, min_r2: int, thresh: int, flex: int
     ) -> tuple[int, int, int]:
-        """Ensures ratios are not set to illegal values."""
+        """Ensures match ratio requirements are not set to illegal values."""
         if flex:
             if min_r1 > min_r2:
                 warnings.warn(
-                    """`min_r1` > `min_r2`,
-                setting `min_r1` equal to `min_r2`""",
+                    """min_r1 > min_r2,
+                setting min_r1 equal to min_r2""",
                     RatioWarning,
                 )
                 min_r1 = min_r2
             if thresh < min_r2:
                 warnings.warn(
-                    """`thresh` < `min_r2`,
-                setting `thresh` equal to `min_r2`""",
+                    """thresh < min_r2,
+                setting thresh equal to min_r2""",
                     RatioWarning,
                 )
                 thresh = min_r2
@@ -395,11 +393,11 @@ class _PhraseSearcher:
         the first of these match spans in matches is kept.
 
         Args:
-            matches: List of match span tuples
-                (start_index, end_index, fuzzy ratio).
+            matches: `list` of match tuples
+                (start index, end index, fuzzy ratio).
 
         Returns:
-            The filtered list of match span tuples.
+            The filtered `list` of match span tuples.
 
         Example:
             >>> import spacy

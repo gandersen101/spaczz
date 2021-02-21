@@ -1,6 +1,9 @@
 """Tests for the fuzzymatcher module."""
 from __future__ import annotations
 
+import pickle
+import warnings
+
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -167,50 +170,76 @@ def test_matcher_uses_on_match_callback(matcher: FuzzyMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
-    doc_stream = (
-        nlp.make_doc("test doc 1: Corvold"),
-        nlp.make_doc("test doc 2: Prosh"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream)
-    assert list(output) == list(doc_stream)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            nlp.make_doc("test doc 1: Corvold"),
+            nlp.make_doc("test doc 2: Prosh"),
+        )
+        matcher = FuzzyMatcher(nlp.vocab)
+        output = matcher.pipe(doc_stream)
+        assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
-    doc_stream = (
-        (nlp.make_doc("test doc 1: Corvold"), "Jund"),
-        (nlp.make_doc("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream, as_tuples=True)
-    assert list(output) == list(doc_stream)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            (nlp.make_doc("test doc 1: Corvold"), "Jund"),
+            (nlp.make_doc("test doc 2: Prosh"), "Jund"),
+        )
+        matcher = FuzzyMatcher(nlp.vocab)
+        output = matcher.pipe(doc_stream, as_tuples=True)
+        assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
-    doc_stream = (
-        nlp.make_doc("test doc 1: Corvold"),
-        nlp.make_doc("test doc 2: Prosh"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = matcher.pipe(doc_stream, return_matches=True)
-    matches = [entry[1] for entry in output]
-    assert matches == [[("DRAGON", 4, 5, 86)], [("DRAGON", 4, 5, 91)]]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            nlp.make_doc("test doc 1: Corvold"),
+            nlp.make_doc("test doc 2: Prosh"),
+        )
+        matcher = FuzzyMatcher(nlp.vocab)
+        matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
+        output = matcher.pipe(doc_stream, return_matches=True)
+        matches = [entry[1] for entry in output]
+        assert matches == [[("DRAGON", 4, 5, 86)], [("DRAGON", 4, 5, 91)]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches and context as tuples."""
-    doc_stream = (
-        (nlp.make_doc("test doc 1: Corvold"), "Jund"),
-        (nlp.make_doc("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
-    matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [
-        ([("DRAGON", 4, 5, 86)], "Jund"),
-        ([("DRAGON", 4, 5, 91)], "Jund"),
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        doc_stream = (
+            (nlp.make_doc("test doc 1: Corvold"), "Jund"),
+            (nlp.make_doc("test doc 2: Prosh"), "Jund"),
+        )
+        matcher = FuzzyMatcher(nlp.vocab)
+        matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
+        output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+        matches = [(entry[0][1], entry[1]) for entry in output]
+        assert matches == [
+            ([("DRAGON", 4, 5, 86)], "Jund"),
+            ([("DRAGON", 4, 5, 91)], "Jund"),
+        ]
+
+
+def test_pickling_matcher(matcher: FuzzyMatcher) -> None:
+    """It pickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    assert type(bytestring) == bytes
+
+
+def test_unpickling_matcher(matcher: FuzzyMatcher, doc: Doc) -> None:
+    """It unpickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    matcher = pickle.loads(bytestring)
+    assert matcher(doc) == [
+        ("ANIMAL", 1, 2, 83),
+        ("SOUND", 4, 5, 80),
+        ("ANIMAL", 16, 17, 83),
+        ("NAME", 18, 19, 77),
     ]

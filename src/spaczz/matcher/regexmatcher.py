@@ -1,10 +1,8 @@
 """Module for RegexMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import (
     Any,
-    Callable,
     DefaultDict,
     Generator,
     Iterable,
@@ -16,7 +14,8 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import KwargsWarning
+from .._types import nest_defaultdict, RegexCallback
+from ..exceptions import KwargsWarning, PipeDeprecation
 from ..regex import RegexConfig
 from ..search import RegexSearcher
 
@@ -69,22 +68,9 @@ class RegexMatcher:
         """
         self.defaults = defaults
         self.type = "regex"
-        self._callbacks: dict[
-            str,
-            Optional[
-                Callable[
-                    [
-                        RegexMatcher,
-                        Doc,
-                        int,
-                        list[tuple[str, int, int, tuple[int, int, int]]],
-                    ],
-                    None,
-                ],
-            ],
-        ] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
-            lambda: defaultdict(list)
+        self._callbacks: dict[str, RegexCallback] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
+            list, 2
         )
         self._searcher = RegexSearcher(vocab=vocab, config=config)
 
@@ -203,17 +189,7 @@ class RegexMatcher:
         label: str,
         patterns: list[str],
         kwargs: Optional[list[dict[str, Any]]] = None,
-        on_match: Optional[
-            Callable[
-                [
-                    RegexMatcher,
-                    Doc,
-                    int,
-                    list[tuple[str, int, int, tuple[int, int, int]]],
-                ],
-                None,
-            ]
-        ] = None,
+        on_match: RegexCallback = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -333,21 +309,13 @@ class RegexMatcher:
 
         Yields:
             Doc objects, in order.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import RegexMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = RegexMatcher(nlp.vocab)
-            >>> doc_stream = (
-                    nlp.make_doc("test doc1: United States"),
-                    nlp.make_doc("test doc2: US"),
-                )
-            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> output = matcher.pipe(doc_stream, return_matches=True)
-            >>> [entry[1] for entry in output]
-            [[('GPE', 3, 5, (0, 0, 0))], [('GPE', 3, 4, (0, 0, 0))]]
         """
+        warnings.warn(
+            """As of spaCy v3.0 and spaczz v0.5 matcher.poipe methods are deprecated.
+        If you need to match on a stream of documents, you can use nlp.pipe and
+        call the matcher on each Doc object.""",
+            PipeDeprecation,
+        )
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)

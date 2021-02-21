@@ -57,23 +57,23 @@ class FuzzySearcher(_PhraseSearcher):
 
     def compare(
         self: FuzzySearcher,
-        a: Union[Doc, Span, Token],
-        b: Union[Doc, Span, Token],
+        query: Union[Doc, Span, Token],
+        reference: Union[Doc, Span, Token],
         ignore_case: bool = True,
         fuzzy_func: str = "simple",
         *args: Any,
         **kwargs: Any,
     ) -> int:
-        """Peforms fuzzy matching between two spaCy containers.
+        """Peforms fuzzy matching between two spaCy container objects.
 
-        Applies the given fuzzy matching algorithm (fuzzy_func)
+        Applies the given fuzzy matching algorithm (`fuzzy_func`)
         to two spacy containers (`Doc`, `Span`, `Token`)
         and returns the resulting fuzzy ratio.
 
         Args:
-            a: First container for comparison.
-            b: Second container for comparison.
-            ignore_case: Whether to lower-case a and b
+            query: First container for comparison.
+            reference: Second container for comparison.
+            ignore_case: Whether to lower-case `query` and `reference`
                 before comparison or not. Default is `True`.
             fuzzy_func: Key name of fuzzy matching function to use.
                 All rapidfuzz matching functions with default settings
@@ -92,7 +92,7 @@ class FuzzySearcher(_PhraseSearcher):
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            The fuzzy ratio between a and b.
+            The fuzzy ratio between `query` and `reference` as an `int`.
 
         Example:
             >>> import spacy
@@ -103,9 +103,9 @@ class FuzzySearcher(_PhraseSearcher):
             73
         """
         if ignore_case:
-            a_text = a.text.lower()
-            b_text = b.text.lower()
+            query_text = query.text.lower()
+            reference_text = reference.text.lower()
         else:
-            a_text = a.text
-            b_text = b.text
-        return round(self._fuzzy_funcs.get(fuzzy_func)(a_text, b_text))
+            query_text = query.text
+            reference_text = reference.text
+        return round(self._fuzzy_funcs.get(fuzzy_func)(query_text, reference_text))

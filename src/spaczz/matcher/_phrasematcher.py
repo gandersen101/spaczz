@@ -1,22 +1,16 @@
 """Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Generator,
-    Iterable,
-    Optional,
-)
+from typing import Any, DefaultDict, Generator, Iterable, Optional
 import warnings
 
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import KwargsWarning
+from .._types import nest_defaultdict, PhraseCallback
+from ..exceptions import KwargsWarning, PipeDeprecation
 from ..search import _PhraseSearcher
+from ..util import unpickle_matcher
 
 
 class _PhraseMatcher:
@@ -26,14 +20,15 @@ class _PhraseMatcher:
     Accepts labeled patterns in the form of `Doc` objects.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings.
+        defaults (dict[str, Any]): Keyword arguments to be used as
+            default matching settings.
             See `_PhraseSearcher` documentation for details.
-        name: Class attribute - the name of the matcher.
-        type: The kind of matcher object.
-        _callbacks:
+        name (str): Class attribute - the name of the matcher.
+        type (str): The kind of matcher object.
+        _callbacks (dict[str, PhraseCallback]):
             On match functions to modify `Doc` objects passed to the matcher.
             Can make use of the matches identified.
-        _patterns:
+        _patterns (DefaultDict[str, DefaultDict[str, Any]]):
             Patterns added to the matcher. Contains patterns
             and kwargs that should be used during matching
             for each labels added.
@@ -58,23 +53,20 @@ class _PhraseMatcher:
         """
         self.defaults = defaults
         self.type = "_phrase"
-        self._callbacks: dict[
-            str,
-            Optional[Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]],
-        ] = {}  # Any type due to inheritence typing issue.
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
-            lambda: defaultdict(list)
+        self._callbacks: dict[str, PhraseCallback] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
+            list, 2
         )
         self._searcher = _PhraseSearcher(vocab=vocab)
 
     def __call__(self: _PhraseMatcher, doc: Doc) -> list[tuple[str, int, int, int]]:
-        """Find all sequences matching the supplied patterns in the doc.
+        """Find all sequences matching the supplied patterns in `doc`.
 
         Args:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end, ratio) tuples, describing the matches.
+            A `list` of (key, start, end, ratio) tuples, describing the matches.
 
         Example:
             >>> import spacy
@@ -116,12 +108,25 @@ class _PhraseMatcher:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
+    def __reduce__(
+        self: _PhraseMatcher,
+    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+        """Interface for pickling the matcher."""
+        data = (
+            self.__class__,
+            self.vocab,
+            self._patterns,
+            self._callbacks,
+            self.defaults,
+        )
+        return (unpickle_matcher, data)
+
     @property
     def labels(self: _PhraseMatcher) -> tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
-            The unique string labels as a tuple.
+            The unique labels as a `tuple` of strings.
 
         Example:
             >>> import spacy
@@ -139,8 +144,7 @@ class _PhraseMatcher:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
-            The original patterns and kwargs,
-            one dictionary for each combination.
+            The patterns and their kwargs as a `list` of dicts.
 
         Example:
             >>> import spacy
@@ -178,14 +182,12 @@ class _PhraseMatcher:
         label: str,
         patterns: list[Doc],
         kwargs: Optional[list[dict[str, Any]]] = None,
-        on_match: Optional[
-            Callable[[Any, Doc, int, list[tuple[str, int, int, int]]], None]
-        ] = None,  # Any type due to inheritence typing issue.
+        on_match: PhraseCallback = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of `Doc` object and if kwargs is not None,
-        kwargs must be a list of dictionaries.
+        Patterns must be a `list` of `Doc` objects and if kwargs is not `None`,
+        kwargs must be a `list` of dicts.
 
         Args:
             label: Name of the rule added to the matcher.
@@ -200,8 +202,8 @@ class _PhraseMatcher:
                 Default is `None`.
 
         Raises:
-            TypeError: Patterns must be a list of `Doc` objects.
-            TypeError: If kwargs is not an iterable dictionaries.
+            TypeError: Patterns must be a `list` of `Doc` objects.
+            TypeError: If kwargs is not an `list` of dicts.
 
         Warnings:
             KwargsWarning:
@@ -222,19 +224,19 @@ class _PhraseMatcher:
             True
         """
         if not isinstance(patterns, list):
-            raise TypeError("Patterns must be a list of `Doc objects.")
+            raise TypeError("Patterns must be a list of Doc objects.")
         if kwargs is None:
             kwargs = [{} for _ in patterns]
         elif len(kwargs) < len(patterns):
             warnings.warn(
-                """There are more patterns then there are kwargs.\n
+                """There are more patterns then there are kwargs.
                 Patterns not matched to a kwarg dict will have default settings.""",
                 KwargsWarning,
             )
             kwargs.extend([{} for _ in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
             warnings.warn(
-                """There are more kwargs dicts than patterns.\n
+                """There are more kwargs dicts than patterns.
                 The extra kwargs will be ignored.""",
                 KwargsWarning,
             )
@@ -242,11 +244,11 @@ class _PhraseMatcher:
             if isinstance(pattern, Doc):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise TypeError("Patterns must be a list of `Doc` objects.")
+                raise TypeError("Patterns must be a list of Doc objects.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise TypeError("Kwargs must be a list of dictionaries.")
+                raise TypeError("Kwargs must be a list of dicts.")
         self._callbacks[label] = on_match
 
     def remove(self: _PhraseMatcher, label: str) -> None:
@@ -285,6 +287,8 @@ class _PhraseMatcher:
     ) -> Generator[Any, None, None]:
         """Match a stream of `Doc` objects, yielding them in turn.
 
+        Deprecated as of spaCy v3.0 and spaczz v0.5.
+
         Args:
             stream: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.
@@ -299,21 +303,13 @@ class _PhraseMatcher:
 
         Yields:
             `Doc` objects, in order.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> doc_stream = (
-                    nlp("test doc1: Korvold"),
-                    nlp("test doc2: Prossh"),
-                )
-            >>> matcher.add("DRAGON", [nlp("Korvold"), nlp("Prossh")])
-            >>> output = matcher.pipe(doc_stream, return_matches=True)
-            >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4, 100)], [('DRAGON', 3, 4, 100)]]
         """
+        warnings.warn(
+            """As of spaCy v3.0 and spaczz v0.5 matcher.poipe methods are deprecated.
+        If you need to match on a stream of documents, you can use nlp.pipe and
+        call the matcher on each Doc object.""",
+            PipeDeprecation,
+        )
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)
