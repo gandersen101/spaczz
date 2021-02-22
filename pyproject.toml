@@ -15,7 +15,7 @@ python = "^3.7"
 spacy = "^2.2.0"
 regex = "^2020.6.8"
 importlib_metadata = {version = "^1.7.0", python = "<3.8"}
-rapidfuzz = "0.*"
+rapidfuzz = "^1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.3"

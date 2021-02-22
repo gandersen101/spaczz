@@ -74,13 +74,13 @@ class FuzzyFuncs:
                 "partial_token_sort": fuzz.partial_token_sort_ratio,
                 "quick": fuzz.QRatio,
                 "weighted": fuzz.WRatio,
-                "quick_lev": fuzz.quick_lev_ratio,
+                "token": fuzz.token_ratio,
+                "partial_token": fuzz.partial_token_ratio,
             }
         elif match_type == "token":
             self._fuzzy_funcs = {
                 "simple": fuzz.ratio,
                 "quick": fuzz.QRatio,
-                "quick_lev": fuzz.quick_lev_ratio,
             }
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
