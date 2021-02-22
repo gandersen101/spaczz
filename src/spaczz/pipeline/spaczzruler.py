@@ -105,7 +105,7 @@ class SpaczzRuler:
             list
         )
         self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
-        self._ent_ids: dict[Any, Any] = defaultdict(dict)
+        self._ent_ids: defaultdict[Any, Any] = defaultdict(dict)
         self.overwrite = cfg.get("spaczz_overwrite_ents", False)
         default_names = (
             "spaczz_fuzzy_defaults",
@@ -160,60 +160,8 @@ class SpaczzRuler:
             >>> "Anderson, Grunt" in [ent.text for ent in doc.ents]
             True
         """
-        fuzzy_matches = []
-        ratio_lookup: dict[tuple[str, int, int], int] = {}
-        for fuzzy_match in self.fuzzy_matcher(doc):
-            current_ratio = fuzzy_match[3]
-            best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
-            if current_ratio > best_ratio:
-                fuzzy_matches.append(fuzzy_match[:3])
-                ratio_lookup[fuzzy_match[:3]] = current_ratio
-        regex_matches = []
-        counts_lookup: dict[tuple[str, int, int], tuple[int, int, int]] = {}
-        for regex_match in self.regex_matcher(doc):
-            current_counts = regex_match[3]
-            best_counts = counts_lookup.get(regex_match[:3])
-            if not best_counts or sum(current_counts) < sum(best_counts):
-                regex_matches.append(regex_match[:3])
-                counts_lookup[regex_match[:3]] = current_counts
-        token_matches = []
-        details_lookup: dict[tuple[str, int, int], int] = {}
-        for token_match in self.token_matcher(doc):
-            token_matches.append(token_match[:3])
-            details_lookup[token_match[:3]] = 1
-        matches = fuzzy_matches + regex_matches + token_matches
-        unique_matches = self._filter_overlapping_matches(matches)
-        entities = list(doc.ents)
-        new_entities = []
-        seen_tokens: set[int] = set()
-        for match_id, start, end in unique_matches:
-            if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
-                continue
-            # check for end - 1 here because boundaries are inclusive
-            if start not in seen_tokens and end - 1 not in seen_tokens:
-                if match_id in self._ent_ids:
-                    label, ent_id = self._ent_ids[match_id]
-                    span = Span(doc, start, end, label=label)
-                    if ent_id:
-                        for token in span:
-                            token.ent_id_ = ent_id
-                else:
-                    span = Span(doc, start, end, label=match_id)
-                span = self._update_custom_attrs(
-                    span,
-                    match_id,
-                    start,
-                    end,
-                    ratio_lookup,
-                    counts_lookup,
-                    details_lookup,
-                )
-                new_entities.append(span)
-                entities = [
-                    e for e in entities if not (e.start < end and e.end > start)
-                ]
-                seen_tokens.update(range(start, end))
-        doc.ents = entities + new_entities
+        matches, lookup = self.match(doc)
+        self.set_annotations(doc, matches, lookup)
         return doc
 
     def __contains__(self: SpaczzRuler, label: str) -> bool:
@@ -472,6 +420,68 @@ class SpaczzRuler:
 
             self._add_patterns(fuzzy_patterns, regex_patterns, token_patterns)
 
+    def match(
+        self: SpaczzRuler, doc: Doc
+    ) -> tuple[
+        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]],
+    ]:
+        """Used in call to find matches in a doc."""
+        fuzzy_matches = []
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]] = defaultdict(dict)
+        for fuzzy_match in self.fuzzy_matcher(doc):
+            current_ratio = fuzzy_match[3]
+            best_ratio = lookup["ratios"].get(fuzzy_match[:3], 0)
+            if current_ratio > best_ratio:
+                fuzzy_matches.append(fuzzy_match[:3])
+                lookup["ratios"][fuzzy_match[:3]] = current_ratio
+        regex_matches = []
+        for regex_match in self.regex_matcher(doc):
+            current_counts = regex_match[3]
+            best_counts = lookup["counts"].get(regex_match[:3])
+            if not best_counts or sum(current_counts) < sum(best_counts):
+                regex_matches.append(regex_match[:3])
+                lookup["counts"][regex_match[:3]] = current_counts
+        token_matches = []
+        for token_match in self.token_matcher(doc):
+            token_matches.append(token_match[:3])
+            lookup["details"][token_match[:3]] = 1
+        matches = fuzzy_matches + regex_matches + token_matches
+        unique_matches, lookup = self._filter_overlapping_matches(matches, lookup)
+        return unique_matches, lookup
+
+    def set_annotations(
+        self: SpaczzRuler,
+        doc: Doc,
+        matches: list[tuple[str, int, int]],
+        lookup: defaultdict[
+            str, dict[tuple[str, int, int], Union[int, tuple[int, int, int]]]
+        ],
+    ) -> None:
+        """Modify the document in place."""
+        entities = list(doc.ents)
+        new_entities = []
+        seen_tokens: set[int] = set()
+        for match_id, start, end in matches:
+            if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
+                continue
+            # check for end - 1 here because boundaries are inclusive
+            if start not in seen_tokens and end - 1 not in seen_tokens:
+                if match_id in self._ent_ids:
+                    label, ent_id = self._ent_ids[match_id]
+                    span = Span(doc, start, end, label=label)
+                    if ent_id:
+                        for token in span:
+                            token.ent_id_ = ent_id
+                else:
+                    span = Span(doc, start, end, label=match_id)
+                span = self._update_custom_attrs(span, match_id, lookup)
+                new_entities.append(span)
+                entities = [
+                    e for e in entities if not (e.start < end and e.end > start)
+                ]
+                seen_tokens.update(range(start, end))
+        doc.ents = entities + new_entities
+
     def from_bytes(
         self: SpaczzRuler, patterns_bytes: bytes, **kwargs: Any
     ) -> SpaczzRuler:
@@ -700,8 +710,11 @@ class SpaczzRuler:
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: list[tuple[str, int, int]]
-    ) -> list[tuple[str, int, int]]:
+        matches: list[tuple[str, int, int]],
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
+    ) -> tuple[
+        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]]
+    ]:
         """Prevents multiple match spans from overlapping.
 
         Expects matches to be pre-sorted by matcher priority,
@@ -713,6 +726,8 @@ class SpaczzRuler:
         Args:
             matches: List of match span tuples
                 (match_id, start_index, end_index).
+            lookup: Match ratio, count and detail values in
+                a `defaultdict(dict)`.
 
         Returns:
             The filtered list of match span tuples.
@@ -732,25 +747,32 @@ class SpaczzRuler:
                 chain(*[set(range(n[1], n[2])) for n in filtered_matches])
             ):
                 filtered_matches.append(match)
-        return filtered_matches
+                if match in lookup["ratios"]:
+                    _ = lookup["counts"].pop(match, None)
+                    _ = lookup["details"].pop(match, None)
+                elif match in lookup["counts"]:
+                    _ = lookup["details"].pop(match, None)
+        return filtered_matches, lookup
 
     @staticmethod
     def _update_custom_attrs(
         span: Span,
         match_id: str,
-        start: int,
-        end: int,
-        ratio_lookup: dict[tuple[str, int, int], int],
-        counts_lookup: dict[tuple[str, int, int], tuple[int, int, int]],
-        details_lookup: dict[tuple[str, int, int], int],
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
     ) -> Span:
         """Update custom attributes for matches."""
-        ratio = ratio_lookup.get((match_id, start, end), None)
-        counts = counts_lookup.get((match_id, start, end), None)
-        details = details_lookup.get((match_id, start, end), None)
+        ratio = lookup["ratios"].get((match_id, span.start, span.end))
+        counts = lookup["counts"].get((match_id, span.start, span.end))
+        details = lookup["details"].get((match_id, span.start, span.end))
         for token in span:
             token._.spaczz_token = True
-            token._.spaczz_ratio = ratio
-            token._.spaczz_counts = counts
-            token._.spaczz_details = details
+            if ratio:
+                token._.spaczz_ratio = ratio
+                token._.spaczz_type = "fuzzy"
+            elif counts:
+                token._.spaczz_counts = counts
+                token._.spaczz_type = "regex"
+            elif details:
+                token._.spaczz_details = details
+                token._.spaczz_type = "token"
         return span

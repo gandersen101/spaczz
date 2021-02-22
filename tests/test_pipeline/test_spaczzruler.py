@@ -175,7 +175,6 @@ def test_calling_ruler(nlp: Language, patterns: list[dict[str, Any]], doc: Doc) 
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
-    print(ents)
     assert all(ent._.spaczz_span for ent in ents)
     assert ents[0]._.spaczz_ratio == 86
     assert ents[1]._.spaczz_counts == (0, 0, 0)
@@ -231,13 +230,36 @@ def test_seeing_tokens_again(
 def test_set_entity_ids(nlp: Language, patterns: list[dict[str, Any]]) -> None:
     """It writes ids to entities."""
     ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
-    nlp.add_pipe(ruler)
     doc = nlp("Grint Anderson was prescribed Zithroma.")
+    doc = ruler(doc)
     assert len(doc.ents) == 2
     assert doc.ents[0].label_ == "NAME"
     assert doc.ents[0].ent_id_ == "Developer"
     assert doc.ents[1].label_ == "DRUG"
     assert doc.ents[1].ent_id_ == "Antibiotic"
+
+
+def test_only_set_one_ent_type(
+    nlp: Language, doc: Doc, patterns: list[dict[str, Any]]
+) -> None:
+    """Matches only have one `._.spaczz_type`."""
+    ruler = SpaczzRuler(nlp, spaczz_patterns=patterns)
+    ruler.add_patterns(
+        [
+            {
+                "label": "NAME",
+                "pattern": [
+                    {"TEXT": {"FUZZY": "Grant"}},
+                    {"TEXT": {"FUZZY": "Andersen"}},
+                ],
+                "type": "token",
+            }
+        ]
+    )
+    doc = ruler(doc)
+    assert doc[0]._.spaczz_type == "fuzzy"
+    assert doc.ents[0]._.spaczz_type == "fuzzy"
+    assert doc.ents[0]._.spaczz_types == {"fuzzy"}
 
 
 def test__create_label_w_no_ent_id(nlp: Language) -> None:

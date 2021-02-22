@@ -20,14 +20,13 @@ class SpaczzAttrs:
         if not cls._initialized:
             try:
                 Token.set_extension("spaczz_token", default=False)
-                Token.set_extension(
-                    "spaczz_types", getter=cls.get_token_types,
-                )
+                Token.set_extension("spaczz_type", default=None)
                 Token.set_extension("spaczz_ratio", default=None)
                 Token.set_extension("spaczz_counts", default=None)
                 Token.set_extension("spaczz_details", default=None)
 
                 Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
+                Span.set_extension("spaczz_type", getter=cls.get_span_type)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
                 Span.set_extension("spaczz_counts", getter=cls.get_counts)
@@ -45,15 +44,14 @@ class SpaczzAttrs:
                     AttrOverwriteWarning,
                 )
                 Token.set_extension("spaczz_token", default=False, force=True)
-                Token.set_extension(
-                    "spaczz_types", getter=cls.get_token_types, force=True
-                )
+                Token.set_extension("spaczz_type", default=None, force=True)
                 Token.set_extension("spaczz_ratio", default=None, force=True)
                 Token.set_extension("spaczz_counts", default=None, force=True)
 
                 Span.set_extension(
                     "spaczz_span", getter=cls.get_spaczz_span, force=True
                 )
+                Span.set_extension("spaczz_type", getter=cls.get_span_type, force=True)
                 Span.set_extension(
                     "spaczz_types", getter=cls.get_span_types, force=True
                 )
@@ -68,29 +66,19 @@ class SpaczzAttrs:
         """Getter for spaczz_span `Span` attribute."""
         return all([token._.spaczz_token for token in span])
 
-    @staticmethod
-    def get_token_types(token: Token) -> set[str]:
-        """Getter for spaczz_types `Token` attribute."""
-        types = set()
-        if token._.spaczz_ratio:
-            types.add("fuzzy")
-        if token._.spaczz_counts:
-            types.add("regex")
-        if token._.spaczz_details:
-            types.add("token")
-        return types
-
     @classmethod
-    def get_span_types(cls: Type[SpaczzAttrs], span: Span) -> set[str]:
+    def get_span_type(cls: Type[SpaczzAttrs], span: Span) -> Optional[str]:
+        """Getter for spaczz_type `Span` attribute."""
+        if cls._all_equal([token._.spaczz_type for token in span]):
+            return span[0]._.spaczz_type
+        else:
+            return None
+
+    @staticmethod
+    def get_span_types(span: Span) -> set[str]:
         """Getter for spaczz_types `Span` attribute."""
-        types = set()
-        if cls.get_ratio(span):
-            types.add("fuzzy")
-        if cls.get_counts(span):
-            types.add("regex")
-        if cls.get_details(span):
-            types.add("token")
-        return types
+        types = [token._.spaczz_type for token in span if token._.spaczz_type]
+        return set(types)
 
     @classmethod
     def get_ratio(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
@@ -126,13 +114,8 @@ class SpaczzAttrs:
     @staticmethod
     def get_doc_types(doc: Doc) -> set[str]:
         """Getter for spaczz_types `Doc` attribute."""
-        types = set()
-        for token in doc:
-            token_types = token._.spaczz_types
-            if token_types:
-                for t in token_types:
-                    types.add(t)
-        return types
+        types = [token._.spaczz_type for token in doc if token._.spaczz_type]
+        return set(types)
 
     @staticmethod
     def _all_equal(iterable: Iterable) -> bool:
