@@ -1,16 +1,26 @@
 """Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
 from __future__ import annotations
 
-from typing import Any, DefaultDict, Generator, Iterable, Optional
+from collections import defaultdict
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+)
 import warnings
 
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from .._types import nest_defaultdict, PhraseCallback
 from ..exceptions import KwargsWarning, PipeDeprecation
 from ..search import _PhraseSearcher
-from ..util import unpickle_matcher
+from ..util import nest_defaultdict
 
 
 class _PhraseMatcher:
@@ -54,7 +64,7 @@ class _PhraseMatcher:
         self.defaults = defaults
         self.type = "_phrase"
         self._callbacks: dict[str, PhraseCallback] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
+        self._patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
             list, 2
         )
         self._searcher = _PhraseSearcher(vocab=vocab)
@@ -324,3 +334,24 @@ class _PhraseMatcher:
                     yield (doc, matches)
                 else:
                     yield doc
+
+
+PMT = TypeVar("PMT", bound=_PhraseMatcher)
+PhraseCallback = Optional[
+    Callable[[PMT, Doc, int, List[Tuple[str, int, int, int]]], None]
+]  # Python < 3.9 still wants Typing types here.
+
+
+def unpickle_matcher(
+    matcher: Type[_PhraseMatcher],
+    vocab: Vocab,
+    patterns: defaultdict[str, defaultdict[str, Any]],
+    callbacks: dict[str, PhraseCallback],
+    defaults: Any,
+) -> Any:
+    """Will return a matcher from pickle protocol."""
+    matcher_instance = matcher(vocab, **defaults)
+    for key, specs in patterns.items():
+        callback = callbacks.get(key)
+        matcher_instance.add(key, specs["patterns"], specs["kwargs"], on_match=callback)
+    return matcher_instance

@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from itertools import chain
 from pathlib import Path
-from typing import Any, DefaultDict, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 import warnings
 
 from spacy.language import Language
@@ -95,13 +95,13 @@ class SpaczzRuler:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
         self.nlp = nlp
-        self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+        self.fuzzy_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.regex_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+        self.regex_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.token_patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(
+        self.token_patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(
             list
         )
         self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)

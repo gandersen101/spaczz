@@ -3,23 +3,15 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from typing import (
-    Any,
-    DefaultDict,
-    Generator,
-    Iterable,
-    Optional,
-)
+from typing import Any, Callable, Generator, Iterable, List, Optional, Tuple, Type
 import warnings
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from .._types import TokenCallback
 from ..exceptions import PipeDeprecation
 from ..search import TokenSearcher
-from ..util import unpickle_matcher
 
 
 class TokenMatcher:
@@ -71,7 +63,7 @@ class TokenMatcher:
         self.defaults = defaults
         self.type = "token"
         self._callbacks: dict[str, TokenCallback] = {}
-        self._patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(list)
+        self._patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
     def __call__(self: TokenMatcher, doc: Doc) -> list[tuple[str, int, int, None]]:
@@ -326,3 +318,23 @@ def _spacyfy(
                     new_pattern[i]["TEXT"] = token[1]
             new_patterns.append(new_pattern)
     return new_patterns
+
+
+TokenCallback = Optional[
+    Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+]  # Python < 3.9 still wants Typing types here.
+
+
+def unpickle_matcher(
+    matcher: Type[TokenMatcher],
+    vocab: Vocab,
+    patterns: defaultdict[str, list[list[dict[str, Any]]]],
+    callbacks: dict[str, TokenCallback],
+    defaults: Any,
+) -> Any:
+    """Will return a matcher from pickle protocol."""
+    matcher_instance = matcher(vocab, **defaults)
+    for key, specs in patterns.items():
+        callback = callbacks.get(key)
+        matcher_instance.add(key, specs, on_match=callback)
+    return matcher_instance

@@ -1,12 +1,11 @@
 """Module for various utility functions."""
 from __future__ import annotations
 
+from collections import defaultdict
+from functools import partial
+from itertools import repeat
 from pathlib import Path
-from typing import Any, DefaultDict, Union
-
-from spacy.language import Vocab
-
-from ._types import MatcherCallback
+from typing import Any, Union
 
 
 def ensure_path(path: Union[str, Path]) -> Path:
@@ -24,6 +23,14 @@ def ensure_path(path: Union[str, Path]) -> Path:
         return path
 
 
+def nest_defaultdict(default_factory: Any, depth: int = 1) -> defaultdict[Any, Any]:
+    """Returns a nested `defaultdict`."""
+    result = partial(defaultdict, default_factory)
+    for _ in repeat(None, depth - 1):
+        result = partial(defaultdict, result)
+    return result()
+
+
 def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:
     """Reads a pipeline component from disk."""
     path = ensure_path(path)
@@ -32,26 +39,6 @@ def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:
         if key.split(".")[0] not in exclude:
             reader(path / key)
     return path
-
-
-def unpickle_matcher(
-    matcher: Any,
-    vocab: Vocab,
-    patterns: DefaultDict[str, DefaultDict[str, Any]],
-    callbacks: dict[str, MatcherCallback],
-    defaults: Any,
-) -> Any:
-    """Will return a matcher from pickle protocol."""
-    matcher_instance = matcher(vocab, **defaults)
-    for key, specs in patterns.items():
-        callback = callbacks.get(key)
-        if isinstance(specs, dict):
-            matcher_instance.add(
-                key, specs["patterns"], specs["kwargs"], on_match=callback
-            )
-        else:
-            matcher_instance.add(key, specs, on_match=callback)
-    return matcher_instance
 
 
 def write_to_disk(path: Union[str, Path], writers: Any, exclude: Any) -> Path:

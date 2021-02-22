@@ -1,12 +1,16 @@
 """Module for RegexMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import (
     Any,
-    DefaultDict,
+    Callable,
     Generator,
     Iterable,
+    List,
     Optional,
+    Tuple,
+    Type,
     Union,
 )
 import warnings
@@ -14,10 +18,10 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from .._types import nest_defaultdict, RegexCallback
 from ..exceptions import KwargsWarning, PipeDeprecation
 from ..regex import RegexConfig
 from ..search import RegexSearcher
+from ..util import nest_defaultdict
 
 
 class RegexMatcher:
@@ -69,7 +73,7 @@ class RegexMatcher:
         self.defaults = defaults
         self.type = "regex"
         self._callbacks: dict[str, RegexCallback] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
+        self._patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
             list, 2
         )
         self._searcher = RegexSearcher(vocab=vocab, config=config)
@@ -127,6 +131,19 @@ class RegexMatcher:
     def __len__(self: RegexMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
+
+    def __reduce__(
+        self: RegexMatcher,
+    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+        """Interface for pickling the matcher."""
+        data = (
+            self.__class__,
+            self.vocab,
+            self._patterns,
+            self._callbacks,
+            self.defaults,
+        )
+        return (unpickle_matcher, data)
 
     @property
     def labels(self: RegexMatcher) -> tuple[str, ...]:
@@ -330,3 +347,25 @@ class RegexMatcher:
                     yield (doc, matches)
                 else:
                     yield doc
+
+
+RegexCallback = Optional[
+    Callable[
+        [RegexMatcher, Doc, int, List[Tuple[str, int, int, Tuple[int, int, int]]]], None
+    ]
+]  # Python < 3.9 still wants Typing types here.
+
+
+def unpickle_matcher(
+    matcher: Type[RegexMatcher],
+    vocab: Vocab,
+    patterns: defaultdict[str, defaultdict[str, Any]],
+    callbacks: dict[str, RegexCallback],
+    defaults: Any,
+) -> Any:
+    """Will return a matcher from pickle protocol."""
+    matcher_instance = matcher(vocab, **defaults)
+    for key, specs in patterns.items():
+        callback = callbacks.get(key)
+        matcher_instance.add(key, specs["patterns"], specs["kwargs"], on_match=callback)
+    return matcher_instance

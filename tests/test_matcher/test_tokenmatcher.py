@@ -220,18 +220,19 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
         ]
 
 
-def test_pickling_matcher(matcher: TokenMatcher) -> None:
+def test_pickling_matcher(nlp: Language) -> None:
     """It pickles the matcher object."""
+    matcher = TokenMatcher(nlp.vocab)
+    matcher.add("NAME", [[{"TEXT": {"FUZZY": "Ridley"}}, {"TEXT": {"FUZZY": "Scott"}}]])
     bytestring = pickle.dumps(matcher)
     assert type(bytestring) == bytes
 
 
-def test_unpickling_matcher(matcher: TokenMatcher, doc: Doc) -> None:
+def test_unpickling_matcher(nlp: Language) -> None:
     """It unpickles the matcher object."""
+    matcher = TokenMatcher(nlp.vocab)
+    matcher.add("NAME", [[{"TEXT": {"FUZZY": "Ridley"}}, {"TEXT": {"FUZZY": "Scott"}}]])
     bytestring = pickle.dumps(matcher)
     matcher = pickle.loads(bytestring)
-    assert matcher(doc) == [
-        ("DATA", 4, 7, None),
-        ("DATA", 13, 15, None),
-        ("NAME", 22, 23, None),
-    ]
+    doc = nlp("Rdley Scot was the director of Alien.")
+    assert matcher(doc) == [("NAME", 0, 2, None)]
