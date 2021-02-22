@@ -41,10 +41,10 @@ spaczz.process
    :members:
 
 
-spaczz.attrs
+spaczz.customattrs
 --------------------------
 
-.. automodule:: spaczz.attrs
+.. automodule:: spaczz.customattrs
    :members:
 
 
