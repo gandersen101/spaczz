@@ -107,5 +107,5 @@ class RegexConfig:
             return predef_regex
         else:
             raise ValueError(
-                f"{predef} is not a regex pattern defined in this RegexPredef instance."
+                f"{predef} is not a regex pattern defined in this RegexConfig instance."
             )

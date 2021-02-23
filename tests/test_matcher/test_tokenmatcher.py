@@ -15,34 +15,34 @@ def add_name_ent(
     matcher: TokenMatcher, doc: Doc, i: int, matches: list[tuple[str, int, int, None]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
-    _match_id, start, end, _ = matches[i]
+    _match_id, start, end, _details = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)
 
 
 @pytest.fixture
-def matcher(model: Language) -> TokenMatcher:
+def matcher(nlp: Language) -> TokenMatcher:
     """It returns a token matcher."""
-    matcher = TokenMatcher(vocab=model.vocab)
+    matcher = TokenMatcher(vocab=nlp.vocab)
     matcher.add(
         "DATA",
         [
             [
                 {"TEXT": "SQL"},
                 {"LOWER": {"FREGEX": "(database){s<=1}"}},
-                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+                {"LOWER": {"FUZZY": "access"}},
             ],
             [{"TEXT": {"FUZZY": "Sequel"}}, {"LOWER": "db"}],
         ],
     )
-    matcher.add("NAME", [[{"TEXT": {"FUZZY": "Garfield"}}]])
+    matcher.add("NAME", [[{"TEXT": {"FUZZY": "Garfield"}}]], on_match=add_name_ent)
     return matcher
 
 
 @pytest.fixture
-def doc(model: Language) -> Doc:
+def doc(nlp: Language) -> Doc:
     """Example doc for search."""
-    return model(
+    return nlp(
         """The manager gave me SQL databesE acess so now I can acces the Sequal DB.
         My manager's name is Grfield.
         """
@@ -57,7 +57,7 @@ def test_adding_patterns(matcher: TokenMatcher) -> None:
             "pattern": [
                 {"TEXT": "SQL"},
                 {"LOWER": {"FREGEX": "(database){s<=1}"}},
-                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+                {"LOWER": {"FUZZY": "access"}},
             ],
             "type": "token",
         },
@@ -74,7 +74,7 @@ def test_adding_patterns(matcher: TokenMatcher) -> None:
     ]
 
 
-def test_add_without_sequence_of_patterns_raises_error(matcher: TokenMatcher) -> None:
+def test_add_without_list_of_patterns_raises_error(matcher: TokenMatcher) -> None:
     """Trying to add non-sequences of patterns raises a TypeError."""
     with pytest.raises(TypeError):
         matcher.add("TEST", [{"TEXT": "error"}])  # type: ignore
@@ -101,9 +101,9 @@ def test_labels_returns_label_names(matcher: TokenMatcher) -> None:
     assert all(label in matcher.labels for label in ("DATA", "NAME"))
 
 
-def test_vocab_prop_returns_vocab(matcher: TokenMatcher, model: Language) -> None:
+def test_vocab_prop_returns_vocab(matcher: TokenMatcher, nlp: Language) -> None:
     """It returns the vocab it was initialized with."""
-    assert matcher.vocab == model.vocab
+    assert matcher.vocab == nlp.vocab
 
 
 def test_remove_label(matcher: TokenMatcher) -> None:

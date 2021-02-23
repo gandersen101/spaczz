@@ -102,10 +102,15 @@ class TokenMatcher:
             matcher.add(label, mapped_patterns[label])
         matches = matcher(doc)
         if matches:
-            return [
+            extended_matches = [
                 (self.vocab.strings[match_id], start, end, None)
                 for match_id, start, end in matches
             ]
+            for i, (label, _start, _end, _details) in enumerate(extended_matches):
+                on_match = self._callbacks.get(label)
+                if on_match:
+                    on_match(self, doc, i, extended_matches)
+            return extended_matches
         else:
             return []
 
@@ -283,7 +288,7 @@ class TokenMatcher:
             `Doc` objects, in order.
         """
         warnings.warn(
-            """As of spaCy v3.0 and spaczz v0.5 matcher.poipe methods are deprecated.
+            """As of spaCy v3.0 and spaczz v0.5 matcher.pipe methods are deprecated.
         If you need to match on a stream of documents, you can use nlp.pipe and
         call the matcher on each Doc object.""",
             PipeDeprecation,
