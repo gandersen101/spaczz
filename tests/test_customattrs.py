@@ -3,7 +3,7 @@ import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.attrs import SpaczzAttrs
+from spaczz.customattrs import SpaczzAttrs
 from spaczz.exceptions import AttrOverwriteWarning
 
 
@@ -19,16 +19,6 @@ def test_initialize_again_skips() -> None:
     assert SpaczzAttrs._initialized is True
 
 
-def test_get_token_types(nlp: Language, doc: Doc) -> None:
-    """Returns token match types."""
-    doc[0]._.spaczz_counts = (0, 0, 0)
-    doc[1]._.spaczz_ratio = 100
-    doc[2]._.spaczz_details = 1
-    assert doc[0]._.spaczz_types == {"regex"}
-    assert doc[1]._.spaczz_types == {"fuzzy"}
-    assert doc[2]._.spaczz_types == {"token"}
-
-
 def test_get_spaczz_span(doc: Doc) -> None:
     """Returns spaczz span boolean."""
     for token in doc[:2]:
@@ -36,33 +26,47 @@ def test_get_spaczz_span(doc: Doc) -> None:
     assert doc[:2]._.spaczz_span is True
 
 
+def test_get_span_type(doc: Doc) -> None:
+    """Returns span match type."""
+    for token in doc[:3]:
+        token._.spaczz_type = "fuzzy"
+    assert doc[:3]._.spaczz_type == "fuzzy"
+
+
+def test_get_span_type2(doc: Doc) -> None:
+    """Returns span match type of None if multiple types."""
+    for token in doc[:2]:
+        token._.spaczz_type = "fuzzy"
+    doc[3]._.spaczz_type = "regex"
+    assert doc[:3]._.spaczz_type is None
+
+
 def test_get_span_types1(doc: Doc) -> None:
     """Returns span match types."""
-    for token in doc[:3]:
-        token._.spaczz_ratio = 100
-        token._.spaczz_counts = (0, 0, 0)
-        token._.spaczz_details = 1
+    doc[0]._.spaczz_type = "fuzzy"
+    doc[1]._.spaczz_type = "regex"
+    doc[2]._.spaczz_type = "token"
     assert doc[:3]._.spaczz_types == {"regex", "fuzzy", "token"}
 
 
 def test_get_span_types2(doc: Doc) -> None:
     """Returns span match types."""
     for token in doc[:3]:
-        token._.spaczz_ratio = 100
+        token._.spaczz_type = "fuzzy"
     assert doc[:3]._.spaczz_types == {"fuzzy"}
 
 
 def test_get_span_types3(doc: Doc) -> None:
     """Returns span match types."""
     for token in doc[:3]:
-        token._.spaczz_counts = (0, 0, 0)
+        token._.spaczz_type = "regex"
     assert doc[:3]._.spaczz_types == {"regex"}
 
 
 def test_get_span_types4(doc: Doc) -> None:
     """Returns span match types."""
     for token in doc[:3]:
-        token._.spaczz_details = 1
+        token._.spaczz_type = "token"
     assert doc[:3]._.spaczz_types == {"token"}
 
 
@@ -117,9 +121,9 @@ def test_get_spaczz_doc(doc: Doc) -> None:
 
 def test_get_doc_types(doc: Doc) -> None:
     """Returns doc match types."""
-    doc[0]._.spaczz_ratio = 100
-    doc[1]._.spaczz_counts = (0, 0, 0)
-    doc[2]._.spaczz_details = 1
+    doc[0]._.spaczz_type = "fuzzy"
+    doc[1]._.spaczz_type = "regex"
+    doc[2]._.spaczz_type = "token"
     assert doc._.spaczz_types == {"fuzzy", "regex", "token"}
 
 

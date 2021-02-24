@@ -3,15 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Generator,
-    Iterable,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, Generator, Iterable, List, Optional, Tuple, Type
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
@@ -68,16 +60,8 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: dict[
-            str,
-            Union[
-                Callable[
-                    [TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None
-                ],
-                None,
-            ],
-        ] = {}
-        self._patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(list)
+        self._callbacks: dict[str, TokenCallback] = {}
+        self._patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
     def __call__(self: TokenMatcher, doc: Doc) -> list[tuple[str, int, int, None]]:
@@ -116,10 +100,15 @@ class TokenMatcher:
             matcher.add(label, mapped_patterns[label])
         matches = matcher(doc)
         if matches:
-            return [
+            extended_matches = [
                 (self.vocab.strings[match_id], start, end, None)
                 for match_id, start, end in matches
             ]
+            for i, (label, _start, _end, _details) in enumerate(extended_matches):
+                on_match = self._callbacks.get(label)
+                if on_match:
+                    on_match(self, doc, i, extended_matches)
+            return extended_matches
         else:
             return []
 
@@ -130,6 +119,19 @@ class TokenMatcher:
     def __len__(self: TokenMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
+
+    def __reduce__(
+        self: TokenMatcher,
+    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+        """Interface for pickling the matcher."""
+        data = (
+            self.__class__,
+            self.vocab,
+            self._patterns,
+            self._callbacks,
+            self.defaults,
+        )
+        return (unpickle_matcher, data)
 
     @property
     def labels(self: TokenMatcher) -> tuple[str, ...]:
@@ -187,9 +189,7 @@ class TokenMatcher:
         self: TokenMatcher,
         label: str,
         patterns: list[list[dict[str, Any]]],
-        on_match: Optional[
-            Callable[[TokenMatcher, Doc, int, list[tuple[str, int, int, None]]], None]
-        ] = None,
+        on_match: TokenCallback = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -284,23 +284,6 @@ class TokenMatcher:
 
         Yields:
             `Doc` objects, in order.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import TokenMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = TokenMatcher(nlp.vocab)
-            >>> doc_stream = (
-                    nlp("test doc1: Korvld"),
-                    nlp("test doc2: Prosh"),
-                )
-            >>> matcher.add("DRAGON", [
-                [{"TEXT": {"FUZZY": "Korvold"}}],
-                [{"TEXT": {"FUZZY": "Prossh"}}]
-                ])
-            >>> output = matcher.pipe(doc_stream, return_matches=True)
-            >>> [entry[1] for entry in output]
-            [[('DRAGON', 3, 4, None)], [('DRAGON', 3, 4, None)]]
         """
         if as_tuples:
             for doc, context in stream:
@@ -332,3 +315,23 @@ def _spacyfy(
                     new_pattern[i]["TEXT"] = token[1]
             new_patterns.append(new_pattern)
     return new_patterns
+
+
+TokenCallback = Optional[
+    Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+]  # Python < 3.9 still wants Typing types here.
+
+
+def unpickle_matcher(
+    matcher: Type[TokenMatcher],
+    vocab: Vocab,
+    patterns: defaultdict[str, list[list[dict[str, Any]]]],
+    callbacks: dict[str, TokenCallback],
+    defaults: Any,
+) -> Any:
+    """Will return a matcher from pickle protocol."""
+    matcher_instance = matcher(vocab, **defaults)
+    for key, specs in patterns.items():
+        callback = callbacks.get(key)
+        matcher_instance.add(key, specs, on_match=callback)
+    return matcher_instance

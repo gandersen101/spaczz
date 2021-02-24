@@ -109,7 +109,8 @@ class RegexSearcher:
             A list of span start index, end index, fuzzy change count tuples.
 
         Raises:
-            TypeError: If query is not a string.
+            TypeError: If `doc` is not a `Doc`
+            TypeError: If `query` is not a `str`.
 
         Example:
             >>> import spacy
@@ -120,6 +121,8 @@ class RegexSearcher:
             >>> searcher.match(doc, "phones", predef=True)
             [(4, 10, (0, 0, 0))]
         """
+        if not isinstance(doc, Doc):
+            raise TypeError("doc must be a Doc object.")
         if isinstance(query, str):
             compiled_regex = self._config.parse_regex(query, predef)
         else:

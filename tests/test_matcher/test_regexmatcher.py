@@ -1,6 +1,8 @@
 """Tests for the regexmatcher module."""
 from __future__ import annotations
 
+import pickle
+
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -149,6 +151,12 @@ def test_matcher_returns_empty_list_if_no_matches(
     assert matcher(doc) == []
 
 
+def test_matcher_with_empty_doc(matcher: RegexMatcher, nlp: Language) -> None:
+    """Calling the matcher on an empty Doc returns empty list."""
+    doc = nlp("")
+    assert matcher(doc) == []
+
+
 def test_matcher_uses_on_match_callback(matcher: RegexMatcher, doc: Doc) -> None:
     """It utilizes callback on match functions passed when called on a Doc object."""
     matcher(doc)
@@ -203,4 +211,21 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     assert matches == [
         ([("GPE", 4, 6, (0, 0, 0))], "Country"),
         ([("GPE", 4, 5, (0, 0, 0))], "Country"),
+    ]
+
+
+def test_pickling_matcher(matcher: RegexMatcher) -> None:
+    """It pickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    assert type(bytestring) == bytes
+
+
+def test_unpickling_matcher(matcher: RegexMatcher, doc: Doc) -> None:
+    """It unpickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    matcher = pickle.loads(bytestring)
+    assert matcher(doc) == [
+        ("STREET", 3, 6, (0, 0, 0)),
+        ("ZIP", 10, 11, (0, 0, 0)),
+        ("GPE", 13, 14, (0, 0, 0)),
     ]

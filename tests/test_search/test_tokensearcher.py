@@ -58,6 +58,12 @@ def test_no_matches(searcher: TokenSearcher, example: Doc) -> None:
     assert searcher.match(example, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
 
 
+def test_empty_doc(searcher: TokenSearcher, nlp: Language) -> None:
+    """Empty doc returns empty list."""
+    doc = nlp("")
+    assert searcher.match(doc, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
+
+
 def test_raises_type_error_when_doc_not_doc(searcher: TokenSearcher) -> None:
     """It raises a type error if doc is not a `Doc`."""
     with pytest.raises(TypeError):
@@ -71,10 +77,10 @@ def test_raises_type_error_when_doc_not_doc(searcher: TokenSearcher) -> None:
         )
 
 
-def test_raises_type_error_when_pattern_not_sequence(
+def test_raises_type_error_when_pattern_not_list(
     searcher: TokenSearcher, example: Doc
 ) -> None:
-    """It raises a type error if pattern is not a `Sequence`."""
+    """It raises a type error if pattern is not a `list`."""
     with pytest.raises(TypeError):
         searcher.match(
             example, {"TEXT": "SQL"},  # type: ignore

@@ -1,7 +1,18 @@
+*v0.4.2 Release Notes:*
+- *Fixed a bug where `TokenMatcher` callbacks did nothing.*
+- *Fixed a bug where `spaczz_token_defaults` in the `SpaczzRuler` did nothing.*
+- *Fixed a bug where defaults would not be added to their respective matchers when loading from bytes/disk in the `SpaczzRuler`.*
+- *Fixed some inconsistencies in the `SpaczzRuler` which will be particularly noticeable with ent_ids. See the "Known Issues" section below for more details.*
+- *Small tweaks to spaczz custom attributes.*
+- *Available fuzzy matching functions have changed in RapidFuzz and have changed in spaczz accordingly.*
+- *Preparing for spaCy v3 updates.*
+
+
 *v0.4.1 Release Notes:*
 - *Spaczz's phrase searching algorithm has been further optimized so both the `FuzzyMatcher` and `SimilarityMatcher` should run considerably faster.*
 - *The `FuzzyMatcher` and `SimilarityMatcher` now include a `thresh` parameter that defaults to `100`. When matching, if `flex > 0` and the match ratio is >= `thresh` during the initial scan of the document, no optimization will be attempted. By default perfect matches don't need to be run through match optimization.*
 - *PEP585 code updates.*
+
 
 *v0.4.0 Release Notes:*
 - *Spaczz now includes a `TokenMatcher` that provides token pattern support like spaCy's `Matcher`. It provides all the same functionality as spaCy's `Matcher` but adds fuzzy and fuzzy-regex support. However, it adds additional overhead to it's spaCy counterpart so it should only be used as needed for fuzzy matching purposes.*
@@ -11,8 +22,10 @@
 - *`min_r1` for the fuzzy phrase matcher is now `50`, this is still low but not so low that it filters almost nothing out in the initial document scan.*
 - *Bug fixes to phrase searching that could cause index errors in spaCy `Span` objects.*
 
+
 *v0.3.1 Release Notes:*
 - *spaczz now includes an experimental `SimilarityMatcher` that attempts to match search terms based on vector similarity. It requires a a spaCy model with word vectors (e.x. spaCy's medium and large English models) to function properly. See the documentation below for usage details.*
+
 
 *v0.3.0 Release Notes:*
 - *The `FuzzyMatcher` and `RegexMatcher` now return fuzzy ratio and fuzzy count details respectively. The behavior of these two matchers is still the same except they now return lists of tuples of length 4 (match id, start, end, fuzzy details).*
@@ -21,6 +34,7 @@
     - *The `spaczz_ent` portion of these attributes is controlled by the `attr` parameter and can be changed if needed. However, the `_ent_ratio` and `_ent_counts` extensions are hard-coded.*
     - *If, in the rare case, the same match is made via a fuzzy pattern and regex pattern, the span will have both extensions set with their repsective values.*
 - *Fixed a bug where the `attr` parameter in the `SpaczzRuler` did not actually change the name of the custom span attribute.*
+
 
 *v0.2.0 Release Notes:*
 - *Fuzzy matching is now performed with [RapidFuzz](https://github.com/maxbachmann/rapidfuzz) instead of [FuzzyWuzzy](https://github.com/seatgeek/fuzzywuzzy).*

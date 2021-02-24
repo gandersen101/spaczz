@@ -5,10 +5,12 @@ from collections import defaultdict
 from typing import (
     Any,
     Callable,
-    DefaultDict,
     Generator,
     Iterable,
+    List,
     Optional,
+    Tuple,
+    Type,
     Union,
 )
 import warnings
@@ -19,6 +21,7 @@ from spacy.vocab import Vocab
 from ..exceptions import KwargsWarning
 from ..regex import RegexConfig
 from ..search import RegexSearcher
+from ..util import nest_defaultdict
 
 
 class RegexMatcher:
@@ -69,22 +72,9 @@ class RegexMatcher:
         """
         self.defaults = defaults
         self.type = "regex"
-        self._callbacks: dict[
-            str,
-            Optional[
-                Callable[
-                    [
-                        RegexMatcher,
-                        Doc,
-                        int,
-                        list[tuple[str, int, int, tuple[int, int, int]]],
-                    ],
-                    None,
-                ],
-            ],
-        ] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
-            lambda: defaultdict(list)
+        self._callbacks: dict[str, RegexCallback] = {}
+        self._patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+            list, 2
         )
         self._searcher = RegexSearcher(vocab=vocab, config=config)
 
@@ -141,6 +131,19 @@ class RegexMatcher:
     def __len__(self: RegexMatcher) -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
+
+    def __reduce__(
+        self: RegexMatcher,
+    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+        """Interface for pickling the matcher."""
+        data = (
+            self.__class__,
+            self.vocab,
+            self._patterns,
+            self._callbacks,
+            self.defaults,
+        )
+        return (unpickle_matcher, data)
 
     @property
     def labels(self: RegexMatcher) -> tuple[str, ...]:
@@ -203,17 +206,7 @@ class RegexMatcher:
         label: str,
         patterns: list[str],
         kwargs: Optional[list[dict[str, Any]]] = None,
-        on_match: Optional[
-            Callable[
-                [
-                    RegexMatcher,
-                    Doc,
-                    int,
-                    list[tuple[str, int, int, tuple[int, int, int]]],
-                ],
-                None,
-            ]
-        ] = None,
+        on_match: RegexCallback = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -333,20 +326,6 @@ class RegexMatcher:
 
         Yields:
             Doc objects, in order.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import RegexMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = RegexMatcher(nlp.vocab)
-            >>> doc_stream = (
-                    nlp.make_doc("test doc1: United States"),
-                    nlp.make_doc("test doc2: US"),
-                )
-            >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> output = matcher.pipe(doc_stream, return_matches=True)
-            >>> [entry[1] for entry in output]
-            [[('GPE', 3, 5, (0, 0, 0))], [('GPE', 3, 4, (0, 0, 0))]]
         """
         if as_tuples:
             for doc, context in stream:
@@ -362,3 +341,25 @@ class RegexMatcher:
                     yield (doc, matches)
                 else:
                     yield doc
+
+
+RegexCallback = Optional[
+    Callable[
+        [RegexMatcher, Doc, int, List[Tuple[str, int, int, Tuple[int, int, int]]]], None
+    ]
+]  # Python < 3.9 still wants Typing types here.
+
+
+def unpickle_matcher(
+    matcher: Type[RegexMatcher],
+    vocab: Vocab,
+    patterns: defaultdict[str, defaultdict[str, Any]],
+    callbacks: dict[str, RegexCallback],
+    defaults: Any,
+) -> Any:
+    """Will return a matcher from pickle protocol."""
+    matcher_instance = matcher(vocab, **defaults)
+    for key, specs in patterns.items():
+        callback = callbacks.get(key)
+        matcher_instance.add(key, specs["patterns"], specs["kwargs"], on_match=callback)
+    return matcher_instance

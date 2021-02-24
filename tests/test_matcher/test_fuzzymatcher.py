@@ -1,6 +1,8 @@
 """Tests for the fuzzymatcher module."""
 from __future__ import annotations
 
+import pickle
+
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -213,4 +215,22 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     assert matches == [
         ([("DRAGON", 4, 5, 86)], "Jund"),
         ([("DRAGON", 4, 5, 91)], "Jund"),
+    ]
+
+
+def test_pickling_matcher(matcher: FuzzyMatcher) -> None:
+    """It pickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    assert type(bytestring) == bytes
+
+
+def test_unpickling_matcher(matcher: FuzzyMatcher, doc: Doc) -> None:
+    """It unpickles the matcher object."""
+    bytestring = pickle.dumps(matcher)
+    matcher = pickle.loads(bytestring)
+    assert matcher(doc) == [
+        ("ANIMAL", 1, 2, 83),
+        ("SOUND", 4, 5, 80),
+        ("ANIMAL", 16, 17, 83),
+        ("NAME", 18, 19, 77),
     ]

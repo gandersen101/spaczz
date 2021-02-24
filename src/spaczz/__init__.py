@@ -4,7 +4,7 @@ try:
 except ImportError:  # pragma: no cover
     from importlib_metadata import version, PackageNotFoundError  # type: ignore
 
-from spaczz.attrs import SpaczzAttrs
+from spaczz.customattrs import SpaczzAttrs
 
 SpaczzAttrs.initialize()
 

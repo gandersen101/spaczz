@@ -14,8 +14,9 @@
 select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
 # E203 = slice notation whitespace, invalid
 # E501 = line length, handled by bugbear B950
+# S301, S403 = pickle warnings from security
 # W503 = bin op line break, invalid
-ignore = E203, E501, W503
+ignore = E203, E501, S301, S403, W503
 # up to 88 allowed by bugbear B950
 max-line-length = 80
 max-complexity = 18

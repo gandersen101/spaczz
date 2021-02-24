@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from itertools import chain
 from pathlib import Path
-from typing import Any, DefaultDict, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 import warnings
 
 from spacy.language import Language
@@ -20,12 +20,12 @@ DEFAULT_ENT_ID_SEP = "||"
 
 
 class SpaczzRuler:
-    """The SpaczzRuler adds fuzzy and multi-token regex matches to spaCy `Doc.ents`.
+    """The `SpaczzRuler` adds fuzzy and multi-token regex matches to spaCy `Doc.ents`.
 
     It can be combined with other spaCy NER components like the statistical
     EntityRecognizer and/or the EntityRuler to boost accuracy.
     After initialization, the component is typically added to the pipeline
-    using `nlp.add_pipe()`.
+    using `nlp.add_pipe`.
 
     Attributes:
         nlp: The shared nlp object to pass the vocab to the matchers
@@ -36,14 +36,13 @@ class SpaczzRuler:
             Patterns added to the regex matcher.
         token_patterns:
             Patterns added to the token matcher
-        defaults: Default matching settings for their respective matchers.
-            Details to be updated.
         fuzzy_matcher: The `FuzzyMatcher` instance
             the spaczz ruler will use for fuzzy phrase matching.
         regex_matcher: The `RegexMatcher` instance
             the spaczz ruler will use for regex phrase matching.
         token_matcher: The `TokenMatcher` instance
             the spaczz ruler will use for token matching.
+        defaults: Default matching settings for their respective matchers.
     """
 
     name = "spaczz_ruler"
@@ -52,15 +51,17 @@ class SpaczzRuler:
         """Initialize the spaczz ruler with a Language object and cfg parameters.
 
         All spaczz ruler cfg parameters are prepended with `"spaczz_"`.
-        If `spaczz_patterns` is supplied here, they need to be a list of
-        spaczz patterns: dictionaries with "label", "pattern", and "type" keys,
-        and if the patterns are fuzzy or regex phrase patterns they can
-        include the optional "kwargs" keys.
-        For example, a fuzzy phrase pattern:
-        {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
-        Or, a token pattern:
-        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}
+        If `spaczz_patterns` is supplied here, it needs to be a list of spaczz patterns:
+        dictionaries with `"label"`, `"pattern"`, and "type" keys.
+        If the patterns are fuzzy or regex phrase patterns they can
+        include the optional `"kwargs"` keys.
 
+        For example, a fuzzy phrase pattern:
+        `{'label': 'ORG', 'pattern': 'Apple',
+        'type': 'fuzzy', 'kwargs': {'min_r2': 90}}`
+
+        Or, a token pattern:
+        `{'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}`
 
         Args:
             nlp: The shared `Language` object to pass the vocab to the matchers
@@ -82,35 +83,35 @@ class SpaczzRuler:
                     `token_defaults` (dict[str, Any]): Modified default parameters to
                         use with the spaczz matcher. Default is an empty dictionary -
                         utilizing defaults.
-                    `regex_config` (Union[str, RegexConfig]): Config to use with the
-                        regex matcher. Default is "default".
-                        See RegexMatcher/RegexSearcher documentation for available
-                        parameter details.
+                    `regex_config` (Union[str, RegexConfig]): Should largely be ignored
+                        as an artifact of an old spaczz design pattern.
+                        Will likely be updated in the future.
+                        Default is `"default"`.
                     `patterns` (Iterable[dict[str, Any]]): Patterns to initialize
                         the ruler with. Default is None.
                 If the spaczz ruler is loaded as part of a model pipeline,
-                cfg will include all keyword arguments passed to `spacy.load()`.
+                cfg will include all keyword arguments passed to `spacy.load`.
 
         Raises:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
         self.nlp = nlp
-        self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+        self.fuzzy_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.regex_patterns: DefaultDict[str, DefaultDict[str, Any]] = defaultdict(
+        self.regex_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self.token_patterns: DefaultDict[str, list[list[dict[str, Any]]]] = defaultdict(
+        self.token_patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(
             list
         )
         self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
-        self._ent_ids: dict[Any, Any] = defaultdict(dict)
+        self._ent_ids: defaultdict[Any, Any] = defaultdict(dict)
         self.overwrite = cfg.get("spaczz_overwrite_ents", False)
         default_names = (
             "spaczz_fuzzy_defaults",
             "spaczz_regex_defaults",
-            "spacy_token_defaults",
+            "spaczz_token_defaults",
         )
         self.defaults = {}
         for name in default_names:
@@ -160,60 +161,8 @@ class SpaczzRuler:
             >>> "Anderson, Grunt" in [ent.text for ent in doc.ents]
             True
         """
-        fuzzy_matches = []
-        ratio_lookup: dict[tuple[str, int, int], int] = {}
-        for fuzzy_match in self.fuzzy_matcher(doc):
-            current_ratio = fuzzy_match[3]
-            best_ratio = ratio_lookup.get(fuzzy_match[:3], 0)
-            if current_ratio > best_ratio:
-                fuzzy_matches.append(fuzzy_match[:3])
-                ratio_lookup[fuzzy_match[:3]] = current_ratio
-        regex_matches = []
-        counts_lookup: dict[tuple[str, int, int], tuple[int, int, int]] = {}
-        for regex_match in self.regex_matcher(doc):
-            current_counts = regex_match[3]
-            best_counts = counts_lookup.get(regex_match[:3])
-            if not best_counts or sum(current_counts) < sum(best_counts):
-                regex_matches.append(regex_match[:3])
-                counts_lookup[regex_match[:3]] = current_counts
-        token_matches = []
-        details_lookup: dict[tuple[str, int, int], int] = {}
-        for token_match in self.token_matcher(doc):
-            token_matches.append(token_match[:3])
-            details_lookup[token_match[:3]] = 1
-        matches = fuzzy_matches + regex_matches + token_matches
-        unique_matches = self._filter_overlapping_matches(matches)
-        entities = list(doc.ents)
-        new_entities = []
-        seen_tokens: set[int] = set()
-        for match_id, start, end in unique_matches:
-            if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
-                continue
-            # check for end - 1 here because boundaries are inclusive
-            if start not in seen_tokens and end - 1 not in seen_tokens:
-                if match_id in self._ent_ids:
-                    label, ent_id = self._ent_ids[match_id]
-                    span = Span(doc, start, end, label=label)
-                    if ent_id:
-                        for token in span:
-                            token.ent_id_ = ent_id
-                else:
-                    span = Span(doc, start, end, label=match_id)
-                span = self._update_custom_attrs(
-                    span,
-                    match_id,
-                    start,
-                    end,
-                    ratio_lookup,
-                    counts_lookup,
-                    details_lookup,
-                )
-                new_entities.append(span)
-                entities = [
-                    e for e in entities if not (e.start < end and e.end > start)
-                ]
-                seen_tokens.update(range(start, end))
-        doc.ents = entities + new_entities
+        matches, lookup = self.match(doc)
+        self.set_annotations(doc, matches, lookup)
         return doc
 
     def __contains__(self: SpaczzRuler, label: str) -> bool:
@@ -349,15 +298,17 @@ class SpaczzRuler:
         """Add patterns to the ruler.
 
         A pattern must be a spaczz pattern:
-        {label (str), pattern (str or list), type (str),
-        optional kwargs (dict[str, Any]), and optional id (str)}.
+        `{label (str), pattern (str or list), type (str),
+        optional kwargs (dict[str, Any]), and optional id (str)}`.
+
         For example, a fuzzy phrase pattern:
-        {'label': 'ORG', 'pattern': 'Apple', 'type': 'fuzzy', 'kwargs': {'min_r2': 90}}
+        `{'label': 'ORG', 'pattern': 'Apple',
+        'type': 'fuzzy', 'kwargs': {'min_r2': 90}}`
+
         Or, a token pattern:
-        {'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}
+        `{'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}`
 
         To utilize regex flags, use inline flags.
-
         Kwarg details to be updated.
 
         Args:
@@ -472,6 +423,68 @@ class SpaczzRuler:
 
             self._add_patterns(fuzzy_patterns, regex_patterns, token_patterns)
 
+    def match(
+        self: SpaczzRuler, doc: Doc
+    ) -> tuple[
+        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]],
+    ]:
+        """Used in call to find matches in a doc."""
+        fuzzy_matches = []
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]] = defaultdict(dict)
+        for fuzzy_match in self.fuzzy_matcher(doc):
+            current_ratio = fuzzy_match[3]
+            best_ratio = lookup["ratios"].get(fuzzy_match[:3], 0)
+            if current_ratio > best_ratio:
+                fuzzy_matches.append(fuzzy_match[:3])
+                lookup["ratios"][fuzzy_match[:3]] = current_ratio
+        regex_matches = []
+        for regex_match in self.regex_matcher(doc):
+            current_counts = regex_match[3]
+            best_counts = lookup["counts"].get(regex_match[:3])
+            if not best_counts or sum(current_counts) < sum(best_counts):
+                regex_matches.append(regex_match[:3])
+                lookup["counts"][regex_match[:3]] = current_counts
+        token_matches = []
+        for token_match in self.token_matcher(doc):
+            token_matches.append(token_match[:3])
+            lookup["details"][token_match[:3]] = 1
+        matches = fuzzy_matches + regex_matches + token_matches
+        unique_matches, lookup = self._filter_overlapping_matches(matches, lookup)
+        return unique_matches, lookup
+
+    def set_annotations(
+        self: SpaczzRuler,
+        doc: Doc,
+        matches: list[tuple[str, int, int]],
+        lookup: defaultdict[
+            str, dict[tuple[str, int, int], Union[int, tuple[int, int, int]]]
+        ],
+    ) -> None:
+        """Modify the document in place."""
+        entities = list(doc.ents)
+        new_entities = []
+        seen_tokens: set[int] = set()
+        for match_id, start, end in matches:
+            if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
+                continue
+            # check for end - 1 here because boundaries are inclusive
+            if start not in seen_tokens and end - 1 not in seen_tokens:
+                if match_id in self._ent_ids:
+                    label, ent_id = self._ent_ids[match_id]
+                    span = Span(doc, start, end, label=label)
+                    if ent_id:
+                        for token in span:
+                            token.ent_id_ = ent_id
+                else:
+                    span = Span(doc, start, end, label=match_id)
+                span = self._update_custom_attrs(span, match_id, lookup)
+                new_entities.append(span)
+                entities = [
+                    e for e in entities if not (e.start < end and e.end > start)
+                ]
+                seen_tokens.update(range(start, end))
+        doc.ents = entities + new_entities
+
     def from_bytes(
         self: SpaczzRuler, patterns_bytes: bytes, **kwargs: Any
     ) -> SpaczzRuler:
@@ -501,6 +514,18 @@ class SpaczzRuler:
         if isinstance(cfg, dict):
             self.add_patterns(cfg.get("spaczz_patterns", cfg))
             self.defaults = cfg.get("spaczz_defaults", {})
+            if self.defaults.get("spaczz_fuzzy_defaults"):
+                self.fuzzy_matcher = FuzzyMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_fuzzy_defaults"]
+                )
+            if self.defaults.get("spaczz_regex_defaults"):
+                self.regex_matcher = RegexMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_regex_defaults"]
+                )
+            if self.defaults.get("spaczz_token_defaults"):
+                self.token_matcher = TokenMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_token_defaults"]
+                )
             self.overwrite = cfg.get("spaczz_overwrite", False)
             self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
         else:
@@ -584,6 +609,18 @@ class SpaczzRuler:
             read_from_disk(path, deserializers_cfg, {})
             self.overwrite = cfg.get("spaczz_overwrite", False)
             self.defaults = cfg.get("spaczz_defaults", {})
+            if self.defaults.get("spaczz_fuzzy_defaults"):
+                self.fuzzy_matcher = FuzzyMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_fuzzy_defaults"]
+                )
+            if self.defaults.get("spaczz_regex_defaults"):
+                self.regex_matcher = RegexMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_regex_defaults"]
+                )
+            if self.defaults.get("spaczz_token_defaults"):
+                self.token_matcher = TokenMatcher(
+                    self.nlp.vocab, **self.defaults["spaczz_token_defaults"]
+                )
             self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
             read_from_disk(path, deserializers_patterns, {})
         return self
@@ -700,8 +737,11 @@ class SpaczzRuler:
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: list[tuple[str, int, int]]
-    ) -> list[tuple[str, int, int]]:
+        matches: list[tuple[str, int, int]],
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
+    ) -> tuple[
+        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]]
+    ]:
         """Prevents multiple match spans from overlapping.
 
         Expects matches to be pre-sorted by matcher priority,
@@ -710,21 +750,16 @@ class SpaczzRuler:
         If more than one match span includes the same tokens
         the first of these match spans in matches is kept.
 
+        It also removes non-kept matches from the lookup dict as well.
+
         Args:
             matches: List of match span tuples
                 (match_id, start_index, end_index).
+            lookup: Match ratio, count and detail values in
+                a `defaultdict(dict)`.
 
         Returns:
-            The filtered list of match span tuples.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.pipeline import SpaczzRuler
-            >>> nlp = spacy.blank("en")
-            >>> ruler = SpaczzRuler(nlp)
-            >>> matches = [("TEST", 1, 3), ("TEST", 1, 2)]
-            >>> ruler._filter_overlapping_matches(matches)
-            [('TEST', 1, 3)]
+            The filtered list of match span tuples and the lookup dict.
         """
         filtered_matches: list[tuple[str, int, int]] = []
         for match in matches:
@@ -732,25 +767,32 @@ class SpaczzRuler:
                 chain(*[set(range(n[1], n[2])) for n in filtered_matches])
             ):
                 filtered_matches.append(match)
-        return filtered_matches
+                if match in lookup["ratios"]:
+                    _ = lookup["counts"].pop(match, None)
+                    _ = lookup["details"].pop(match, None)
+                elif match in lookup["counts"]:
+                    _ = lookup["details"].pop(match, None)
+        return filtered_matches, lookup
 
     @staticmethod
     def _update_custom_attrs(
         span: Span,
         match_id: str,
-        start: int,
-        end: int,
-        ratio_lookup: dict[tuple[str, int, int], int],
-        counts_lookup: dict[tuple[str, int, int], tuple[int, int, int]],
-        details_lookup: dict[tuple[str, int, int], int],
+        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
     ) -> Span:
         """Update custom attributes for matches."""
-        ratio = ratio_lookup.get((match_id, start, end), None)
-        counts = counts_lookup.get((match_id, start, end), None)
-        details = details_lookup.get((match_id, start, end), None)
+        ratio = lookup["ratios"].get((match_id, span.start, span.end))
+        counts = lookup["counts"].get((match_id, span.start, span.end))
+        details = lookup["details"].get((match_id, span.start, span.end))
         for token in span:
             token._.spaczz_token = True
-            token._.spaczz_ratio = ratio
-            token._.spaczz_counts = counts
-            token._.spaczz_details = details
+            if ratio:
+                token._.spaczz_ratio = ratio
+                token._.spaczz_type = "fuzzy"
+            elif counts:
+                token._.spaczz_counts = counts
+                token._.spaczz_type = "regex"
+            elif details:
+                token._.spaczz_details = details
+                token._.spaczz_type = "token"
         return span
