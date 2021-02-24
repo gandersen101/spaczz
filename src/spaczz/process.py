@@ -1,8 +1,7 @@
 """Module for various doc/text processing classes/functions."""
 from __future__ import annotations
 
-from itertools import tee
-from typing import Any, Callable, Iterable
+from typing import Callable
 
 from rapidfuzz import fuzz
 from spacy.tokens import Doc
@@ -15,15 +14,6 @@ def map_chars_to_tokens(doc: Doc) -> dict[int, int]:
         for i in range(token.idx, token.idx + len(token.text)):
             chars_to_tokens[i] = token.i
     return chars_to_tokens
-
-
-def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
-    """Iterates over an iterables in slices of length n by one step at a time."""
-    iterables = tee(iterable, n)
-    for i in range(len(iterables)):
-        for _ in range(i):
-            next(iterables[i], None)
-    return zip(*iterables)
 
 
 class FuzzyFuncs:
@@ -53,7 +43,7 @@ class FuzzyFuncs:
     """
 
     def __init__(self: FuzzyFuncs, match_type: str = "phrase") -> None:
-        """Initializes a fuzzyfuncs container.
+        """Initializes a `FuzzyFuncs` container.
 
         Args:
             match_type: Whether the fuzzy matching functions

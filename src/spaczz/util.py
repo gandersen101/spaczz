@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import partial
-from itertools import repeat
+from itertools import repeat, tee
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Iterable, Union
 
 
 def ensure_path(path: Union[str, Path]) -> Path:
@@ -29,6 +29,15 @@ def nest_defaultdict(default_factory: Any, depth: int = 1) -> defaultdict[Any, A
     for _ in repeat(None, depth - 1):
         result = partial(defaultdict, result)
     return result()
+
+
+def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
+    """Iterates over an iterables in slices of length n by one step at a time."""
+    iterables = tee(iterable, n)
+    for i in range(len(iterables)):
+        for _ in range(i):
+            next(iterables[i], None)
+    return zip(*iterables)
 
 
 def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:

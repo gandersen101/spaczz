@@ -750,6 +750,8 @@ class SpaczzRuler:
         If more than one match span includes the same tokens
         the first of these match spans in matches is kept.
 
+        It also removes non-kept matches from the lookup dict as well.
+
         Args:
             matches: List of match span tuples
                 (match_id, start_index, end_index).
@@ -757,16 +759,7 @@ class SpaczzRuler:
                 a `defaultdict(dict)`.
 
         Returns:
-            The filtered list of match span tuples.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.pipeline import SpaczzRuler
-            >>> nlp = spacy.blank("en")
-            >>> ruler = SpaczzRuler(nlp)
-            >>> matches = [("TEST", 1, 3), ("TEST", 1, 2)]
-            >>> ruler._filter_overlapping_matches(matches)
-            [('TEST', 1, 3)]
+            The filtered list of match span tuples and the lookup dict.
         """
         filtered_matches: list[tuple[str, int, int]] = []
         for match in matches:

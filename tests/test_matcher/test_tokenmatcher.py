@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pickle
-import warnings
 
 import pytest
 from spacy.language import Language
@@ -157,67 +156,57 @@ def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            nlp("test doc 1: Corvold"),
-            nlp("test doc 2: Prosh"),
-        )
-        matcher = TokenMatcher(nlp.vocab)
-        output = matcher.pipe(doc_stream)
-        assert list(output) == list(doc_stream)
+    doc_stream = (
+        nlp("test doc 1: Corvold"),
+        nlp("test doc 2: Prosh"),
+    )
+    matcher = TokenMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream)
+    assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            (nlp("test doc 1: Corvold"), "Jund"),
-            (nlp("test doc 2: Prosh"), "Jund"),
-        )
-        matcher = TokenMatcher(nlp.vocab)
-        output = matcher.pipe(doc_stream, as_tuples=True)
-        assert list(output) == list(doc_stream)
+    doc_stream = (
+        (nlp("test doc 1: Corvold"), "Jund"),
+        (nlp("test doc 2: Prosh"), "Jund"),
+    )
+    matcher = TokenMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream, as_tuples=True)
+    assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            nlp("test doc 1: Corvold"),
-            nlp("test doc 2: Prosh"),
-        )
-        matcher = TokenMatcher(nlp.vocab)
-        matcher.add(
-            "DRAGON",
-            [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
-        )
-        output = matcher.pipe(doc_stream, return_matches=True)
-        matches = [entry[1] for entry in output]
-        assert matches == [[("DRAGON", 4, 5, None)], [("DRAGON", 4, 5, None)]]
+    doc_stream = (
+        nlp("test doc 1: Corvold"),
+        nlp("test doc 2: Prosh"),
+    )
+    matcher = TokenMatcher(nlp.vocab)
+    matcher.add(
+        "DRAGON", [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
+    )
+    output = matcher.pipe(doc_stream, return_matches=True)
+    matches = [entry[1] for entry in output]
+    assert matches == [[("DRAGON", 4, 5, None)], [("DRAGON", 4, 5, None)]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches and context as tuples."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            (nlp("test doc 1: Corvold"), "Jund"),
-            (nlp("test doc 2: Prosh"), "Jund"),
-        )
-        matcher = TokenMatcher(nlp.vocab)
-        matcher.add(
-            "DRAGON",
-            [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
-        )
-        output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
-        matches = [(entry[0][1], entry[1]) for entry in output]
-        assert matches == [
-            ([("DRAGON", 4, 5, None)], "Jund"),
-            ([("DRAGON", 4, 5, None)], "Jund"),
-        ]
+    doc_stream = (
+        (nlp("test doc 1: Corvold"), "Jund"),
+        (nlp("test doc 2: Prosh"), "Jund"),
+    )
+    matcher = TokenMatcher(nlp.vocab)
+    matcher.add(
+        "DRAGON", [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
+    )
+    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+    matches = [(entry[0][1], entry[1]) for entry in output]
+    assert matches == [
+        ([("DRAGON", 4, 5, None)], "Jund"),
+        ([("DRAGON", 4, 5, None)], "Jund"),
+    ]
 
 
 def test_pickling_matcher(nlp: Language) -> None:

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pickle
-import warnings
 
 import pytest
 from spacy.language import Language
@@ -166,61 +165,53 @@ def test_matcher_uses_on_match_callback(matcher: RegexMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            nlp.make_doc("test doc 1: United States"),
-            nlp.make_doc("test doc 2: US"),
-        )
-        matcher = RegexMatcher(nlp.vocab)
-        output = matcher.pipe(doc_stream)
-        assert list(output) == list(doc_stream)
+    doc_stream = (
+        nlp.make_doc("test doc 1: United States"),
+        nlp.make_doc("test doc 2: US"),
+    )
+    matcher = RegexMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream)
+    assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            (nlp.make_doc("test doc 1: United States"), "Country"),
-            (nlp.make_doc("test doc 2: US"), "Country"),
-        )
-        matcher = RegexMatcher(nlp.vocab)
-        output = matcher.pipe(doc_stream, as_tuples=True)
-        assert list(output) == list(doc_stream)
+    doc_stream = (
+        (nlp.make_doc("test doc 1: United States"), "Country"),
+        (nlp.make_doc("test doc 2: US"), "Country"),
+    )
+    matcher = RegexMatcher(nlp.vocab)
+    output = matcher.pipe(doc_stream, as_tuples=True)
+    assert list(output) == list(doc_stream)
 
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            nlp.make_doc("test doc 1: United States"),
-            nlp.make_doc("test doc 2: US"),
-        )
-        matcher = RegexMatcher(nlp.vocab)
-        matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-        output = matcher.pipe(doc_stream, return_matches=True)
-        matches = [entry[1] for entry in output]
-        assert matches == [[("GPE", 4, 6, (0, 0, 0))], [("GPE", 4, 5, (0, 0, 0))]]
+    doc_stream = (
+        nlp.make_doc("test doc 1: United States"),
+        nlp.make_doc("test doc 2: US"),
+    )
+    matcher = RegexMatcher(nlp.vocab)
+    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
+    output = matcher.pipe(doc_stream, return_matches=True)
+    matches = [entry[1] for entry in output]
+    assert matches == [[("GPE", 4, 6, (0, 0, 0))], [("GPE", 4, 5, (0, 0, 0))]]
 
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects, matches, and context as a tuple."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        doc_stream = (
-            (nlp.make_doc("test doc 1: United States"), "Country"),
-            (nlp.make_doc("test doc 2: US"), "Country"),
-        )
-        matcher = RegexMatcher(nlp.vocab)
-        matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-        output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
-        matches = [(entry[0][1], entry[1]) for entry in output]
-        assert matches == [
-            ([("GPE", 4, 6, (0, 0, 0))], "Country"),
-            ([("GPE", 4, 5, (0, 0, 0))], "Country"),
-        ]
+    doc_stream = (
+        (nlp.make_doc("test doc 1: United States"), "Country"),
+        (nlp.make_doc("test doc 2: US"), "Country"),
+    )
+    matcher = RegexMatcher(nlp.vocab)
+    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
+    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+    matches = [(entry[0][1], entry[1]) for entry in output]
+    assert matches == [
+        ([("GPE", 4, 6, (0, 0, 0))], "Country"),
+        ([("GPE", 4, 5, (0, 0, 0))], "Country"),
+    ]
 
 
 def test_pickling_matcher(matcher: RegexMatcher) -> None:
