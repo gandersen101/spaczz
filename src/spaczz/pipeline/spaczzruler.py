@@ -13,7 +13,7 @@ import srsly
 
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher, RegexMatcher, TokenMatcher
-from ..util import ensure_path, read_from_disk, write_to_disk
+from ..util import ensure_path, nest_defaultdict, read_from_disk, write_to_disk
 
 
 DEFAULT_ENT_ID_SEP = "||"
@@ -96,11 +96,11 @@ class SpaczzRuler:
             TypeError: If spaczz_{name}_defaults passed are not dictionaries.
         """
         self.nlp = nlp
-        self.fuzzy_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
-            lambda: defaultdict(list)
+        self.fuzzy_patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+            list, 2
         )
-        self.regex_patterns: defaultdict[str, defaultdict[str, Any]] = defaultdict(
-            lambda: defaultdict(list)
+        self.regex_patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+            list, 2
         )
         self.token_patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(
             list
