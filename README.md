@@ -699,7 +699,9 @@ For example if we are looking for the string `"Ireland"` and have the patterns `
 
 The above problem is twofold. First and foremost, I need to develop a way or ways to compare apples to oranges - fuzzy ratios and fuzzy regex counts. Then I need to figure out how to include match details from the `TokenMatcher` which supports both fuzzy and "fuzzy" regex matches.
 
-For a short-term solution I am having the entity ruler first go through sorted fuzzy matches, then sorted regex matches, and lastly token matches (which will only be sorted by length of match, not quality). There is additional logic in place to filter overlapping matches preserving earlier matches over later ones. This order of priority may not be ideal for everyone but adding a way to change the order (say regex patterns first) would a temporary solution to a temporary problem.
+For a short-term solution I am having the entity ruler first go through sorted fuzzy matches, then sorted regex matches, and lastly token matches. Token matches will only be sorted by length of match, not quality, so they may provide inconsistent results. Try to be mindful of your token patterns.
+
+There is additional logic in place to filter overlapping matches preserving earlier matches over later ones. This order of priority (fuzzy, regex, token) may not be ideal for everyone but adding a way to change the order (say regex patterns first) would a temporary solution to a temporary problem.
 
 Please bear with me through these growing pains.
 
