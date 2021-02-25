@@ -109,32 +109,32 @@ class SpaczzRuler:
         self._ent_ids: defaultdict[Any, Any] = defaultdict(dict)
         self.overwrite = cfg.get("spaczz_overwrite_ents", False)
         default_names = (
-            "spaczz_fuzzy_defaults",
-            "spaczz_regex_defaults",
-            "spaczz_token_defaults",
+            ("spaczz_fuzzy_defaults", "fuzzy_defaults"),
+            ("spaczz_regex_defaults", "regex_defaults"),
+            ("spaczz_token_defaults", "token_defaults"),
         )
         self.defaults = {}
-        for name in default_names:
-            if name in cfg:
-                if isinstance(cfg[name], dict):
-                    self.defaults[name] = cfg[name]
+        for cfg_name, real_name in default_names:
+            if cfg_name in cfg:
+                if isinstance(cfg[cfg_name], dict):
+                    self.defaults[real_name] = cfg[cfg_name]
                 else:
                     raise TypeError(
                         (
                             "Defaults must be a dictionary of keyword arguments,",
-                            f"not {type(cfg[name])}.",
+                            f"not {type(cfg[cfg_name])}.",
                         )
                     )
         self.fuzzy_matcher = FuzzyMatcher(
-            nlp.vocab, **self.defaults.get("spaczz_fuzzy_defaults", {}),
+            nlp.vocab, **self.defaults.get("fuzzy_defaults", {}),
         )
         self.regex_matcher = RegexMatcher(
             nlp.vocab,
             cfg.get("spaczz_regex_config", "default"),
-            **self.defaults.get("spaczz_regex_defaults", {}),
+            **self.defaults.get("regex_defaults", {}),
         )
         self.token_matcher = TokenMatcher(
-            nlp.vocab, **self.defaults.get("spaczz_token_defaults", {})
+            nlp.vocab, **self.defaults.get("token_defaults", {})
         )
         patterns = cfg.get("spaczz_patterns")
         if patterns is not None:
@@ -492,7 +492,7 @@ class SpaczzRuler:
 
         Args:
             patterns_bytes : The bytestring to load.
-            **kwargs: Other config paramters, mostly for consistency.
+            **kwargs: Other config parameters, mostly for consistency.
 
         Returns:
             The loaded spaczz ruler.
@@ -512,22 +512,22 @@ class SpaczzRuler:
         """
         cfg = srsly.msgpack_loads(patterns_bytes)
         if isinstance(cfg, dict):
-            self.add_patterns(cfg.get("spaczz_patterns", cfg))
-            self.defaults = cfg.get("spaczz_defaults", {})
-            if self.defaults.get("spaczz_fuzzy_defaults"):
+            self.add_patterns(cfg.get("patterns", cfg))
+            self.defaults = cfg.get("defaults", {})
+            if self.defaults.get("fuzzy_defaults"):
                 self.fuzzy_matcher = FuzzyMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_fuzzy_defaults"]
+                    self.nlp.vocab, **self.defaults["fuzzy_defaults"]
                 )
-            if self.defaults.get("spaczz_regex_defaults"):
+            if self.defaults.get("regex_defaults"):
                 self.regex_matcher = RegexMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_regex_defaults"]
+                    self.nlp.vocab, **self.defaults["regex_defaults"]
                 )
-            if self.defaults.get("spaczz_token_defaults"):
+            if self.defaults.get("token_defaults"):
                 self.token_matcher = TokenMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_token_defaults"]
+                    self.nlp.vocab, **self.defaults["token_defaults"]
                 )
-            self.overwrite = cfg.get("spaczz_overwrite", False)
-            self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
+            self.overwrite = cfg.get("overwrite", False)
+            self.ent_id_sep = cfg.get("ent_id_sep", DEFAULT_ENT_ID_SEP)
         else:
             self.add_patterns(cfg)
         return self
@@ -554,10 +554,10 @@ class SpaczzRuler:
         """
         serial = OrderedDict(
             (
-                ("spaczz_overwrite", self.overwrite),
-                ("spaczz_ent_id_sep", self.ent_id_sep),
-                ("spaczz_patterns", self.patterns),
-                ("spaczz_defaults", self.defaults),
+                ("overwrite", self.overwrite),
+                ("ent_id_sep", self.ent_id_sep),
+                ("patterns", self.patterns),
+                ("defaults", self.defaults),
             )
         )
         return srsly.msgpack_dumps(serial)
@@ -601,27 +601,27 @@ class SpaczzRuler:
         else:
             cfg = {}
             deserializers_patterns = {
-                "spaczz_patterns": lambda p: self.add_patterns(
+                "patterns": lambda p: self.add_patterns(
                     srsly.read_jsonl(p.with_suffix(".jsonl"))
                 )
             }
             deserializers_cfg = {"cfg": lambda p: cfg.update(srsly.read_json(p))}
             read_from_disk(path, deserializers_cfg, {})
-            self.overwrite = cfg.get("spaczz_overwrite", False)
-            self.defaults = cfg.get("spaczz_defaults", {})
-            if self.defaults.get("spaczz_fuzzy_defaults"):
+            self.overwrite = cfg.get("overwrite", False)
+            self.defaults = cfg.get("defaults", {})
+            if self.defaults.get("fuzzy_defaults"):
                 self.fuzzy_matcher = FuzzyMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_fuzzy_defaults"]
+                    self.nlp.vocab, **self.defaults["fuzzy_defaults"]
                 )
-            if self.defaults.get("spaczz_regex_defaults"):
+            if self.defaults.get("regex_defaults"):
                 self.regex_matcher = RegexMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_regex_defaults"]
+                    self.nlp.vocab, **self.defaults["regex_defaults"]
                 )
-            if self.defaults.get("spaczz_token_defaults"):
+            if self.defaults.get("token_defaults"):
                 self.token_matcher = TokenMatcher(
-                    self.nlp.vocab, **self.defaults["spaczz_token_defaults"]
+                    self.nlp.vocab, **self.defaults["token_defaults"]
                 )
-            self.ent_id_sep = cfg.get("spaczz_ent_id_sep", DEFAULT_ENT_ID_SEP)
+            self.ent_id_sep = cfg.get("ent_id_sep", DEFAULT_ENT_ID_SEP)
             read_from_disk(path, deserializers_patterns, {})
         return self
 
@@ -651,12 +651,12 @@ class SpaczzRuler:
         """
         path = ensure_path(path)
         cfg = {
-            "spaczz_overwrite": self.overwrite,
-            "spaczz_defaults": self.defaults,
-            "spaczz_ent_id_sep": self.ent_id_sep,
+            "overwrite": self.overwrite,
+            "defaults": self.defaults,
+            "ent_id_sep": self.ent_id_sep,
         }
         serializers = {
-            "spaczz_patterns": lambda p: srsly.write_jsonl(
+            "patterns": lambda p: srsly.write_jsonl(
                 p.with_suffix(".jsonl"), self.patterns
             ),
             "cfg": lambda p: srsly.write_json(p, cfg),
@@ -716,7 +716,7 @@ class SpaczzRuler:
             The label and ent_id joined with configured ent_id_sep.
         """
         if isinstance(ent_id, str):
-            label = "{}{}{}".format(label, self.ent_id_sep, ent_id)
+            label = f"{label}{self.ent_id_sep}{ent_id}"
         return label
 
     def _split_label(self: SpaczzRuler, label: str) -> tuple[str, Union[str, None]]:
