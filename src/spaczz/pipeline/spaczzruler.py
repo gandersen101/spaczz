@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, Union
 import warnings
 
-from spacy.language import Language
+from spacy.language import component, Language
 from spacy.tokens import Doc, Span
 import srsly
 
@@ -19,6 +19,7 @@ from ..util import ensure_path, nest_defaultdict, read_from_disk, write_to_disk
 DEFAULT_ENT_ID_SEP = "||"
 
 
+@component("spaczz_ruler", assigns=["doc.ents", "token.ent_type", "token.ent_iob"])
 class SpaczzRuler:
     """The `SpaczzRuler` adds fuzzy and multi-token regex matches to spaCy `Doc.ents`.
 
