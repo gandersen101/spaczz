@@ -168,7 +168,7 @@ def tests(session: Session, spacy: str) -> None:
         "pytest",
         "pytest-cov",
         "pytest-mock",
-        spacy_version=current_spacy,
+        spacy_version=spacy,
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
