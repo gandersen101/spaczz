@@ -30,7 +30,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         args: Command-line arguments for pip.
         kwargs: Additional keyword arguments for Session.install.
     """
-    spacy_version = kwargs.get("spacy_version", current_spacy)
+    spacy_version = kwargs.pop("spacy_version", current_spacy)
     if platform.system() == "Windows":
         req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
         session.run(
