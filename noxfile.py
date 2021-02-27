@@ -44,7 +44,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         )
         session.install(f"--constraint={req_path}", *args, **kwargs)
         if spacy_version < "3.0.0":
-            session.install("--upgrade" f"spacy=={spacy_version}")
+            session.install("--upgrade", f"spacy=={spacy_version}")
         os.unlink(req_path)
     else:
         with tempfile.NamedTemporaryFile() as requirements:
