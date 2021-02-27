@@ -132,11 +132,15 @@ def test_add_patterns_with_other_pipeline_components(
 ) -> None:
     """It disables other pipeline components when adding patterns."""
     nlp = spacy.blank("en")
-    nlp.add_pipe(nlp.create_pipe("ner"))
-    ruler = SpaczzRuler(nlp)
-    nlp.add_pipe(ruler, first=True)
+    if spacy.__version__ < "3.0.0":
+        nlp.add_pipe(nlp.create_pipe("ner"))
+        ruler = SpaczzRuler(nlp)
+        nlp.add_pipe(ruler, first=True)
+    else:
+        nlp.add_pipe("ner")
+        nlp.add_pipe("spaczz_ruler", first=True)
     nlp.get_pipe("spaczz_ruler").add_patterns(patterns)
-    assert len(ruler) == len(patterns)
+    assert len(nlp.get_pipe("spaczz_ruler")) == len(patterns)
 
 
 def test_contains(ruler: SpaczzRuler) -> None:

@@ -4,6 +4,8 @@ from __future__ import annotations
 import pickle
 
 import pytest
+import spacy
+from spacy.errors import MatchPatternError
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -143,8 +145,12 @@ def test_matcher_warns_if_unknown_pattern_elements(nlp: Language) -> None:
     matcher = TokenMatcher(nlp.vocab)
     matcher.add("TEST", [[{"TEXT": {"fuzzy": "test"}}]])
     doc = nlp("test")
-    with pytest.warns(UserWarning):
-        matcher(doc)
+    if spacy.__version__ < "3.0.0":
+        with pytest.warns(UserWarning):
+            matcher(doc)
+    else:
+        with pytest.raises(MatchPatternError):
+            matcher(doc)
 
 
 def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None:

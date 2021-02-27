@@ -13,7 +13,9 @@ nox.options.sessions = "lint", "mypy", "safety", "tests"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 
 
-def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> None:
+def install_with_constraints(
+    session: Session, spacy_version: str, *args: str, **kwargs: Any
+) -> None:
     """Install packages constrained by Poetry's lock file.
 
     This function is a wrapper for nox.sessions.Session.install. It
@@ -25,6 +27,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
 
     Arguments:
         session: The Session object.
+        spacy_version: The version of spaCy to use.
         args: Command-line arguments for pip.
         kwargs: Additional keyword arguments for Session.install.
     """
@@ -40,6 +43,8 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
             external=True,
         )
         session.install(f"--constraint={req_path}", *args, **kwargs)
+        if spacy_version < "3.0.0":
+            session.install("--upgrade" f"spacy=={spacy_version}")
         os.unlink(req_path)
     else:
         with tempfile.NamedTemporaryFile() as requirements:
@@ -53,6 +58,8 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
                 external=True,
             )
             session.install(f"--constraint={requirements.name}", *args, **kwargs)
+            if spacy_version < "3.0.0":
+                session.install("--upgrade", f"spacy=={spacy_version}")
 
 
 @nox.session(python="3.9")
@@ -67,7 +74,7 @@ def black(session: Session) -> None:
 def coverage(session: Session) -> None:
     """Upload coverage data."""
     install_with_constraints(session, "coverage[toml]", "codecov")
-    session.run("coverage", "xml", "--fail-under=0")
+    session.run("coverage", "xml", "--fail-under=98")
     session.run("codecov", *session.posargs)
 
 
@@ -150,12 +157,13 @@ def safety(session: Session) -> None:
 
 
 @nox.session(python=["3.9", "3.8", "3.7"])
-def tests(session: Session) -> None:
+@nox.parametrize("spacy", ["3.0.3", "2.3.5"])
+def tests(session: Session, spacy: str) -> None:
     """Run the test suite."""
-    args = session.posargs or ["--cov"]
+    args = session.posargs or ["--cov", "--cov-append"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(
-        session, "coverage[toml]", "pytest", "pytest-cov", "pytest-mock"
+        session, spacy, "coverage[toml]", "pytest", "pytest-cov", "pytest-mock"
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
