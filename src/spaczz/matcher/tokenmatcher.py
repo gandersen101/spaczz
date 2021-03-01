@@ -4,11 +4,13 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from typing import Any, Callable, Generator, Iterable, List, Optional, Tuple, Type
+import warnings
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from ..exceptions import PipeDeprecation
 from ..search import TokenSearcher
 
 
@@ -285,6 +287,12 @@ class TokenMatcher:
         Yields:
             `Doc` objects, in order.
         """
+        warnings.warn(
+            """As of spaczz v0.5 and spaCy v3.0, the matcher.pipe method
+        is deprecated. If you need to match on a stream of documents,
+        you can use nlp.pipe and call the matcher on each Doc object.""",
+            PipeDeprecation,
+        )
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)

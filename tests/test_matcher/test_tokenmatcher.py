@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pickle
+import warnings
 
 import pytest
 import spacy
@@ -162,6 +163,7 @@ def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         nlp("test doc 1: Corvold"),
         nlp("test doc 2: Prosh"),
@@ -173,6 +175,7 @@ def test_matcher_pipe(nlp: Language) -> None:
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         (nlp("test doc 1: Corvold"), "Jund"),
         (nlp("test doc 2: Prosh"), "Jund"),
@@ -184,6 +187,7 @@ def test_matcher_pipe_with_context(nlp: Language) -> None:
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         nlp("test doc 1: Corvold"),
         nlp("test doc 2: Prosh"),
@@ -199,6 +203,7 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches and context as tuples."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         (nlp("test doc 1: Corvold"), "Jund"),
         (nlp("test doc 2: Prosh"), "Jund"),

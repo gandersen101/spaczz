@@ -428,9 +428,7 @@ def test_fuzzy_matching_multi_match(
     ruler.add_patterns(countries)
     doc = nlp("This is a test that should find Northern Ireland and Ireland")
     doc = ruler(doc)
-    matches = countries = [
-        (ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"
-    ]
+    matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
     assert matches == [("Northern Ireland", "Northern Ireland"), ("Ireland", "Ireland")]
 
 
@@ -442,7 +440,5 @@ def test_fuzzy_matching_paragraph(
     ruler.add_patterns(countries)
     doc = nlp(lorem)
     doc = ruler(doc)
-    matches = countries = [
-        (ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"
-    ]
+    matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
     assert matches == []
