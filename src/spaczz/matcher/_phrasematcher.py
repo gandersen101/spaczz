@@ -18,7 +18,7 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import KwargsWarning
+from ..exceptions import KwargsWarning, PipeDeprecation
 from ..search import _PhraseSearcher
 from ..util import nest_defaultdict
 
@@ -314,6 +314,12 @@ class _PhraseMatcher:
         Yields:
             `Doc` objects, in order.
         """
+        warnings.warn(
+            """As of spaczz v0.5 and spaCy v3.0, the matcher.pipe method
+        is deprecated. If you need to match on a stream of documents,
+        you can use nlp.pipe and call the matcher on each Doc object.""",
+            PipeDeprecation,
+        )
         if as_tuples:
             for doc, context in stream:
                 matches = self(doc)

@@ -10,11 +10,17 @@ Spaczz's components have similar APIs to their spaCy counterparts and spaczz pip
 
 Fuzzy matching is currently performed with matchers from [RapidFuzz](https://github.com/maxbachmann/rapidfuzz)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. Spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
 
-**Currently only supports spaCy v2. spaCy v3 support coming soon.**
+**Supports spaCy v3 and v2 (>= 2.2)!**
 
 Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 
 *Note: Python 3.9.1 and Numpy on MacOS can have issues. This is not a spaczz issue. Try Python 3.9.0 instead.*
+
+*v0.5.0 Release Notes:*
+- *Support for spaCy v3.*
+- *If using spaCy v3, the `SpaczzRuler` optional arguments no longer need to be prepended with `"spaczz_"`. This will still work in most cases offering some backwards compatibility. However, optional arguments prepended with `"spaczz_"` will not work with spaCy v3's new `spacy.load` and `nlp.add_pipe` config driven APIs. It is therefore recommended that users move away from using the prepended versions if using spaCy v3. It should be noted however that the prepended arguments are still necessary if using spaczz with spaCy v2.*
+- *`Matcher.pipe` methods are now deprecated in accordance with spaCy v3.*
+- *`spaczz_span` custom attribute is deprecated in favor of `spaczz_ent`. They both have the same functionality but the `spaczz_ent` name makes more sense.*
 
 *v0.4.2 Release Notes:*
 - *Fixed a bug where `TokenMatcher` callbacks did nothing.*
@@ -24,12 +30,6 @@ Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 - *Small tweaks to spaczz custom attributes.*
 - *Available fuzzy matching functions have changed in RapidFuzz and have changed in spaczz accordingly.*
 - *Preparing for spaCy v3 updates.*
-
-*v0.4.1 Release Notes:*
-- *Spaczz's phrase searching algorithm has been further optimized so both the `FuzzyMatcher` and `SimilarityMatcher` should run considerably faster.*
-- *The `FuzzyMatcher` and `SimilarityMatcher` now include a `thresh` parameter that defaults to `100`. When matching, if `flex > 0` and the match ratio is >= `thresh` during the initial scan of the document, no optimization will be attempted. By default perfect matches don't need to be run through match optimization.*
-- *`flex` now defaults to `len(pattern) // 2`. This creates more meaningful difference between `"default"` and `"max"` with longer patterns.*
-- *PEP585 code updates.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
 
@@ -342,9 +342,9 @@ matcher.add(
         [
             {"TEXT": "SQL"},
             {"LOWER": {"FREGEX": "(database){s<=1}"}},
-            {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+            {"LOWER": {"FUZZY": "access"}},
         ],
-        [{"TEXT": {"FUZZY": "Sequel"}}, {"LOWER": "db"}],
+        [{"TEXT": {"FUZZY": "Sequel"}, "POS": "PROPN"}, {"LOWER": "db"}],
     ],
 )
 matcher.add("NAME", [[{"TEXT": {"FUZZY": "Garfield"}}]])
@@ -479,7 +479,7 @@ The following `Token` attributes are available. All are mutable:
 
 The following `Span` attributes reference the token attributes included in the span. All are immutable:
 
-- `spaczz_span`: default = `False`. Boolean that denotes if all tokens in span are part of an ent set by the spaczz ruler.
+- `spaczz_ent`: default = `False`. Boolean that denotes if all tokens in span are part of an ent set by the spaczz ruler.
 - `spaczz_type`: default = `None`. String that denotes which matcher produced an ent using the included tokens.
 - `spaczz_types`: default = `set()`. Set that shows which matchers produced ents using the included tokens. An entity span should only have one type, but this allows you to see the types included in any arbitrary span.
 - `spaczz_ratio`: default = `None`. If all the tokens in span are part of fuzzy-phrase-matched ent, will return fuzzy ratio.
@@ -488,12 +488,12 @@ The following `Span` attributes reference the token attributes included in the s
 
 The following `Doc` attributes reference the token attributes included in the doc. All are immutable:
 
-- `spaczz_span`: default = `False`. Boolean that denotes if any tokens in the doc are part of an ent set by the spaczz ruler.
+- `spaczz_doc`: default = `False`. Boolean that denotes if any tokens in the doc are part of an ent set by the spaczz ruler.
 - `spaczz_types`: default = `set()`. Set that shows which matchers produced ents in the doc.
 
 ### Saving/Loading
 
-The `SpaczzRuler` has it's own to/from disk/bytes methods and will accept `cfg` parameters passed to `spacy.load()`. It also has it's own spaCy factory entry point so spaCy is aware of the `SpaczzRuler`. Below is an example of saving and loading a spacy pipeline with the small English model, the `EntityRuler`, and the `SpaczzRuler`.
+The `SpaczzRuler` has it's own to/from disk/bytes methods and will accept `config` parameters passed to `spacy.load()`. It also has it's own spaCy factory entry point so spaCy is aware of the `SpaczzRuler`. Below is an example of saving and loading a spacy pipeline with the small English model, the `EntityRuler`, and the `SpaczzRuler`.
 
 
 ```python
@@ -510,18 +510,14 @@ for ent in doc.ents:
     print((ent.text, ent.start, ent.end, ent.label_))
 ```
 
-    ('Anderson', 0, 1, 'ORG')
-    ('Grint', 2, 3, 'ORG')
-    ('spaczz', 4, 5, 'GPE')
+    ('Anderson', 0, 1, 'PERSON')
+    ('Grint', 2, 3, 'PERSON')
     ('555', 9, 10, 'CARDINAL')
-    ('Fake St', 10, 12, 'PERSON')
     ('5', 15, 16, 'CARDINAL')
-    ('TN', 19, 20, 'ORG')
-    ('55555-1234', 20, 23, 'DATE')
+    ('TN 55555-1234', 19, 23, 'DATE')
     ('USA', 25, 26, 'GPE')
-    ('Converg', 34, 35, 'GPE')
-    ('Protet', 36, 37, 'GPE')
-    ('Zero', 38, 39, 'CARDINAL')
+    ('Converg', 34, 35, 'PERSON')
+    ('Protet', 36, 37, 'PERSON')
 
 
 While spaCy does a decent job of identifying that named entities are present in this example, we can definitely improve the matches - particularly with the types of labels applied.
@@ -532,41 +528,34 @@ Let's add an entity ruler for some rules-based matches.
 ```python
 from spacy.pipeline import EntityRuler
 
-entity_ruler = EntityRuler(nlp)
+entity_ruler = nlp.add_pipe("entity_ruler", before="ner") #spaCy v3 syntax
 entity_ruler.add_patterns(
     [{"label": "GPE", "pattern": "Nashville"}, {"label": "GPE", "pattern": "TN"}]
 )
 
-nlp.add_pipe(entity_ruler, before="ner")
 doc = nlp(text)
 
 for ent in doc.ents:
     print((ent.text, ent.start, ent.end, ent.label_))
 ```
 
-    ('Anderson', 0, 1, 'ORG')
-    ('Grint', 2, 3, 'ORG')
-    ('spaczz', 4, 5, 'GPE')
+    ('Anderson', 0, 1, 'PERSON')
+    ('Grint', 2, 3, 'PERSON')
     ('555', 9, 10, 'CARDINAL')
-    ('Fake St', 10, 12, 'PERSON')
     ('5', 15, 16, 'CARDINAL')
     ('TN', 19, 20, 'GPE')
-    ('55555-1234', 20, 23, 'DATE')
     ('USA', 25, 26, 'GPE')
-    ('Converg', 34, 35, 'GPE')
-    ('Protet', 36, 37, 'GPE')
-    ('Zero', 38, 39, 'CARDINAL')
+    ('Converg', 34, 35, 'PERSON')
+    ('Protet', 36, 37, 'PERSON')
 
 
 We're making progress, but Nashville is spelled wrong in the text so the entity ruler does not find it, and we still have other entities to fix/find.
 
-Let's add a spaczz ruler to round this pipeline out. We will also include the `spaczz_ent` custom attribute in the results to denote which entities were set via spaczz.
+Let's add a spaczz ruler to round this pipeline out. We will also include the `spaczz_span` custom attribute in the results to denote which entities were set via spaczz.
 
 
 ```python
-spaczz_ruler = nlp.create_pipe(
-    "spaczz_ruler"
-)  # Works due to spaCy factory entry point.
+spaczz_ruler = nlp.add_pipe("spaczz_ruler", before="ner") #spaCy v3 syntax
 spaczz_ruler.add_patterns(
     [
         {
@@ -603,15 +592,14 @@ spaczz_ruler.add_patterns(
         },
     ]
 )
-nlp.add_pipe(spaczz_ruler, before="ner")
+
 doc = nlp(text)
 
 for ent in doc.ents:
-    print((ent.text, ent.start, ent.end, ent.label_, ent._.spaczz_span))
+    print((ent.text, ent.start, ent.end, ent.label_, ent._.spaczz_ent))
 ```
 
     ('Anderson, Grint', 0, 3, 'NAME', True)
-    ('spaczz', 4, 5, 'GPE', False)
     ('555 Fake St,', 9, 13, 'STREET', True)
     ('5', 15, 16, 'CARDINAL', False)
     ('Nashv1le', 17, 18, 'GPE', True)
@@ -622,7 +610,7 @@ for ent in doc.ents:
     ('Protet the Zero', 36, 39, 'BAND', True)
 
 
-Awesome! The small English model still makes a couple named entity recognition mistakes, but we're satisfied overall.
+Awesome! The small English model still makes a named entity recognition mistake ("5" in "Apt 5" as `CARDINAL`), but we're satisfied overall.
 
 Let's save this pipeline to disk and make sure we can load it back correctly.
 
@@ -636,7 +624,14 @@ nlp.pipe_names
 
 
 
-    ['tagger', 'parser', 'entity_ruler', 'spaczz_ruler', 'ner']
+    ['tok2vec',
+     'tagger',
+     'parser',
+     'entity_ruler',
+     'spaczz_ruler',
+     'ner',
+     'attribute_ruler',
+     'lemmatizer']
 
 
 
@@ -695,7 +690,7 @@ This one is particularly annoying for me because I built myself into this hole t
 
 Spaczz, like spaCy, has undefined behavior for multiple labels (or label/ent_id combos) sharing the same pattern. For example, if you add the pattern `"Ireland"` as both `"GPE"` and `"NAME"` the resulting label is unpredictable. For the most part this isn't an issue but spaczz also has to deal with the additional wrinkle of fuzzy matches.
 
-For example if we are looking for the string `"Ireland"` and have the patterns `["Ireland", "Iceland"]`. Even with a required match ratio of `85` these will both match at `100` and `86` respectively. When just dealing with fuzzy matches this isn't an issue as we can sort by descending match ratio. However what if the `"Iceland"` pattern was a regex pattern and it returned returned a tuple of fuzzy regex counts? Or what if the `"Iceland"` pattern was a token pattern and the `TokenMatcher` does not even currently provide match details?!
+For example if we are looking for the string `"Ireland"` and have the patterns `["Ireland", "Iceland"]`. Even with a required match ratio of `85` these will both match at `100` and `86` respectively. When just dealing with fuzzy matches this isn't an issue as we can sort by descending match ratio. However what if the `"Iceland"` pattern was a regex pattern and it returned a tuple of fuzzy regex counts? Or what if the `"Iceland"` pattern was a token pattern and the `TokenMatcher` does not even currently provide match details?!
 
 The above problem is twofold. First and foremost, I need to develop a way or ways to compare apples to oranges - fuzzy ratios and fuzzy regex counts. Then I need to figure out how to include match details from the `TokenMatcher` which supports both fuzzy and "fuzzy" regex matches.
 
@@ -712,8 +707,6 @@ I am always open and receptive to feature requests but just be aware, as a solo-
 **High Priority**
 
 1. Bug fixes - both breaking and behavioral. Hopefully these will be minimal.
-1. [spaCy v3 support](https://github.com/gandersen101/spaczz/issues/49).
-    1. I have this working but am struggling to find a way that supports both v2 and v3 at the same time.
 1. Ease of use and error/warning handling and messaging enhancements.
 1. Building out Read the Docs.
 1. A method for comparing fuzzy ratios and fuzzy regex counts.

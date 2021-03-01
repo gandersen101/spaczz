@@ -40,9 +40,8 @@ fuzzy_patterns = [
 
 ```python
 nlp = spacy.blank("en")
-spaczz_ruler = SpaczzRuler(nlp)
+spaczz_ruler = nlp.add_pipe("spaczz_ruler")  # spaCy v3 syntax
 spaczz_ruler.add_patterns(fuzzy_patterns)
-nlp.add_pipe(spaczz_ruler)
 ```
 
 ## Example 1: Basic
@@ -110,10 +109,10 @@ So to address this we will often want to tweak `min_r2` either per-pattern or fo
 
 ```python
 nlp = spacy.blank("en")
-spaczz_ruler = SpaczzRuler(
-    nlp, spaczz_fuzzy_defaults={"min_r2": 85}
+# spacy v3 syntax below
+spaczz_ruler = nlp.add_pipe(
+    "spaczz_ruler", config={"fuzzy_defaults": {"min_r2": 85}}
 )  # increase from 75 and applies to each pattern.
-nlp.add_pipe(spaczz_ruler)
 spaczz_ruler.add_patterns(fuzzy_patterns)
 ```
 
@@ -150,9 +149,8 @@ Re-establishing the basic pipeline here:
 
 ```python
 nlp = spacy.blank("en")
-spaczz_ruler = SpaczzRuler(nlp)
+spaczz_ruler = nlp.add_pipe("spaczz_ruler")  # spaCy v3 syntax
 spaczz_ruler.add_patterns(fuzzy_patterns)
-nlp.add_pipe(spaczz_ruler)
 ```
 
 
@@ -182,11 +180,11 @@ But first there is one tweak we can make to the entire pipeline (also available 
 
 ```python
 nlp = spacy.blank("en")
-spaczz_ruler = SpaczzRuler(
-    nlp, spaczz_fuzzy_defaults={"ignore_case": False}
+# spacy v3 syntax below
+spaczz_ruler = nlp.add_pipe(
+    "spaczz_ruler", config={"fuzzy_defaults": {"ignore_case": False}}
 )  # Enable case-sensitivity.
 spaczz_ruler.add_patterns(fuzzy_patterns)
-nlp.add_pipe(spaczz_ruler)
 ```
 
 
@@ -235,11 +233,11 @@ We'll put these new patterns into the same modified pipeline from above.
 
 ```python
 nlp = spacy.blank("en")
-spaczz_ruler = SpaczzRuler(
-    nlp, spaczz_fuzzy_defaults={"ignore_case": False}
+# spacy v3 syntax below
+spaczz_ruler = nlp.add_pipe(
+    "spaczz_ruler", config={"fuzzy_defaults": {"ignore_case": False}}
 )  # Enable case-sensitivity.
 spaczz_ruler.add_patterns(fuzzy_patterns)
-nlp.add_pipe(spaczz_ruler)
 ```
 
 And see the new results:
@@ -247,7 +245,7 @@ And see the new results:
 
 ```python
 doc = nlp(txt)
-countries = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
+countries = [(ent.ent_id_, ent.text, ent._.spaczz_ratio) for ent in doc.ents if ent.label_ == "COUNTRY"]
 if countries != []:
     print("Unexpected results...")
     print(countries)
@@ -258,9 +256,3 @@ else:
 
     Success!
     []
-
-
-
-```python
-
-```

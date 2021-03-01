@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import pickle
+import warnings
 
 import pytest
+import spacy
+from spacy.errors import MatchPatternError
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -143,8 +146,12 @@ def test_matcher_warns_if_unknown_pattern_elements(nlp: Language) -> None:
     matcher = TokenMatcher(nlp.vocab)
     matcher.add("TEST", [[{"TEXT": {"fuzzy": "test"}}]])
     doc = nlp("test")
-    with pytest.warns(UserWarning):
-        matcher(doc)
+    if spacy.__version__ < "3.0.0":
+        with pytest.warns(UserWarning):
+            matcher(doc)
+    else:
+        with pytest.raises(MatchPatternError):
+            matcher(doc)
 
 
 def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None:
@@ -156,6 +163,7 @@ def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None
 
 def test_matcher_pipe(nlp: Language) -> None:
     """It returns a stream of Doc objects."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         nlp("test doc 1: Corvold"),
         nlp("test doc 2: Prosh"),
@@ -167,6 +175,7 @@ def test_matcher_pipe(nlp: Language) -> None:
 
 def test_matcher_pipe_with_context(nlp: Language) -> None:
     """It returns a stream of Doc objects as tuples with context."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         (nlp("test doc 1: Corvold"), "Jund"),
         (nlp("test doc 2: Prosh"), "Jund"),
@@ -178,6 +187,7 @@ def test_matcher_pipe_with_context(nlp: Language) -> None:
 
 def test_matcher_pipe_with_matches(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches as tuples."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         nlp("test doc 1: Corvold"),
         nlp("test doc 2: Prosh"),
@@ -193,6 +203,7 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
 
 def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     """It returns a stream of Doc objects and matches and context as tuples."""
+    warnings.filterwarnings("ignore")
     doc_stream = (
         (nlp("test doc 1: Corvold"), "Jund"),
         (nlp("test doc 2: Prosh"), "Jund"),

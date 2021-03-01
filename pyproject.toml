@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.4.2"
+version = "0.5.0"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
@@ -12,7 +12,7 @@ documentation = "https://spaczz.readthedocs.io"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-spacy = "^2.2.0"
+spacy = ">= 2.2.0, < 4.0.0"
 regex = "^2020.6.8"
 importlib_metadata = {version = "^1.7.0", python = "<3.8"}
 rapidfuzz = "^1"
@@ -53,7 +53,6 @@ source = ["spaczz"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 98
 
 [build-system]
 requires = ["poetry>=1.0.0"]

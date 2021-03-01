@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import tempfile
 from typing import Any
 
@@ -9,6 +10,7 @@ import pytest
 import spacy
 from spacy.language import Language
 from spacy.tokens import Doc, Span
+import srsly
 
 from spaczz.exceptions import PatternTypeWarning
 from spaczz.pipeline.spaczzruler import SpaczzRuler
@@ -85,6 +87,30 @@ def ruler(nlp: Language, patterns: list[dict[str, Any]]) -> SpaczzRuler:
     return SpaczzRuler(nlp, spaczz_patterns=patterns)
 
 
+@pytest.fixture
+def countries(fixtures: Path) -> list[dict[str, Any]]:
+    """Country patterns for testing."""
+    raw_patterns = srsly.read_json(fixtures / "countries.json")
+    fuzzy_patterns = [
+        {
+            "label": "COUNTRY",
+            "pattern": pattern["name"],
+            "type": "fuzzy",
+            "id": pattern["name"],
+        }
+        for pattern in raw_patterns
+    ]
+    return fuzzy_patterns
+
+
+@pytest.fixture
+def lorem(fixtures: Path) -> str:
+    """Text for testing."""
+    with open(fixtures / "lorem.txt", "r") as f:
+        text = f.read()
+        return text
+
+
 def test_empty_default_ruler(nlp: Language) -> None:
     """It initialzes an empty ruler."""
     ruler = SpaczzRuler(nlp)
@@ -132,11 +158,15 @@ def test_add_patterns_with_other_pipeline_components(
 ) -> None:
     """It disables other pipeline components when adding patterns."""
     nlp = spacy.blank("en")
-    nlp.add_pipe(nlp.create_pipe("ner"))
-    ruler = SpaczzRuler(nlp)
-    nlp.add_pipe(ruler, first=True)
-    nlp.get_pipe("spaczz_ruler").add_patterns(patterns)
-    assert len(ruler) == len(patterns)
+    if spacy.__version__ < "3.0.0":
+        nlp.add_pipe(nlp.create_pipe("ner"))
+        ruler = SpaczzRuler(nlp)
+        nlp.add_pipe(ruler, first=True)
+    else:
+        _ = nlp.add_pipe("ner")
+        ruler = nlp.add_pipe("spaczz_ruler", first=True)
+    ruler.add_patterns(patterns)
+    assert len(nlp.get_pipe("spaczz_ruler")) == len(patterns)
 
 
 def test_contains(ruler: SpaczzRuler) -> None:
@@ -172,7 +202,7 @@ def test_calling_ruler(ruler: SpaczzRuler, doc: Doc) -> None:
     """It adds entities to doc."""
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
-    assert all(ent._.spaczz_span for ent in ents)
+    assert all(ent._.spaczz_ent for ent in ents)
     assert ents[0]._.spaczz_ratio == 86
     assert ents[1]._.spaczz_counts == (0, 0, 0)
     assert ents[6]._.spaczz_details == 1
@@ -371,3 +401,44 @@ def test_spaczz_patterns_to_from_disk(
         assert pattern in new_ruler.patterns
     assert sorted(new_ruler.labels) == sorted(ruler.labels)
     assert new_ruler.overwrite is False
+
+
+def test_ruler_clear(ruler: SpaczzRuler) -> None:
+    """It clears the ruler's patterns."""
+    if spacy.__version__ >= "3.0.0":
+        ruler.clear()
+        assert len(ruler) == 0
+
+
+def test_fuzzy_matching_basic(nlp: Language, countries: list[dict[str, Any]]) -> None:
+    """It labels fuzzy matches correctly."""
+    ruler = SpaczzRuler(nlp)
+    ruler.add_patterns(countries)
+    doc = nlp("This is a test that should find Egypt and Argentina")
+    doc = ruler(doc)
+    matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
+    assert matches == [("Egypt", "Egypt"), ("Argentina", "Argentina")]
+
+
+def test_fuzzy_matching_multi_match(
+    nlp: Language, countries: list[dict[str, Any]]
+) -> None:
+    """It labels fuzzy matches correctly."""
+    ruler = SpaczzRuler(nlp, spaczz_fuzzy_defaults={"min_r2": 85})
+    ruler.add_patterns(countries)
+    doc = nlp("This is a test that should find Northern Ireland and Ireland")
+    doc = ruler(doc)
+    matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
+    assert matches == [("Northern Ireland", "Northern Ireland"), ("Ireland", "Ireland")]
+
+
+def test_fuzzy_matching_paragraph(
+    nlp: Language, countries: list[dict[str, Any]], lorem: str
+) -> None:
+    """It labels fuzzy matches correctly."""
+    ruler = SpaczzRuler(nlp, spaczz_fuzzy_defaults={"min_r2": 90})
+    ruler.add_patterns(countries)
+    doc = nlp(lorem)
+    doc = ruler(doc)
+    matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
+    assert matches == []

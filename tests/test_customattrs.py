@@ -4,7 +4,7 @@ from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.customattrs import SpaczzAttrs
-from spaczz.exceptions import AttrOverwriteWarning
+from spaczz.exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
 
 
 @pytest.fixture
@@ -23,7 +23,16 @@ def test_get_spaczz_span(doc: Doc) -> None:
     """Returns spaczz span boolean."""
     for token in doc[:2]:
         token._.spaczz_token = True
-    assert doc[:2]._.spaczz_span is True
+    with pytest.warns(SpaczzSpanDeprecation):
+        value = doc[:2]._.spaczz_span
+    assert value is True
+
+
+def test_get_spaczz_ent(doc: Doc) -> None:
+    """Returns spaczz ent boolean."""
+    for token in doc[:2]:
+        token._.spaczz_token = True
+    assert doc[:2]._.spaczz_ent is True
 
 
 def test_get_span_type(doc: Doc) -> None:

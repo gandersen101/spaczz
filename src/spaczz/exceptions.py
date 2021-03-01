@@ -31,3 +31,7 @@ class MissingVectorsWarning(Warning):
 
 class RatioWarning(Warning):
     """It warns if match ratio values are incompatible with each other."""
+
+
+class SpaczzSpanDeprecation(Warning):
+    """It warns if the spaczz_span attribute is accessed."""

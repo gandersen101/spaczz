@@ -16,7 +16,7 @@ spaczz.matcher
 spaczz.pipeline
 --------------------------
 
-.. automodule:: spaczz.pipeline
+.. automodule:: spaczz.pipeline._spaczzruler
    :members:
 
 
