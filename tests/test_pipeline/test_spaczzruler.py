@@ -163,9 +163,9 @@ def test_add_patterns_with_other_pipeline_components(
         ruler = SpaczzRuler(nlp)
         nlp.add_pipe(ruler, first=True)
     else:
-        nlp.add_pipe("ner")
-        nlp.add_pipe("spaczz_ruler", first=True)
-    nlp.get_pipe("spaczz_ruler").add_patterns(patterns)
+        _ = nlp.add_pipe("ner")
+        ruler = nlp.add_pipe("spaczz_ruler", first=True)
+    ruler.add_patterns(patterns)
     assert len(nlp.get_pipe("spaczz_ruler")) == len(patterns)
 
 
@@ -202,7 +202,7 @@ def test_calling_ruler(ruler: SpaczzRuler, doc: Doc) -> None:
     """It adds entities to doc."""
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
-    assert all(ent._.spaczz_span for ent in ents)
+    assert all(ent._.spaczz_ent for ent in ents)
     assert ents[0]._.spaczz_ratio == 86
     assert ents[1]._.spaczz_counts == (0, 0, 0)
     assert ents[6]._.spaczz_details == 1

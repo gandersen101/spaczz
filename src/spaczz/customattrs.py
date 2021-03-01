@@ -6,7 +6,7 @@ import warnings
 
 from spacy.tokens import Doc, Span, Token
 
-from .exceptions import AttrOverwriteWarning
+from .exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
 
 
 class SpaczzAttrs:
@@ -26,6 +26,7 @@ class SpaczzAttrs:
                 Token.set_extension("spaczz_details", default=None)
 
                 Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
+                Span.set_extension("spaczz_ent", getter=cls.get_spaczz_ent)
                 Span.set_extension("spaczz_type", getter=cls.get_span_type)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
@@ -64,6 +65,16 @@ class SpaczzAttrs:
     @staticmethod
     def get_spaczz_span(span: Span) -> bool:
         """Getter for spaczz_span `Span` attribute."""
+        warnings.warn(
+            """spaczz_span is deprecated.
+        Use spaczz_ent instead.""",
+            SpaczzSpanDeprecation,
+        )
+        return all([token._.spaczz_token for token in span])
+
+    @staticmethod
+    def get_spaczz_ent(span: Span) -> bool:
+        """Getter for spaczz_ent `Span` attribute."""
         return all([token._.spaczz_token for token in span])
 
     @classmethod

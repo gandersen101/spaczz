@@ -312,6 +312,8 @@ class RegexMatcher:
     ) -> Generator[Any, None, None]:
         r"""Match a stream of `Doc` objects, yielding them in turn.
 
+        Deprecated as of spaCy v3.0 and spaczz v0.5.
+
         Args:
             stream: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.

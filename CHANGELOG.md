@@ -1,3 +1,10 @@
+*v0.5.0 Release Notes:*
+- *Support for spaCy v3.*
+- *If using spaCy v3, the `SpaczzRuler` optional arguments no longer need to be prepended with `"spaczz_"`. This will still work in most cases offering some backwards compatibility. However, optional arguments prepended with `"spaczz_"` will not work with spaCy v3's new `spacy.load` and `nlp.add_pipe` config driven APIs. It is therefore recommended that users move away from using the prepended versions if using spaCy v3. It should be noted however that the prepended arguments are still necessary if using spaczz with spaCy v2.*
+- *`Matcher.pipe` methods are now deprecated in accordance with spaCy v3.*
+- *`spaczz_span` custom attribute is deprecated in favor of `spaczz_ent`. They both have the same functionality but the `spaczz_ent` name makes more sense.*
+
+
 *v0.4.2 Release Notes:*
 - *Fixed a bug where `TokenMatcher` callbacks did nothing.*
 - *Fixed a bug where `spaczz_token_defaults` in the `SpaczzRuler` did nothing.*
