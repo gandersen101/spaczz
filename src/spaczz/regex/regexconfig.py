@@ -31,7 +31,11 @@ class RegexConfig:
         else:
             self._predefs = {}
 
-    def parse_regex(self: RegexConfig, regex_str: str, predef: bool = False,) -> Any:
+    def parse_regex(
+        self: RegexConfig,
+        regex_str: str,
+        predef: bool = False,
+    ) -> Any:
         """Parses a string into a regex pattern.
 
         Will treat string as a key name for a predefined regex
@@ -77,7 +81,9 @@ class RegexConfig:
             compiled_regex = self.get_predef(regex_str)
         else:
             try:
-                compiled_regex = regex.compile(regex_str,)
+                compiled_regex = regex.compile(
+                    regex_str,
+                )
             except (regex._regex_core.error, TypeError, ValueError) as e:
                 raise RegexParseError(e)
         return compiled_regex

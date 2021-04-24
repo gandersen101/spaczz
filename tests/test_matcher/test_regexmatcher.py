@@ -1,7 +1,6 @@
 """Tests for the regexmatcher module."""
-from __future__ import annotations
-
 import pickle
+from typing import List, Tuple
 import warnings
 
 import pytest
@@ -16,7 +15,7 @@ def add_gpe_ent(
     matcher: RegexMatcher,
     doc: Doc,
     i: int,
-    matches: list[tuple[str, int, int, tuple[int, int, int]]],
+    matches: List[Tuple[str, int, int, Tuple[int, int, int]]],
 ) -> None:
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
     _match_id, start, end, _fuzzy_counts = matches[i]

@@ -1,7 +1,6 @@
 """Tests for tokenmatcher module."""
-from __future__ import annotations
-
 import pickle
+from typing import List, Tuple
 import warnings
 
 import pytest
@@ -14,7 +13,7 @@ from spaczz.matcher import TokenMatcher
 
 
 def add_name_ent(
-    matcher: TokenMatcher, doc: Doc, i: int, matches: list[tuple[str, int, int, None]]
+    matcher: TokenMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, None]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _details = matches[i]
@@ -194,7 +193,8 @@ def test_matcher_pipe_with_matches(nlp: Language) -> None:
     )
     matcher = TokenMatcher(nlp.vocab)
     matcher.add(
-        "DRAGON", [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
+        "DRAGON",
+        [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
     )
     output = matcher.pipe(doc_stream, return_matches=True)
     matches = [entry[1] for entry in output]
@@ -210,7 +210,8 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     )
     matcher = TokenMatcher(nlp.vocab)
     matcher.add(
-        "DRAGON", [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
+        "DRAGON",
+        [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
     )
     output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
     matches = [(entry[0][1], entry[1]) for entry in output]

@@ -1,10 +1,11 @@
 """Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import (
     Any,
     Callable,
+    DefaultDict,
+    Dict,
     Generator,
     Iterable,
     List,
@@ -63,13 +64,13 @@ class _PhraseMatcher:
         """
         self.defaults = defaults
         self.type = "_phrase"
-        self._callbacks: dict[str, PhraseCallback] = {}
-        self._patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+        self._callbacks: Dict[str, PhraseCallback] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
             list, 2
         )
         self._searcher = _PhraseSearcher(vocab=vocab)
 
-    def __call__(self: _PhraseMatcher, doc: Doc) -> list[tuple[str, int, int, int]]:
+    def __call__(self: _PhraseMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:
         """Find all sequences matching the supplied patterns in `doc`.
 
         Args:
@@ -120,7 +121,7 @@ class _PhraseMatcher:
 
     def __reduce__(
         self: _PhraseMatcher,
-    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -132,7 +133,7 @@ class _PhraseMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: _PhraseMatcher) -> tuple[str, ...]:
+    def labels(self: _PhraseMatcher) -> Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -150,7 +151,7 @@ class _PhraseMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: _PhraseMatcher) -> list[dict[str, Any]]:
+    def patterns(self: _PhraseMatcher) -> List[Dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -190,8 +191,8 @@ class _PhraseMatcher:
     def add(
         self: _PhraseMatcher,
         label: str,
-        patterns: list[Doc],
-        kwargs: Optional[list[dict[str, Any]]] = None,
+        patterns: List[Doc],
+        kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: PhraseCallback = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -339,14 +340,14 @@ class _PhraseMatcher:
 PMT = TypeVar("PMT", bound=_PhraseMatcher)
 PhraseCallback = Optional[
     Callable[[PMT, Doc, int, List[Tuple[str, int, int, int]]], None]
-]  # Python < 3.9 still wants Typing types here.
+]
 
 
 def unpickle_matcher(
     matcher: Type[_PhraseMatcher],
     vocab: Vocab,
-    patterns: defaultdict[str, defaultdict[str, Any]],
-    callbacks: dict[str, PhraseCallback],
+    patterns: DefaultDict[str, DefaultDict[str, Any]],
+    callbacks: Dict[str, PhraseCallback],
     defaults: Any,
 ) -> Any:
     """Will return a matcher from pickle protocol."""

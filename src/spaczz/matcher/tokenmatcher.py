@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Callable, Generator, Iterable, List, Optional, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 import warnings
 
 from spacy.matcher import Matcher
@@ -62,11 +73,11 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: dict[str, TokenCallback] = {}
-        self._patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
+        self._callbacks: Dict[str, TokenCallback] = {}
+        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = DefaultDict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self: TokenMatcher, doc: Doc) -> list[tuple[str, int, int, None]]:
+    def __call__(self: TokenMatcher, doc: Doc) -> List[Tuple[str, int, int, None]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -95,7 +106,8 @@ class TokenMatcher:
             for pattern in patterns:
                 mapped_patterns[label].extend(
                     _spacyfy(
-                        self._searcher.match(doc, pattern, **self.defaults), pattern,
+                        self._searcher.match(doc, pattern, **self.defaults),
+                        pattern,
                     )
                 )
         for label in mapped_patterns.keys():
@@ -124,7 +136,7 @@ class TokenMatcher:
 
     def __reduce__(
         self: TokenMatcher,
-    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -136,7 +148,7 @@ class TokenMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: TokenMatcher) -> tuple[str, ...]:
+    def labels(self: TokenMatcher) -> Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -154,7 +166,7 @@ class TokenMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: TokenMatcher) -> list[dict[str, Any]]:
+    def patterns(self: TokenMatcher) -> List[Dict[str, Any]]:
         """Get all patterns that were added to the matcher.
 
         Returns:
@@ -190,7 +202,7 @@ class TokenMatcher:
     def add(
         self: TokenMatcher,
         label: str,
-        patterns: list[list[dict[str, Any]]],
+        patterns: List[List[Dict[str, Any]]],
         on_match: TokenCallback = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -312,8 +324,8 @@ class TokenMatcher:
 
 
 def _spacyfy(
-    matches: list[list[Optional[tuple[str, str]]]], pattern: list[dict[str, Any]]
-) -> list[list[dict[str, Any]]]:
+    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
+) -> List[List[Dict[str, Any]]]:
     """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
     new_patterns = []
     if matches:
@@ -329,14 +341,14 @@ def _spacyfy(
 
 TokenCallback = Optional[
     Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
-]  # Python < 3.9 still wants Typing types here.
+]
 
 
 def unpickle_matcher(
     matcher: Type[TokenMatcher],
     vocab: Vocab,
-    patterns: defaultdict[str, list[list[dict[str, Any]]]],
-    callbacks: dict[str, TokenCallback],
+    patterns: DefaultDict[str, List[List[Dict[str, Any]]]],
+    callbacks: Dict[str, TokenCallback],
     defaults: Any,
 ) -> Any:
     """Will return a matcher from pickle protocol."""

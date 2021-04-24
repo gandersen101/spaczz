@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import Any, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 
 from spacy.tokens import Doc, Span, Token
@@ -86,7 +86,7 @@ class _PhraseSearcher:
         thresh: int = 100,
         *args: Any,
         **kwargs: Any,
-    ) -> list[tuple[int, int, int]]:
+    ) -> List[Tuple[int, int, int]]:
         """Returns phrase matches in a `Doc` object.
 
         Finds phrase matches in `doc` based on the `query`,
@@ -167,14 +167,14 @@ class _PhraseSearcher:
         self: _PhraseSearcher,
         doc: Doc,
         query: Doc,
-        match_values: dict[int, int],
+        match_values: Dict[int, int],
         pos: int,
         flex: int,
         min_r2: int,
         thresh: int,
         *args: Any,
         **kwargs: Any,
-    ) -> Union[tuple[int, int, int], None]:
+    ) -> Optional[Tuple[int, int, int]]:
         """Optimizes a potential match by flexing match span boundaries.
 
         For a match span from `._scan` that has match ratio
@@ -248,7 +248,7 @@ class _PhraseSearcher:
         min_r1: int,
         *args: Any,
         **kwargs: Any,
-    ) -> Union[dict[int, int], None]:
+    ) -> Optional[Dict[int, int]]:
         """Returns a `dict` of potential match start indices and match ratios.
 
         Iterates through the `doc` by spans of `query` length,
@@ -278,7 +278,7 @@ class _PhraseSearcher:
         """
         if not len(query):
             return None
-        match_values: dict[int, int] = dict()
+        match_values: Dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
             match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
@@ -353,14 +353,17 @@ class _PhraseSearcher:
                 flex = 0
         else:
             raise TypeError(
-                ("Flex must either be the strings default,", "max, or min, or an int.",)
+                (
+                    "Flex must either be the strings default,",
+                    "max, or min, or an int.",
+                )
             )
         return flex
 
     @staticmethod
     def _check_ratios(
         min_r1: int, min_r2: int, thresh: int, flex: int
-    ) -> tuple[int, int, int]:
+    ) -> Tuple[int, int, int]:
         """Ensures match ratio requirements are not set to illegal values."""
         if flex:
             if min_r1 > min_r2:
@@ -383,8 +386,8 @@ class _PhraseSearcher:
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: list[tuple[int, int, int]]
-    ) -> list[tuple[int, int, int]]:
+        matches: List[Tuple[int, int, int]]
+    ) -> List[Tuple[int, int, int]]:
         """Prevents multiple match spans from overlapping.
 
         Expects matches to be pre-sorted by descending ratio
@@ -408,7 +411,7 @@ class _PhraseSearcher:
             >>> searcher._filter_overlapping_matches(matches)
             [(1, 3, 80)]
         """
-        filtered_matches: list[tuple[int, int, int]] = []
+        filtered_matches: List[Tuple[int, int, int]] = []
         for match in matches:
             if not set(range(match[0], match[1])).intersection(
                 chain(*[set(range(n[0], n[1])) for n in filtered_matches])
