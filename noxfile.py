@@ -38,7 +38,6 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
             "export",
             "--dev",
             "--format=requirements.txt",
-            # "--without-hashes",
             f"--output={req_path}",
             external=True,
         )
