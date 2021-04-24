@@ -38,7 +38,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
             "export",
             "--dev",
             "--format=requirements.txt",
-            "--without-hashes",
+            # "--without-hashes",
             f"--output={req_path}",
             external=True,
         )
@@ -166,21 +166,10 @@ def tests(session: Session, spacy: str) -> None:
         "coverage[toml]",
         "pytest",
         "pytest-cov",
-        "pytest-mock",
         spacy_version=spacy,
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
-
-
-@nox.session(python=["3.9", "3.8", "3.7"])
-def typeguard(session: Session) -> None:
-    """Runtime type checking using Typeguard."""
-    args = session.posargs
-    session.run("poetry", "install", "--no-dev", external=True)
-    install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
-    session.run("python", "-m", "spacy", "download", "en_core_web_md")
-    session.run("pytest", f"--typeguard-packages={package}", *args)
 
 
 @nox.session(python=["3.9", "3.8", "3.7"])
