@@ -1,11 +1,9 @@
 """Module for various utility functions."""
-from __future__ import annotations
-
 from collections import defaultdict
 from functools import partial
 from itertools import repeat, tee
 from pathlib import Path
-from typing import Any, Iterable, Union
+from typing import Any, DefaultDict, Iterable, Union
 
 
 def ensure_path(path: Union[str, Path]) -> Path:
@@ -23,7 +21,7 @@ def ensure_path(path: Union[str, Path]) -> Path:
         return path
 
 
-def nest_defaultdict(default_factory: Any, depth: int = 1) -> defaultdict[Any, Any]:
+def nest_defaultdict(default_factory: Any, depth: int = 1) -> DefaultDict[Any, Any]:
     """Returns a nested `defaultdict`."""
     result = partial(defaultdict, default_factory)
     for _ in repeat(None, depth - 1):

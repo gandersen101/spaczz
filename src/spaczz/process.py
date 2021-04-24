@@ -1,13 +1,13 @@
 """Module for various doc/text processing classes/functions."""
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Dict
 
 from rapidfuzz import fuzz
 from spacy.tokens import Doc
 
 
-def map_chars_to_tokens(doc: Doc) -> dict[int, int]:
+def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
     """Maps characters in a `Doc` object to tokens."""
     chars_to_tokens = {}
     for token in doc:
@@ -55,7 +55,7 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self._fuzzy_funcs: dict[str, Callable[[str, str], int]] = {
+            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
                 "simple": fuzz.ratio,
                 "partial": fuzz.partial_ratio,
                 "token_set": fuzz.token_set_ratio,

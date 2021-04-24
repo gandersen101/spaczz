@@ -1,7 +1,6 @@
 """Tests for the fuzzymatcher module."""
-from __future__ import annotations
-
 import pickle
+from typing import List, Tuple
 import warnings
 
 import pytest
@@ -13,7 +12,7 @@ from spaczz.matcher.fuzzymatcher import FuzzyMatcher
 
 
 def add_name_ent(
-    matcher: FuzzyMatcher, doc: Doc, i: int, matches: list[tuple[str, int, int, int]]
+    matcher: FuzzyMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, int]]
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _ratio = matches[i]

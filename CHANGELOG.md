@@ -1,3 +1,7 @@
+*v0.5.1 Release Notes:*
+- *Minor updates to allowed dependency versions and CI.*
+- *Switched back to using typing types instead of generic types because spaCy v3 uses Pydantic and Pydantic does not support generic types in Python < 3.9. I don't know if this would actually cause any issues but I am playing it safe. Potentially more changes for spaczz to play nicely with Pydantic to follow.*
+
 *v0.5.0 Release Notes:*
 - *Support for spaCy v3.*
 - *If using spaCy v3, the `SpaczzRuler` optional arguments no longer need to be prepended with `"spaczz_"`. This will still work in most cases offering some backwards compatibility. However, optional arguments prepended with `"spaczz_"` will not work with spaCy v3's new `spacy.load` and `nlp.add_pipe` config driven APIs. It is therefore recommended that users move away from using the prepended versions if using spaCy v3. It should be noted however that the prepended arguments are still necessary if using spaczz with spaCy v2.*

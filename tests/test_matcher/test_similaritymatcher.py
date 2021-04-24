@@ -23,7 +23,9 @@ def matcher(model: Language) -> SimilarityMatcher:
     peppers = ["jalapenos"]
     matcher = SimilarityMatcher(model.vocab)
     matcher.add(
-        "INSTRUMENT", [model(i) for i in instruments], kwargs=[{"min_r2": 70}],
+        "INSTRUMENT",
+        [model(i) for i in instruments],
+        kwargs=[{"min_r2": 70}],
     )
     matcher.add("PEPPER", [model(pepper) for pepper in peppers])
     return matcher

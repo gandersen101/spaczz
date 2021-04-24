@@ -12,7 +12,7 @@ package = "spaczz"
 nox.options.sessions = "lint", "mypy", "safety", "tests"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 min_cov = 98
-current_spacy = "3.0.3"
+current_spacy = "3.0.6"
 
 
 def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> None:
@@ -37,8 +37,8 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
             "poetry",
             "export",
             "--dev",
-            "--format=requirements.txt",
             "--without-hashes",
+            "--format=requirements.txt",
             f"--output={req_path}",
             external=True,
         )
@@ -132,7 +132,6 @@ def safety(session: Session) -> None:
             "check",
             f"--file={req_path}",
             "--full-report",
-            "--ignore=39462",  # tornado issue 2981
         )
         os.unlink(req_path)
     else:
@@ -167,22 +166,10 @@ def tests(session: Session, spacy: str) -> None:
         "coverage[toml]",
         "pytest",
         "pytest-cov",
-        "pytest-mock",
         spacy_version=spacy,
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
-
-
-# Typeguard does not seem to currently work with PEP585
-# @nox.session(python=["3.9", "3.8", "3.7"])
-# def typeguard(session: Session) -> None:
-#     """Runtime type checking using Typeguard."""
-#     args = session.posargs
-#     session.run("poetry", "install", "--no-dev", external=True)
-#     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
-#     session.run("python", "-m", "spacy", "download", "en_core_web_md")
-#     session.run("pytest", f"--typeguard-packages={package}", *args)
 
 
 @nox.session(python=["3.9", "3.8", "3.7"])

@@ -5,7 +5,18 @@ from collections import defaultdict
 from itertools import chain
 from logging import exception
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 import warnings
 
 try:
@@ -109,11 +120,11 @@ class SpaczzRuler(Pipe):
         *,
         overwrite_ents: bool = False,
         ent_id_sep: str = DEFAULT_ENT_ID_SEP,
-        fuzzy_defaults: dict[str, Any] = simple_frozen_dict,
-        regex_defaults: dict[str, Any] = simple_frozen_dict,
-        token_defaults: dict[str, Any] = simple_frozen_dict,
+        fuzzy_defaults: Dict[str, Any] = simple_frozen_dict,
+        regex_defaults: Dict[str, Any] = simple_frozen_dict,
+        token_defaults: Dict[str, Any] = simple_frozen_dict,
         regex_config: Union[str, RegexConfig] = "default",
-        patterns: Optional[Iterable[dict[str, Any]]] = None,
+        patterns: Optional[Iterable[Dict[str, Any]]] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the spaczz ruler.
@@ -165,17 +176,17 @@ class SpaczzRuler(Pipe):
         self.nlp = nlp
         self.name = name
         self.overwrite = kwargs.get("spaczz_overwrite_ents", overwrite_ents)
-        self.fuzzy_patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+        self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
             list, 2
         )
-        self.regex_patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+        self.regex_patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
             list, 2
         )
-        self.token_patterns: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(
+        self.token_patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(
             list
         )
         self.ent_id_sep = kwargs.get("spaczz_ent_id_sep", ent_id_sep)
-        self._ent_ids: defaultdict[Any, Any] = defaultdict(dict)
+        self._ent_ids: DefaultDict[Any, Any] = defaultdict(dict)
         self.defaults = {}
         default_names = (
             "fuzzy_defaults",
@@ -251,7 +262,7 @@ class SpaczzRuler(Pipe):
         return n_fuzzy_patterns + n_regex_patterns + n_token_patterns
 
     @property
-    def ent_ids(self: SpaczzRuler) -> tuple[Optional[str], ...]:
+    def ent_ids(self: SpaczzRuler) -> Tuple[Optional[str], ...]:
         """All entity ids present in the match patterns id properties.
 
         Returns:
@@ -280,7 +291,7 @@ class SpaczzRuler(Pipe):
         return all_ent_ids_tuple
 
     @property
-    def labels(self: SpaczzRuler) -> tuple[str, ...]:
+    def labels(self: SpaczzRuler) -> Tuple[str, ...]:
         """All labels present in the ruler.
 
         Returns:
@@ -309,7 +320,7 @@ class SpaczzRuler(Pipe):
         return tuple(all_labels)
 
     @property
-    def patterns(self: SpaczzRuler) -> list[dict[str, Any]]:
+    def patterns(self: SpaczzRuler) -> List[Dict[str, Any]]:
         """Get all patterns and kwargs that were added to the ruler.
 
         Returns:
@@ -364,7 +375,10 @@ class SpaczzRuler(Pipe):
                 all_patterns.append(p)
         return all_patterns
 
-    def add_patterns(self: SpaczzRuler, patterns: Iterable[dict[str, Any]],) -> None:
+    def add_patterns(
+        self: SpaczzRuler,
+        patterns: Iterable[Dict[str, Any]],
+    ) -> None:
         """Add patterns to the ruler.
 
         A pattern must be a spaczz pattern:
@@ -499,8 +513,8 @@ class SpaczzRuler(Pipe):
 
     def clear(self: SpaczzRuler) -> None:
         """Reset all patterns."""
-        self.fuzzy_patterns = defaultdict(lambda: defaultdict(list))
-        self.regex_patterns = defaultdict(lambda: defaultdict(list))
+        self.fuzzy_patterns = nest_defaultdict(list, 2)
+        self.regex_patterns = nest_defaultdict(list, 2)
         self.token_patterns = defaultdict(list)
         self._ent_ids = defaultdict(dict)
 
@@ -509,7 +523,7 @@ class SpaczzRuler(Pipe):
         get_examples: Callable[[], Iterable[Example]],
         *,
         nlp: Optional[Language] = None,
-        patterns: Optional[Iterable[dict[str, Any]]] = None,
+        patterns: Optional[Iterable[Dict[str, Any]]] = None,
     ) -> None:
         """Initialize the pipe for training.
 
@@ -525,12 +539,13 @@ class SpaczzRuler(Pipe):
 
     def match(
         self: SpaczzRuler, doc: Doc
-    ) -> tuple[
-        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]],
+    ) -> Tuple[
+        List[Tuple[str, int, int]],
+        DefaultDict[str, Dict[Tuple[str, int, int], Any]],
     ]:
         """Used in call to find matches in a doc."""
         fuzzy_matches = []
-        lookup: defaultdict[str, dict[tuple[str, int, int], Any]] = defaultdict(dict)
+        lookup: DefaultDict[str, Dict[Tuple[str, int, int], Any]] = defaultdict(dict)
         for fuzzy_match in self.fuzzy_matcher(doc):
             current_ratio = fuzzy_match[3]
             best_ratio = lookup["ratios"].get(fuzzy_match[:3], 0)
@@ -560,15 +575,15 @@ class SpaczzRuler(Pipe):
     def set_annotations(
         self: SpaczzRuler,
         doc: Doc,
-        matches: list[tuple[str, int, int]],
-        lookup: defaultdict[
-            str, dict[tuple[str, int, int], Union[int, tuple[int, int, int]]]
+        matches: List[Tuple[str, int, int]],
+        lookup: DefaultDict[
+            str, Dict[Tuple[str, int, int], Union[int, Tuple[int, int, int]]]
         ],
     ) -> None:
         """Modify the document in place."""
         entities = list(doc.ents)
         new_entities = []
-        seen_tokens: set[int] = set()
+        seen_tokens: Set[int] = set()
         for match_id, start, end in matches:
             if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
                 continue
@@ -786,9 +801,9 @@ class SpaczzRuler(Pipe):
 
     def _add_patterns(
         self: SpaczzRuler,
-        fuzzy_patterns: list[dict[str, Any]],
-        regex_patterns: list[dict[str, Any]],
-        token_patterns: list[dict[str, Any]],
+        fuzzy_patterns: List[Dict[str, Any]],
+        regex_patterns: List[Dict[str, Any]],
+        token_patterns: List[Dict[str, Any]],
     ) -> None:
         """Helper function for add_patterns."""
         for entry in fuzzy_patterns + regex_patterns + token_patterns:
@@ -837,7 +852,7 @@ class SpaczzRuler(Pipe):
             label = "{}{}{}".format(label, self.ent_id_sep, ent_id)
         return label
 
-    def _split_label(self: SpaczzRuler, label: str) -> tuple[str, Union[str, None]]:
+    def _split_label(self: SpaczzRuler, label: str) -> Tuple[str, Union[str, None]]:
         """Split Entity label into ent_label and ent_id if it contains self.ent_id_sep.
 
         Args:
@@ -855,10 +870,10 @@ class SpaczzRuler(Pipe):
 
     @staticmethod
     def _filter_overlapping_matches(
-        matches: list[tuple[str, int, int]],
-        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
-    ) -> tuple[
-        list[tuple[str, int, int]], defaultdict[str, dict[tuple[str, int, int], Any]]
+        matches: List[Tuple[str, int, int]],
+        lookup: DefaultDict[str, Dict[Tuple[str, int, int], Any]],
+    ) -> Tuple[
+        List[Tuple[str, int, int]], DefaultDict[str, Dict[Tuple[str, int, int], Any]]
     ]:
         """Prevents multiple match spans from overlapping.
 
@@ -879,7 +894,7 @@ class SpaczzRuler(Pipe):
         Returns:
             The filtered list of match span tuples.
         """
-        filtered_matches: list[tuple[str, int, int]] = []
+        filtered_matches: List[Tuple[str, int, int]] = []
         for match in matches:
             if not set(range(match[1], match[2])).intersection(
                 chain(*[set(range(n[1], n[2])) for n in filtered_matches])
@@ -896,7 +911,7 @@ class SpaczzRuler(Pipe):
     def _update_custom_attrs(
         span: Span,
         match_id: str,
-        lookup: defaultdict[str, dict[tuple[str, int, int], Any]],
+        lookup: DefaultDict[str, Dict[Tuple[str, int, int], Any]],
     ) -> Span:
         """Update custom attributes for matches."""
         ratio = lookup["ratios"].get((match_id, span.start, span.end))

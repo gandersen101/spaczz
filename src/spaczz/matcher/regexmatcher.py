@@ -1,10 +1,11 @@
 """Module for RegexMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import (
     Any,
     Callable,
+    DefaultDict,
+    Dict,
     Generator,
     Iterable,
     List,
@@ -72,15 +73,15 @@ class RegexMatcher:
         """
         self.defaults = defaults
         self.type = "regex"
-        self._callbacks: dict[str, RegexCallback] = {}
-        self._patterns: defaultdict[str, defaultdict[str, Any]] = nest_defaultdict(
+        self._callbacks: Dict[str, RegexCallback] = {}
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
             list, 2
         )
         self._searcher = RegexSearcher(vocab=vocab, config=config)
 
     def __call__(
         self: RegexMatcher, doc: Doc
-    ) -> list[tuple[str, int, int, tuple[int, int, int]]]:
+    ) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
         r"""Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -134,7 +135,7 @@ class RegexMatcher:
 
     def __reduce__(
         self: RegexMatcher,
-    ) -> tuple[Any, Any]:  # Precisely typing this would be really long.
+    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -146,7 +147,7 @@ class RegexMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: RegexMatcher) -> tuple[str, ...]:
+    def labels(self: RegexMatcher) -> Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -164,7 +165,7 @@ class RegexMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: RegexMatcher) -> list[dict[str, Any]]:
+    def patterns(self: RegexMatcher) -> List[Dict[str, Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -204,8 +205,8 @@ class RegexMatcher:
     def add(
         self: RegexMatcher,
         label: str,
-        patterns: list[str],
-        kwargs: Optional[list[dict[str, Any]]] = None,
+        patterns: List[str],
+        kwargs: Optional[List[Dict[str, Any]]] = None,
         on_match: RegexCallback = None,
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
@@ -355,14 +356,14 @@ RegexCallback = Optional[
     Callable[
         [RegexMatcher, Doc, int, List[Tuple[str, int, int, Tuple[int, int, int]]]], None
     ]
-]  # Python < 3.9 still wants Typing types here.
+]
 
 
 def unpickle_matcher(
     matcher: Type[RegexMatcher],
     vocab: Vocab,
-    patterns: defaultdict[str, defaultdict[str, Any]],
-    callbacks: dict[str, RegexCallback],
+    patterns: DefaultDict[str, DefaultDict[str, Any]],
+    callbacks: Dict[str, RegexCallback],
     defaults: Any,
 ) -> Any:
     """Will return a matcher from pickle protocol."""

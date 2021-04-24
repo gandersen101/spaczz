@@ -1,7 +1,7 @@
 """Module for RegexSearcher: multi-token regex matching in spaCy `Doc` objects."""
 from __future__ import annotations
 
-from typing import Union
+from typing import List, Tuple, Union
 
 from spacy.tokens import Doc, Span
 from spacy.vocab import Vocab
@@ -66,7 +66,7 @@ class RegexSearcher:
         query: str,
         partial: bool = True,
         predef: bool = False,
-    ) -> list[tuple[int, int, tuple[int, int, int]]]:
+    ) -> List[Tuple[int, int, Tuple[int, int, int]]]:
         """Returns all the regex matches within a doc.
 
         Matches on the character level and then maps matches back

@@ -1,7 +1,7 @@
 """Module for TokenSearcher: flexible token searching in spaCy `Doc` objects."""
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
 from spacy.tokens import Doc, Token
@@ -97,10 +97,10 @@ class TokenSearcher:
     def match(
         self: TokenSearcher,
         doc: Doc,
-        pattern: list[dict[str, Any]],
+        pattern: List[Dict[str, Any]],
         min_r: int = 75,
         fuzzy_func: str = "simple",
-    ) -> list[list[Optional[tuple[str, str]]]]:
+    ) -> List[List[Optional[Tuple[str, str]]]]:
         """Finds potential token pattern matches in a `Doc` object.
 
         Make sure to use uppercase dictionary keys in patterns.
@@ -143,7 +143,8 @@ class TokenSearcher:
             raise TypeError("doc must be a Doc object.")
         if not isinstance(pattern, list):
             raise TypeError(
-                "pattern must be a list", "Make sure pattern is wrapped in a list.",
+                "pattern must be a list",
+                "Make sure pattern is wrapped in a list.",
             )
         if len(pattern) == 0:
             raise ValueError("pattern cannot have zero tokens.")
@@ -190,24 +191,27 @@ class TokenSearcher:
 
     def _iter_pattern(
         self: TokenSearcher,
-        seq: tuple[Token, ...],
-        pattern: list[dict[str, Any]],
+        seq: Tuple[Token, ...],
+        pattern: List[Dict[str, Any]],
         min_r: int,
         fuzzy_func: str,
-    ) -> list[Optional[tuple[str, str]]]:
+    ) -> List[Optional[Tuple[str, str]]]:
         """Evaluates each token in a pattern against a doc token sequence."""
-        seq_matches: list[Optional[tuple[str, str]]] = []
+        seq_matches: List[Optional[Tuple[str, str]]] = []
         for i, token in enumerate(pattern):
             pattern_dict, case, case_bool = self._parse_case(token)
             if isinstance(pattern_dict, dict):
                 pattern_text, pattern_type = self._parse_type(pattern_dict)
                 if pattern_text and pattern_type == "FUZZY":
-                    if self.fuzzy_compare(
-                        seq[i].text,
-                        pattern_text,
-                        case_bool,
-                        pattern_dict.get("FUZZY_FUNC", fuzzy_func),
-                    ) >= pattern_dict.get("MIN_R", min_r):
+                    if (
+                        self.fuzzy_compare(
+                            seq[i].text,
+                            pattern_text,
+                            case_bool,
+                            pattern_dict.get("FUZZY_FUNC", fuzzy_func),
+                        )
+                        >= pattern_dict.get("MIN_R", min_r)
+                    ):
                         seq_matches.append((case, seq[i].text))
                     else:
                         return []
@@ -223,7 +227,7 @@ class TokenSearcher:
         return seq_matches
 
     @staticmethod
-    def _parse_case(token: dict[str, Any]) -> tuple[Union[str, dict, None], str, bool]:
+    def _parse_case(token: Dict[str, Any]) -> Tuple[Union[str, Dict, None], str, bool]:
         """Parses the case of a token pattern."""
         if token.get("TEXT"):
             return token.get("TEXT"), "TEXT", False
@@ -231,7 +235,7 @@ class TokenSearcher:
             return token.get("LOWER"), "LOWER", True
 
     @staticmethod
-    def _parse_type(pattern_dict: dict[str, Any]) -> tuple[str, str]:
+    def _parse_type(pattern_dict: Dict[str, Any]) -> Tuple[str, str]:
         """Parses the type of a token pattern."""
         fuzzy_text = pattern_dict.get("FUZZY")
         regex_text = pattern_dict.get("FREGEX")
