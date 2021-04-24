@@ -132,7 +132,6 @@ def safety(session: Session) -> None:
             "check",
             f"--file={req_path}",
             "--full-report",
-            "--ignore=39462",  # tornado issue 2981
         )
         os.unlink(req_path)
     else:
