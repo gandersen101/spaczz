@@ -14,15 +14,12 @@ Fuzzy matching is currently performed with matchers from [RapidFuzz](https://git
 
 Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 
+*v0.5.2 Release Notes:*
+- *Minor updates to pre-commits and noxfile.*
+
 *v0.5.1 Release Notes:*
 - *Minor updates to allowed dependency versions and CI.*
 - *Switched back to using typing types instead of generic types because spaCy v3 uses Pydantic and Pydantic does not support generic types in Python < 3.9. I don't know if this would actually cause any issues but I am playing it safe. Potentially more changes for spaczz to play nicely with Pydantic to follow.*
-
-*v0.5.0 Release Notes:*
-- *Support for spaCy v3.*
-- *If using spaCy v3, the `SpaczzRuler` optional arguments no longer need to be prepended with `"spaczz_"`. This will still work in most cases offering some backwards compatibility. However, optional arguments prepended with `"spaczz_"` will not work with spaCy v3's new `spacy.load` and `nlp.add_pipe` config driven APIs. It is therefore recommended that users move away from using the prepended versions if using spaCy v3. It should be noted however that the prepended arguments are still necessary if using spaczz with spaCy v2.*
-- *`Matcher.pipe` methods are now deprecated in accordance with spaCy v3.*
-- *`spaczz_span` custom attribute is deprecated in favor of `spaczz_ent`. They both have the same functionality but the `spaczz_ent` name makes more sense.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
 

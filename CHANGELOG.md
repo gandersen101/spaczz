@@ -1,6 +1,11 @@
+*v0.5.2 Release Notes:*
+- *Minor updates to pre-commits and noxfile.*
+
+
 *v0.5.1 Release Notes:*
 - *Minor updates to allowed dependency versions and CI.*
 - *Switched back to using typing types instead of generic types because spaCy v3 uses Pydantic and Pydantic does not support generic types in Python < 3.9. I don't know if this would actually cause any issues but I am playing it safe. Potentially more changes for spaczz to play nicely with Pydantic to follow.*
+
 
 *v0.5.0 Release Notes:*
 - *Support for spaCy v3.*
