@@ -151,7 +151,6 @@ def safety(session: Session) -> None:
                 "check",
                 f"--file={requirements.name}",
                 "--full-report",
-                "--ignore=39462",  # tornado issue 2981
             )
 
 
