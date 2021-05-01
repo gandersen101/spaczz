@@ -1,19 +1,15 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
--   repo: local
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/psf/black
+    rev: 21.4b1
     hooks:
-    -   id: black
-        name: black
-        entry: poetry run black
-        language: system
-        types: [python]
-    -   id: flake8
-        name: flake8
-        entry: poetry run flake8
-        language: system
-        types: [python]
+      - id: black
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.9.1
+    hooks:
+      - id: flake8
