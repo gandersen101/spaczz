@@ -132,6 +132,25 @@ def test_matcher_returns_matches(matcher: TokenMatcher, doc: Doc) -> None:
     ]
 
 
+def test_matcher_returns_matches_in_expected_order(nlp: Language) -> None:
+    """Calling the matcher on a `Doc` object returns matches in expected order."""
+    matcher = TokenMatcher(nlp.vocab)
+    matcher.add(
+        "COMPANY",
+        [
+            [
+                {"IS_UPPER": True, "OP": "+"},
+                {"IS_PUNCT": True, "OP": "?"},
+                {"TEXT": {"REGEX": r"S\.\s?[A-Z]\.?\s?[A-Z]?\.?"}},
+                {"IS_PUNCT": True, "OP": "?"},
+            ]
+        ],
+    )
+    doc = nlp("My company is called LARGO AND MARMG S.L.")
+    matches = matcher(doc)
+    assert doc[matches[0][1] : matches[0][2]].text == "LARGO AND MARMG S.L."
+
+
 def test_matcher_returns_empty_list_if_no_matches(nlp: Language) -> None:
     """Calling the matcher on a `Doc` object with no matches returns empty list."""
     matcher = TokenMatcher(nlp.vocab)

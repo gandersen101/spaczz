@@ -118,6 +118,7 @@ class TokenMatcher:
                 (self.vocab.strings[match_id], start, end, None)
                 for match_id, start, end in matches
             ]
+            extended_matches.sort(key=lambda x: (x[1], -x[2] - x[1]))
             for i, (label, _start, _end, _details) in enumerate(extended_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
