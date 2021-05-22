@@ -440,3 +440,30 @@ def test_fuzzy_matching_paragraph(
     doc = ruler(doc)
     matches = [(ent.ent_id_, ent.text) for ent in doc.ents if ent.label_ == "COUNTRY"]
     assert matches == []
+
+
+def test_token_matching_respects_order() -> None:
+    """Token matches are added in the expected order."""
+    nlp = spacy.blank("en")
+    if spacy.__version__ < "3.0.0":
+        ruler = SpaczzRuler(nlp)
+        nlp.add_pipe(ruler, first=True)
+    else:
+        ruler = nlp.add_pipe("spaczz_ruler", first=True)
+    ruler.add_patterns(
+        [
+            {
+                "label": "COMPANY",
+                "pattern": [
+                    {"IS_UPPER": True, "OP": "+"},
+                    {"IS_PUNCT": True, "OP": "?"},
+                    {"TEXT": {"REGEX": r"S\.\s?[A-Z]\.?\s?[A-Z]?\.?"}},
+                    {"IS_PUNCT": True, "OP": "?"},
+                ],
+                "type": "token",
+                "id": "COMPANY SL",
+            }
+        ]
+    )
+    doc = nlp("My company is called LARGO AND MARMG S.L.")
+    assert doc.ents[0].text == "LARGO AND MARMG S.L."

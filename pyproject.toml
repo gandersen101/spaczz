@@ -42,6 +42,10 @@ codecov = ">=2.1.7"
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
 
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning"]
+testpaths = ["tests"]
+
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
 
