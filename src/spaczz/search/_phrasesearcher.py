@@ -155,8 +155,8 @@ class _PhraseSearcher:
             ]
             matches = [match for match in matches_w_nones if match]
             if matches:
-                sorted_matches = sorted(matches, key=lambda x: (-x[2], x[0]))
-                filtered_matches = self._filter_overlapping_matches(sorted_matches)
+                matches.sort(key=lambda x: (-x[2], x[0]))
+                filtered_matches = self._filter_overlapping_matches(matches)
                 return filtered_matches
             else:
                 return []

@@ -1,3 +1,7 @@
+*v0.5.3 Release Notes:*
+- *Fixed a "bug" in the `TokenMatcher`. Spaczz expects token matches returned in order of ascending match start, then descending match length. However, spaCy's `Matcher` does not return matches in this order by default. Added a sort in the `TokenMatcher` to ensure this.*
+
+
 *v0.5.2 Release Notes:*
 - *Minor updates to pre-commits and noxfile.*
 

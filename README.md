@@ -14,12 +14,11 @@ Fuzzy matching is currently performed with matchers from [RapidFuzz](https://git
 
 Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
 
+*v0.5.3 Release Notes:*
+- *Fixed a "bug" in the `TokenMatcher`. Spaczz expects token matches returned in order of ascending match start, then descending match length. However, spaCy's `Matcher` does not return matches in this order by default. Added a sort in the `TokenMatcher` to ensure this.*
+
 *v0.5.2 Release Notes:*
 - *Minor updates to pre-commits and noxfile.*
-
-*v0.5.1 Release Notes:*
-- *Minor updates to allowed dependency versions and CI.*
-- *Switched back to using typing types instead of generic types because spaCy v3 uses Pydantic and Pydantic does not support generic types in Python < 3.9. I don't know if this would actually cause any issues but I am playing it safe. Potentially more changes for spaczz to play nicely with Pydantic to follow.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
 

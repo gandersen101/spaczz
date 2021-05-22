@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.5.2"
+version = "0.5.3"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
@@ -36,11 +36,15 @@ xdoctest = "0.*"
 sphinx = ">=3.1.1"
 rstcheck = ">=3.3.1"
 sphinx-autodoc-typehints = ">=1.11.0"
-sphinx-autobuild = "0.*"
+sphinx-autobuild = ">=0.7.1"
 codecov = ">=2.1.7"
 
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning"]
+testpaths = ["tests"]
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
