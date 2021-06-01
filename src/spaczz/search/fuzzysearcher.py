@@ -86,7 +86,8 @@ class FuzzySearcher(_PhraseSearcher):
                 "partial_token_sort" = `partial_token_sort_ratio`
                 "quick" = `QRatio`
                 "weighted" = `WRatio`
-                "quick_lev" = `quick_lev_ratio`
+                "token" = `token_ratio`
+                "partial_token" = `partial_token_ratio`
                 Default is `"simple"`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
