@@ -163,7 +163,7 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "weighted" = `WRatio`
     - "token" = `token_ratio`,
     - "partial_token" = `partial_token_ratio`
-       Default is `"simple"`.
+    - Default is `"simple"`.
 - `ignore_case`: If strings should be lower-cased before comparison or not. Default is `True`.
 - `flex`: Number of tokens to move match match boundaries left and right during optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower),or the strings "max", "min", or "default". Default is `"default"`: `len(query) // 2`.
 - `min_r1`: Minimum match ratio required forselection during the intial search over doc. If `flex == 0`, `min_r1` will be overwritten by `min_r2`. If `flex > 0`, `min_r1` must be lower than `min_r2` and "low" in general because match boundaries are not flexed initially. Default is `50`.

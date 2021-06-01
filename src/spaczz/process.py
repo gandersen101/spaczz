@@ -37,7 +37,8 @@ class FuzzyFuncs:
             "partial_token_sort" = `partial_token_sort_ratio`
             "quick" = `QRatio`
             "weighted" = `WRatio`
-            "quick_lev" = `quick_lev_ratio`
+            "token" = `token_ratio`
+            "partial_token" = `partial_token_ratio`
             This is limited to "simple", "quick", and "quick_lev"
             if match_type = "token".
     """

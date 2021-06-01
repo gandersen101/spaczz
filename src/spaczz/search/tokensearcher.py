@@ -75,7 +75,6 @@ class TokenSearcher:
                 settings are available:
                 "simple" = `ratio`
                 "quick" = `QRatio`
-                "quick_lev" = `quick_lev_ratio`
                 Default is `"simple"`.
 
         Returns:
