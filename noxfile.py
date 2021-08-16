@@ -12,7 +12,7 @@ package = "spaczz"
 nox.options.sessions = "lint", "mypy", "safety", "tests"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 min_cov = 98
-current_spacy = "3.0.6"
+current_spacy = "3.1.1"
 
 
 def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> None:
@@ -105,10 +105,11 @@ def lint(session: Session) -> None:
 
 
 @nox.session(python=["3.9", "3.8", "3.7"])
-def mypy(session: Session) -> None:
+@nox.parametrize("spacy", [current_spacy, "2.3.5"])
+def mypy(session: Session, spacy: str) -> None:
     """Type-check using mypy."""
     args = session.posargs or locations
-    install_with_constraints(session, "mypy")
+    install_with_constraints(session, "mypy", "pytest", "nox", spacy_version=spacy)
     session.run("mypy", *args)
 
 

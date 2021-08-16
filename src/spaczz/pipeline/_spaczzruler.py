@@ -60,7 +60,7 @@ simple_frozen_list = SimpleFrozenList()
         "ents_f": 1.0,
         "ents_p": 0.0,
         "ents_r": 0.0,
-        "ents_per_type": None,
+        "ents_per_type": None,  # type: ignore
     },
 )
 def make_spaczz_ruler(

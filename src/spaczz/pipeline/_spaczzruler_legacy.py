@@ -8,7 +8,7 @@ from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Set, Tuple,
 import warnings
 
 try:
-    from spacy.language import component, Language
+    from spacy.language import component, Language  # type: ignore
 except ImportError:  # pragma: no cover
     raise ImportError(
         (

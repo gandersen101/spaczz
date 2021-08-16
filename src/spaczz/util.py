@@ -30,7 +30,7 @@ def nest_defaultdict(default_factory: Any, depth: int = 1) -> DefaultDict[Any, A
 
 
 def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
-    """Iterates over an iterables in slices of length n by one step at a time."""
+    """Iterates over an iterable in slices of length n by one step at a time."""
     iterables = tee(iterable, n)
     for i in range(len(iterables)):
         for _ in range(i):

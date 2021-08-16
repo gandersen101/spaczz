@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.5.4"
+version = "0.6.0"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
@@ -28,7 +28,7 @@ flake8-bugbear = ">=20.1.4"
 flake8-bandit = ">=2.1.2"
 safety = ">=1.9.0"
 flake8-import-order = ">=0.18"
-mypy = "0.*"
+mypy = ">=0.900"
 flake8-annotations = ">=2.1.0"
 flake8-docstrings = ">=1.5.0"
 darglint = ">=1.4.1"
@@ -55,6 +55,18 @@ source = ["spaczz"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+module = [
+    "pytest.*",
+    "rapidfuzz.*",
+    "regex",
+    "spacy.*",
+    "srsly",
+]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry>=1.0.0"]
