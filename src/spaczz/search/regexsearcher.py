@@ -138,7 +138,7 @@ class RegexSearcher:
             else:
                 if partial:
                     start_token = chars_to_tokens.get(start)
-                    end_token = chars_to_tokens.get(end)
+                    end_token = chars_to_tokens.get(end - 1)
                     if start_token and end_token:
                         span = Span(doc, start_token, end_token + 1)
                         matches.append((span, counts))
