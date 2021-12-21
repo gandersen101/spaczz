@@ -57,6 +57,17 @@ def test_match_will_expand_on_partial_match_if_partials(
     assert matches == [(5, 6, (0, 0, 0))]
 
 
+def test_match_on_german_combination_words(
+    searcher: RegexSearcher, nlp: Language
+) -> None:
+    """It extends partial matches to span boundaries."""
+    doc = nlp(
+        "We want to identify a geman word combination Aussagekraft or Kraftfahrzeug"
+    )
+    matches = searcher.match(doc, "(kraft|Kraft)")
+    assert matches == [(8, 9, (0, 0, 0)), (10, 11, (0, 0, 0))]
+
+
 def test_match_will_not_expand_if_not_partials(
     searcher: RegexSearcher, nlp: Language
 ) -> None:
