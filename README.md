@@ -12,13 +12,14 @@ Fuzzy matching is currently performed with matchers from [RapidFuzz](https://git
 
 **Supports spaCy v3 and v2 (>= 2.2)!**
 
-Spaczz has been tested on Ubuntu 18.04, MacOS 10.15, and Windows Server 2019.
+Spaczz has been tested on Ubuntu 20.04, MacOS 10.15, and Windows Server 2019.
+
+*v0.5.4 Release Notes:*
+- BugFix for german Combination words for RegexSearcher.
+- Other minor docs/tooling updates.
 
 *v0.5.3 Release Notes:*
 - *Fixed a "bug" in the `TokenMatcher`. Spaczz expects token matches returned in order of ascending match start, then descending match length. However, spaCy's `Matcher` does not return matches in this order by default. Added a sort in the `TokenMatcher` to ensure this.*
-
-*v0.5.2 Release Notes:*
-- *Minor updates to pre-commits and noxfile.*
 
 Please see the [changelog](https://github.com/gandersen101/spaczz/blob/master/CHANGELOG.md) for previous release notes. This will eventually be moved to the [Read the Docs](https://spaczz.readthedocs.io/en/latest/) page.
 
