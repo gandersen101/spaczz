@@ -1,3 +1,8 @@
+*v0.5.4 Release Notes:*
+- BugFix for german Combination words for RegexSearcher.
+- Other minor docs/tooling updates.
+
+
 *v0.5.3 Release Notes:*
 - *Fixed a "bug" in the `TokenMatcher`. Spaczz expects token matches returned in order of ascending match start, then descending match length. However, spaCy's `Matcher` does not return matches in this order by default. Added a sort in the `TokenMatcher` to ensure this.*
 
