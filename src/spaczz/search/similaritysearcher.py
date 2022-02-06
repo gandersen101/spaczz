@@ -64,7 +64,7 @@ class SimilaritySearcher(_PhraseSearcher):
         query: Union[Doc, Span, Token],
         reference: Union[Doc, Span, Token],
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> int:
         """Peforms similarity matching between two spaCy container objects.
 

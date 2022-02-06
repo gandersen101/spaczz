@@ -22,33 +22,27 @@ def example(nlp: Language) -> Doc:
 
 def test_match_lower(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text is working as intended."""
-    assert (
-        searcher.match(
-            example,
-            [
-                {"TEXT": "SQL"},
-                {"LOWER": {"FREGEX": "(database){e<=1}"}},
-                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
-            ],
-        )
-        == [[None, ("LOWER", "databesE"), ("LOWER", "ACESS")]]
-    )
+    assert searcher.match(
+        example,
+        [
+            {"TEXT": "SQL"},
+            {"LOWER": {"FREGEX": "(database){e<=1}"}},
+            {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+        ],
+    ) == [[None, ("LOWER", "databesE"), ("LOWER", "ACESS")]]
 
 
 def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with verbatim text is working as intended."""
-    assert (
-        searcher.match(
-            example,
-            [
-                {"TEXT": {"FUZZY": "access"}, "POS": "NOUN"},
-                {},
-                {"TEXT": {"REGEX": "[Ss][Qq][Ll]"}},
-                {"TEXT": {"FREGEX": "(database){e<=1}"}},
-            ],
-        )
-        == [[("TEXT", "acces"), None, None, ("TEXT", "databasE.")]]
-    )
+    assert searcher.match(
+        example,
+        [
+            {"TEXT": {"FUZZY": "access"}, "POS": "NOUN"},
+            {},
+            {"TEXT": {"REGEX": "[Ss][Qq][Ll]"}},
+            {"TEXT": {"FREGEX": "(database){e<=1}"}},
+        ],
+    ) == [[("TEXT", "acces"), None, None, ("TEXT", "databasE.")]]
 
 
 def test_match_multiple_matches(searcher: TokenSearcher, example: Doc) -> None:

@@ -187,20 +187,17 @@ def test__optimize_finds_better_match_with_max_flex(
     """It optimizes the initial match to find a better match when flex = max."""
     query = nlp("Kareem Abdul-Jabbar")
     match_values = {0: 33, 1: 39, 2: 41, 3: 33, 5: 37, 6: 59, 7: 84}
-    assert (
-        searcher._optimize(
-            adjust_example,
-            query,
-            match_values,
-            pos=7,
-            fuzzy_func="simple",
-            min_r2=70,
-            ignore_case=True,
-            flex=4,
-            thresh=100,
-        )
-        == (8, 11, 89)
-    )
+    assert searcher._optimize(
+        adjust_example,
+        query,
+        match_values,
+        pos=7,
+        fuzzy_func="simple",
+        min_r2=70,
+        ignore_case=True,
+        flex=4,
+        thresh=100,
+    ) == (8, 11, 89)
 
 
 def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
@@ -208,20 +205,17 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
     doc = nlp("Patient was prescribed Zithroma tablets.")
     query = nlp("zithromax")
     match_values = {3: 94}
-    assert (
-        searcher._optimize(
-            doc,
-            query,
-            match_values,
-            pos=3,
-            fuzzy_func="simple",
-            min_r2=70,
-            ignore_case=True,
-            flex=0,
-            thresh=100,
-        )
-        == (3, 4, 94)
-    )
+    assert searcher._optimize(
+        doc,
+        query,
+        match_values,
+        pos=3,
+        fuzzy_func="simple",
+        min_r2=70,
+        ignore_case=True,
+        flex=0,
+        thresh=100,
+    ) == (3, 4, 94)
 
 
 def test__optimize_where_bpl_would_equal_bpr(

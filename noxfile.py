@@ -9,10 +9,14 @@ from nox.sessions import Session
 
 
 package = "spaczz"
-nox.options.sessions = "lint", "mypy", "safety", "tests"
+nox.options.sessions = "lint", "mypy", "tests"
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
 min_cov = 98
-current_spacy = "3.1.1"
+python = "3.9"
+pythons = ["3.9", "3.8", "3.7"]
+spacy_v3 = "3.2.1"
+spacy_v2 = "2.3.5"
+mypy_extras = ["nox", "numpy", "pytest", "rapidfuzz"]
 
 
 def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> None:
@@ -30,7 +34,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
         args: Command-line arguments for pip.
         kwargs: Additional keyword arguments for Session.install.
     """
-    spacy_version = kwargs.pop("spacy_version", current_spacy)
+    spacy_version = kwargs.pop("spacy_version", spacy_v3)
     if platform.system() == "Windows":
         req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
         session.run(
@@ -62,7 +66,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: Any) -> Non
                 session.install("--upgrade", f"spacy=={spacy_version}")
 
 
-@nox.session(python="3.9")
+@nox.session(python=python)
 def black(session: Session) -> None:
     """Run black code formatter."""
     args = session.posargs or locations
@@ -70,7 +74,7 @@ def black(session: Session) -> None:
     session.run("black", *args)
 
 
-@nox.session(python="3.9")
+@nox.session(python=python)
 def coverage(session: Session) -> None:
     """Upload coverage data."""
     install_with_constraints(session, "coverage[toml]", "codecov")
@@ -78,7 +82,7 @@ def coverage(session: Session) -> None:
     session.run("codecov", *session.posargs)
 
 
-@nox.session(python="3.9")
+@nox.session(python=python)
 def docs(session: Session) -> None:
     """Build the documentation."""
     session.run("poetry", "install", "--no-dev", external=True)
@@ -86,7 +90,7 @@ def docs(session: Session) -> None:
     session.run("sphinx-build", "docs", "docs/_build")
 
 
-@nox.session(python=["3.9", "3.8", "3.7"])
+@nox.session(python=pythons)
 def lint(session: Session) -> None:
     """Lint using flake8."""
     args = session.posargs or locations
@@ -104,16 +108,16 @@ def lint(session: Session) -> None:
     session.run("flake8", *args)
 
 
-@nox.session(python=["3.9", "3.8", "3.7"])
-@nox.parametrize("spacy", [current_spacy, "2.3.5"])
+@nox.session(python=pythons)
+@nox.parametrize("spacy", [spacy_v3, spacy_v2])
 def mypy(session: Session, spacy: str) -> None:
     """Type-check using mypy."""
     args = session.posargs or locations
-    install_with_constraints(session, "mypy", "pytest", "nox", spacy_version=spacy)
+    install_with_constraints(session, "mypy", *mypy_extras, spacy_version=spacy)
     session.run("mypy", *args)
 
 
-@nox.session(python="3.9")
+@nox.session(python=python)
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages."""
     if platform.system() == "Windows":
@@ -155,8 +159,8 @@ def safety(session: Session) -> None:
             )
 
 
-@nox.session(python=["3.9", "3.8", "3.7"])
-@nox.parametrize("spacy", [current_spacy, "2.3.5"])
+@nox.session(python=pythons)
+@nox.parametrize("spacy", [spacy_v3, spacy_v2])
 def tests(session: Session, spacy: str) -> None:
     """Run the test suite."""
     args = session.posargs or ["--cov", "--cov-append"]
@@ -172,7 +176,7 @@ def tests(session: Session, spacy: str) -> None:
     session.run("pytest", *args)
 
 
-@nox.session(python=["3.9", "3.8", "3.7"])
+@nox.session(python=pythons)
 def xdoctest(session: Session) -> None:
     """Run examples with xdoctest."""
     args = session.posargs or ["all"]

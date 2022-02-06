@@ -36,12 +36,9 @@ def test_parse_regex_with_predef(config: RegexConfig) -> None:
 
 def test_parse_regex_with_new_regex(config: RegexConfig) -> None:
     """It turns the string into a regex pattern."""
-    assert (
-        config.parse_regex(
-            "(?i)Test",
-        )
-        == regex.compile("(?i)Test")
-    )
+    assert config.parse_regex(
+        "(?i)Test",
+    ) == regex.compile("(?i)Test")
 
 
 def test_invalid_regexfor_regex_compile_raises_error(config: RegexConfig) -> None:

@@ -15,7 +15,7 @@ python = "^3.7"
 spacy = ">= 2.2.0, < 4.0.0"
 regex = ">=2020.6.8"
 importlib_metadata = {version = ">=1.0.0", python = "<3.8"}
-rapidfuzz = "^1"
+rapidfuzz = "^1.9"
 
 [tool.poetry.dev-dependencies]
 flake8 = ">=3.8.3"
@@ -43,7 +43,6 @@ codecov = ">=2.1.7"
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
 
 [tool.pytest.ini_options]
-filterwarnings = ["ignore::DeprecationWarning"]
 testpaths = ["tests"]
 
 [tool.coverage.paths]
@@ -60,8 +59,6 @@ show_missing = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pytest.*",
-    "rapidfuzz.*",
     "regex",
     "spacy.*",
     "srsly",

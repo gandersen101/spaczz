@@ -202,15 +202,12 @@ class TokenSearcher:
             if isinstance(pattern_dict, dict):
                 pattern_text, pattern_type = self._parse_type(pattern_dict)
                 if pattern_text and pattern_type == "FUZZY":
-                    if (
-                        self.fuzzy_compare(
-                            seq[i].text,
-                            pattern_text,
-                            case_bool,
-                            pattern_dict.get("FUZZY_FUNC", fuzzy_func),
-                        )
-                        >= pattern_dict.get("MIN_R", min_r)
-                    ):
+                    if self.fuzzy_compare(
+                        seq[i].text,
+                        pattern_text,
+                        case_bool,
+                        pattern_dict.get("FUZZY_FUNC", fuzzy_func),
+                    ) >= pattern_dict.get("MIN_R", min_r):
                         seq_matches.append((case, seq[i].text))
                     else:
                         return []

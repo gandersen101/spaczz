@@ -19,7 +19,7 @@ def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
 class FuzzyFuncs:
     """Container class housing fuzzy matching functions.
 
-    Functions are accessible via the classes `get()` method
+    Functions are accessible via the classes `` method
     by their given key name. All rapidfuzz matching functions
     with default settings are available.
 
@@ -33,13 +33,13 @@ class FuzzyFuncs:
             "partial" = `partial_ratio`
             "token_set" = `token_set_ratio`
             "token_sort" = `token_sort_ratio`
+            "token" = `token_ratio`
             "partial_token_set" = `partial_token_set_ratio`
             "partial_token_sort" = `partial_token_sort_ratio`
-            "quick" = `QRatio`
-            "weighted" = `WRatio`
-            "token" = `token_ratio`
             "partial_token" = `partial_token_ratio`
-            This is limited to "simple", "quick", and "quick_lev"
+            "weighted" = `WRatio`
+            "quick" = `QRatio`
+            This is limited to "simple" or "quick"
             if match_type = "token".
     """
 
@@ -56,17 +56,17 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self._fuzzy_funcs: Dict[str, Callable[[str, str], int]] = {
+            self._fuzzy_funcs: Dict[str, Callable] = {
                 "simple": fuzz.ratio,
                 "partial": fuzz.partial_ratio,
                 "token_set": fuzz.token_set_ratio,
                 "token_sort": fuzz.token_sort_ratio,
+                "token": fuzz.token_ratio,
                 "partial_token_set": fuzz.partial_token_set_ratio,
                 "partial_token_sort": fuzz.partial_token_sort_ratio,
-                "quick": fuzz.QRatio,
-                "weighted": fuzz.WRatio,
-                "token": fuzz.token_ratio,
                 "partial_token": fuzz.partial_token_ratio,
+                "weighted": fuzz.WRatio,
+                "quick": fuzz.QRatio,
             }
         elif match_type == "token":
             self._fuzzy_funcs = {
