@@ -9,7 +9,7 @@ jobs:
       with:
         python-version: '3.9'
         architecture: x64
-    - run: pip install nox==2020.*
+    - run: pip install nox==2022.*
     - run: pip install poetry==1.*
     - run: nox --sessions tests-3.9 coverage
       env:

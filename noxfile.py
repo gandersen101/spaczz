@@ -15,7 +15,7 @@ min_cov = 98
 python = "3.9"
 pythons = ["3.9", "3.8", "3.7"]
 spacy_v3 = "3.2.1"
-spacy_v2 = "2.3.5"
+spacy_v2 = "2.3.7"
 mypy_extras = ["nox", "numpy", "pytest", "rapidfuzz"]
 
 
