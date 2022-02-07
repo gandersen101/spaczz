@@ -217,20 +217,24 @@ class _PhraseSearcher:
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
+                        bp_r = p_r
                 if p_l + f < p_r:
                     new_r = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
+                        bp_r = p_r
                 if p_r - f > p_l:
                     new_r = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
+                        bp_l = p_l
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
                     new_r = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
+                        bp_l = p_l
                         bp_r = p_r + f
                 if p_l - f >= 0 and p_r + f <= len(doc):
                     new_r = self.compare(query, doc[p_l - f : p_r + f], *args, **kwargs)
