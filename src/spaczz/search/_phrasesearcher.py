@@ -17,16 +17,16 @@ class _PhraseSearcher:
     Phrase matching is done on the token level.
 
     Not intended for use as-is. All methods and attributes except
-    the `.compare` method are shared with the `FuzzySearcher` and
+    the `compare` abstract method are shared with the `FuzzySearcher` and
     `SimilaritySearcher`.
 
     Attributes:
-        vocab (Vocab): The shared vocabulary.
+        vocab: The shared vocabulary.
             Included for consistency and potential future-state.
     """
 
     def __init__(self: _PhraseSearcher, vocab: Vocab) -> None:
-        """Initializes a base phrase searcher.
+        """Initializes a phrase searcher.
 
         Args:
             vocab: A spaCy `Vocab` object.
@@ -101,7 +101,7 @@ class _PhraseSearcher:
                 left and right during optimization.
                 Can be an integer value with a max of `len(query)`
                 and a min of `0` (will warn and change if higher or lower),
-                or the strings "max", "min", or "default".
+                or the strings `"max"`, `"min"`, or `"default"`.
                 Default is `"default"`: `len(query) // 2`.
             min_r1: Minimum match ratio required for
                 selection during the intial search over doc.
@@ -138,8 +138,8 @@ class _PhraseSearcher:
         min_r1, min_r2, thresh = self._check_ratios(min_r1, min_r2, thresh, flex)
         match_values = self._scan(doc, query, min_r1, *args, **kwargs)
         if match_values:
-            positions = list(match_values.keys())
-            matches_w_nones = [
+            positions = (k for k in match_values.keys())
+            matches_w_nones = (
                 self._optimize(
                     doc,
                     query,
@@ -152,7 +152,7 @@ class _PhraseSearcher:
                     **kwargs,
                 )
                 for pos in positions
-            ]
+            )
             matches = [match for match in matches_w_nones if match]
             if matches:
                 matches.sort(key=lambda x: (-x[2], x[0]))
@@ -217,21 +217,37 @@ class _PhraseSearcher:
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
-                if p_l + f < min(p_r, bp_r):
+                        bp_r = p_r
+                if p_l + f < p_r:
                     new_r = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
-                if p_r - f > max(p_l, bp_l):
+                        bp_r = p_r
+                if p_r - f > p_l:
                     new_r = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
+                        bp_l = p_l
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
                     new_r = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
                     if new_r > optim_r:
                         optim_r = new_r
+                        bp_l = p_l
                         bp_r = p_r + f
+                if p_l - f >= 0 and p_r + f <= len(doc):
+                    new_r = self.compare(query, doc[p_l - f : p_r + f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
+                        bp_l = p_l - f
+                        bp_r = p_r + f
+                if p_l + f < p_r and p_r - f > p_l:
+                    new_r = self.compare(query, doc[p_l + f : p_r - f], *args, **kwargs)
+                    if new_r > optim_r:
+                        optim_r = new_r
+                        bp_l = p_l + f
+                        bp_r = p_r - f
                 if optim_r <= r:
                     break
                 else:
