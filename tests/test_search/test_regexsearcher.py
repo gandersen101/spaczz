@@ -1,10 +1,12 @@
 """Tests for the regexsearcher module."""
+from typing import Dict, Pattern
+
 import pytest
 import regex
 from spacy.language import Language
 
-from spaczz.regex import RegexConfig
-from spaczz.regex._commonregex import _commonregex
+from spaczz._commonregex import get_common_regex
+from spaczz.exceptions import RegexParseError
 from spaczz.search import RegexSearcher
 
 
@@ -14,29 +16,36 @@ def searcher(nlp: Language) -> RegexSearcher:
     return RegexSearcher(vocab=nlp.vocab)
 
 
-def test_searcher_config_contains_predefined_defaults(searcher: RegexSearcher) -> None:
+@pytest.fixture(scope="module")
+def predefs() -> Dict[str, Pattern]:
+    """It returns predefined common regexes."""
+    return get_common_regex()
+
+
+def test_searcher_contains_predef_defaults(
+    searcher: RegexSearcher, predefs: Dict[str, Pattern]
+) -> None:
     """It's config contains predefined defaults."""
-    assert searcher._config._predefs == _commonregex
+    assert searcher.predefs == predefs
 
 
-def test_searcher_uses_passed_config(nlp: Language) -> None:
-    """It uses the config passed to it."""
-    config = RegexConfig()
-    config._predefs["test"] = regex.compile("test")
-    searcher = RegexSearcher(vocab=nlp.vocab, config=config)
-    assert "test" in searcher._config._predefs
+def test_searcher_uses_passed_predefs(nlp: Language) -> None:
+    """It uses the predefs passed to it."""
+    predefs = {"test": regex.compile("test")}
+    searcher = RegexSearcher(vocab=nlp.vocab, predefs=predefs)
+    assert "test" in searcher.predefs
 
 
-def test_searcher_raises_error_if_config_is_not_regexconfig(nlp: Language) -> None:
-    """It raises a TypeError if config is not recognized string or RegexConfig."""
-    with pytest.raises(TypeError):
-        RegexSearcher(vocab=nlp.vocab, config="Will cause error")
+def test_searcher_raises_error_if_predefs_is_not_valid(nlp: Language) -> None:
+    """It raises a ValueError if predefs is not recognized string or valid dict."""
+    with pytest.raises(ValueError):
+        RegexSearcher(vocab=nlp.vocab, predefs="Will cause error")
 
 
-def test_searcher_has_empty_config_if_empty_passed(nlp: Language) -> None:
-    """Its config is empty."""
-    searcher = RegexSearcher(vocab=nlp.vocab, config="empty")
-    assert searcher._config._predefs == {}
+def test_searcher_has_empty_predefs_if_empty_passed(nlp: Language) -> None:
+    """Its predefs are empty."""
+    searcher = RegexSearcher(vocab=nlp.vocab, predefs="empty")
+    assert searcher.predefs == {}
 
 
 def test_match(searcher: RegexSearcher, nlp: Language) -> None:
@@ -106,3 +115,36 @@ def test_match_raises_error_if_doc_not_doc(
     doc = "not a doc"
     with pytest.raises(TypeError):
         searcher.match(doc, "test")  # type: ignore
+
+
+def test_get_predef_returns_existing_regex(
+    searcher: RegexSearcher, predefs: Dict[str, Pattern]
+) -> None:
+    """It returns a predefined compiled regex pattern."""
+    assert searcher.get_predef("times") == predefs["times"]
+
+
+def test_get_predef_raises_error_with_undefined_regex(searcher: RegexSearcher) -> None:
+    """It raises a ValueError if predef is not actually predefined."""
+    with pytest.raises(ValueError):
+        searcher.get_predef("unknown")
+
+
+def test_parse_regex_with_predef(
+    searcher: RegexSearcher, predefs: Dict[str, Pattern]
+) -> None:
+    """It returns a predefined regex pattern."""
+    assert searcher.parse_regex("phones", predef=True) == predefs["phones"]
+
+
+def test_parse_regex_with_new_regex(searcher: RegexSearcher) -> None:
+    """It turns the string into a regex pattern."""
+    assert searcher.parse_regex(
+        "(?i)Test",
+    ) == regex.compile("(?i)Test")
+
+
+def test_invalid_regexfor_regex_compile_raises_error(searcher: RegexSearcher) -> None:
+    """Using an invalid type raises a RegexParseError."""
+    with pytest.raises(RegexParseError):
+        searcher.parse_regex("[")

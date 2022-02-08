@@ -29,11 +29,9 @@ class _PhraseSearcher:
         """Initializes a phrase searcher.
 
         Args:
-            vocab: A spaCy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are mostly pure-Python
-                currently and do not share vocabulary
+            vocab: A spaCy Vocab.
+                Purely for consistency between spaCy and spaczz matcher APIs for now.
+                spaczz matchers are currently pure-Python and do not share vocabulary
                 with spaCy pipelines.
         """
         self.vocab = vocab
@@ -95,8 +93,8 @@ class _PhraseSearcher:
         then ascending start index.
 
         Args:
-            doc: `Doc` object to search over.
-            query: `Doc` object to match against doc.
+            doc: Doc to search over.
+            query: Doc to match against doc.
             flex: Number of tokens to move match match span boundaries
                 left and right during optimization.
                 Can be an integer value with a max of `len(query)`
@@ -123,7 +121,7 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A `list` of tuples of match start indices,
+            A list of tuples of match start indices,
             end indices, and match ratios.
 
         Raises:

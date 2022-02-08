@@ -20,7 +20,6 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning, PipeDeprecation
-from ..regex import RegexConfig
 from ..search import RegexSearcher
 from ..util import nest_defaultdict
 
@@ -36,13 +35,6 @@ class RegexMatcher:
             See `RegexSearcher` documentation for details.
         name: Class attribute - the name of the matcher.
         type: The kind of matcher object.
-        _callbacks:
-            On match functions to modify `Doc` objects passed to the matcher.
-            Can make use of the matches identified.
-        _patterns:
-            Patterns added to the matcher. Contains patterns
-            and kwargs that should be used during matching
-            for each labels added.
     """
 
     name = "regex_matcher"
@@ -50,25 +42,22 @@ class RegexMatcher:
     def __init__(
         self: RegexMatcher,
         vocab: Vocab,
-        config: Union[str, RegexConfig] = "default",
+        predefs: Union[str, Dict[str, Any]] = "default",
         **defaults: Any,
     ) -> None:
         """Initializes the regex matcher with the given config and defaults.
 
         Args:
-            vocab: A spacy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are currently pure
-                Python and do not share vocabulary
+            vocab: A spacy Vocab.
+                Purely for consistency between spaCy and spaczz matcher APIs for now.
+                spaczz matchers are currently pure-Python and do not share vocabulary
                 with spacy pipelines.
-            config: Provides predefind regex patterns and flags.
-                Uses the default config if "default", an empty config if "empty",
-                or a custom config by passing a `RegexConfig` object.
-                Default is "default".
+            predefs: Predefined regex patterns.
+                Uses the default predef patterns if "default", none if "empty",
+                or a custom mapping of names to regex pattern strings.
+                Default is `"default"`.
             **defaults: Keyword arguments that will
                 be used as default matching settings.
-                These arguments will become the new defaults for matching.
                 See `RegexSearcher` documentation for details.
         """
         self.defaults = defaults
@@ -77,7 +66,7 @@ class RegexMatcher:
         self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
             list, 2
         )
-        self._searcher = RegexSearcher(vocab=vocab, config=config)
+        self._searcher = RegexSearcher(vocab=vocab, predefs=predefs)
 
     def __call__(
         self: RegexMatcher, doc: Doc

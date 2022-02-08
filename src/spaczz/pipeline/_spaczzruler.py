@@ -37,7 +37,6 @@ import srsly
 
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher, RegexMatcher, TokenMatcher
-from ..regex import RegexConfig
 from ..util import ensure_path, nest_defaultdict, read_from_disk, write_to_disk
 
 
@@ -123,7 +122,6 @@ class SpaczzRuler(Pipe):
         fuzzy_defaults: Dict[str, Any] = simple_frozen_dict,
         regex_defaults: Dict[str, Any] = simple_frozen_dict,
         token_defaults: Dict[str, Any] = simple_frozen_dict,
-        regex_config: Union[str, RegexConfig] = "default",
         patterns: Optional[Iterable[Dict[str, Any]]] = None,
         **kwargs: Any,
     ) -> None:
@@ -164,9 +162,6 @@ class SpaczzRuler(Pipe):
                 Default is `None`.
             token_defaults: Modified default parameters to use with the `TokenMatcher`.
                 Default is `None`.
-            regex_config: Should largely be ignored as an artifact of an old spaczz
-                design pattern. Will likely be updated in the future.
-                Default is `"default"`.
             patterns: Optional patterns to load in. Default is `None`.
             kwargs: For backwards compatibility with "spaczz_" prepended parameters.
 
@@ -209,9 +204,7 @@ class SpaczzRuler(Pipe):
                     )
                 )
         self.fuzzy_matcher = FuzzyMatcher(nlp.vocab, **self.defaults["fuzzy_defaults"])
-        self.regex_matcher = RegexMatcher(
-            nlp.vocab, regex_config, **self.defaults["regex_defaults"]
-        )
+        self.regex_matcher = RegexMatcher(nlp.vocab, **self.defaults["regex_defaults"])
         self.token_matcher = TokenMatcher(nlp.vocab, **self.defaults["token_defaults"])
         patterns = kwargs.get("spaczz_patterns", patterns)
         if patterns is not None:
