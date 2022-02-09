@@ -1,10 +1,16 @@
 """Module for spaCy v2/v3 SpaczzRuler compatibility."""
 
 try:
-    from ._spaczzruler import make_spaczz_ruler, SpaczzRuler  # type: ignore
+    from ._spaczzruler import (  # type: ignore # noqa: F401
+        make_spaczz_ruler,
+        SpaczzRuler,
+    )
 except ImportError:  # pragma: no cover
     try:
-        from ._spaczzruler_legacy import make_spaczz_ruler, SpaczzRuler  # type: ignore
+        from ._spaczzruler_legacy import (  # type: ignore # noqa: F401
+            make_spaczz_ruler,
+            SpaczzRuler,
+        )
     except ImportError:  # pragma: no cover
         raise ImportError(
             (
@@ -13,7 +19,3 @@ except ImportError:  # pragma: no cover
                 "please raise an issue at https://github.com/gandersen101/spaczz",
             )
         )
-
-
-make_spaczz_ruler = make_spaczz_ruler
-SpaczzRuler = SpaczzRuler

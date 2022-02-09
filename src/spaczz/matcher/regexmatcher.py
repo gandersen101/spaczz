@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import (
     Any,
     Callable,
+    cast,
     DefaultDict,
     Dict,
-    Generator,
     Iterable,
+    Iterator,
     List,
     Optional,
     Tuple,
@@ -295,17 +296,19 @@ class RegexMatcher:
 
     def pipe(
         self: RegexMatcher,
-        stream: Iterable[Doc],
+        docs: Union[Iterable[Doc], Iterable[Tuple[Doc, Any]]],
         batch_size: int = 1000,
         return_matches: bool = False,
         as_tuples: bool = False,
-    ) -> Generator[Any, None, None]:
+    ) -> Union[
+        Iterator[Tuple[Tuple[Doc, Any], Any]], Iterator[Tuple[Doc, Any]], Iterator[Doc]
+    ]:
         r"""Match a stream of `Doc` objects, yielding them in turn.
 
         Deprecated as of spaCy v3.0 and spaczz v0.5.
 
         Args:
-            stream: A stream of `Doc` objects.
+            docs: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.
                 Default is `1000`.
             return_matches: Yield the match lists along with the docs,
@@ -326,14 +329,14 @@ class RegexMatcher:
             PipeDeprecation,
         )
         if as_tuples:
-            for doc, context in stream:
+            for doc, context in cast(Iterable[Tuple[Doc, Any]], docs):
                 matches = self(doc)
                 if return_matches:
                     yield ((doc, matches), context)
                 else:
                     yield (doc, context)
         else:
-            for doc in stream:
+            for doc in cast(Iterable[Doc], docs):
                 matches = self(doc)
                 if return_matches:
                     yield (doc, matches)

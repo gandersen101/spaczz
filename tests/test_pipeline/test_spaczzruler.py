@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 import tempfile
-from typing import Any, Dict, List
+from typing import Any, cast, Dict, List, Tuple
 
 import pytest
 import spacy
@@ -157,14 +157,16 @@ def test_add_patterns_with_other_pipeline_components(
     """It disables other pipeline components when adding patterns."""
     nlp = spacy.blank("en")
     if spacy.__version__ < "3.0.0":
-        nlp.add_pipe(nlp.create_pipe("ner"))
-        ruler = SpaczzRuler(nlp)
-        nlp.add_pipe(ruler, first=True)
+        nlp.add_pipe(nlp.create_pipe("ner"))  # type: ignore
+        ruler1 = SpaczzRuler(nlp)
+        nlp.add_pipe(ruler1, first=True)  # type: ignore
+        ruler1.add_patterns(patterns)
+        assert len(ruler1) == len(patterns)
     else:
         _ = nlp.add_pipe("ner")
-        ruler = nlp.add_pipe("spaczz_ruler", first=True)
-    ruler.add_patterns(patterns)
-    assert len(nlp.get_pipe("spaczz_ruler")) == len(patterns)
+        ruler2 = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
+        ruler2.add_patterns(patterns)
+        assert len(ruler2) == len(patterns)
 
 
 def test_contains(ruler: SpaczzRuler) -> None:
@@ -219,7 +221,7 @@ def test_entities_that_would_overlap_keeps_longer_earlier_match(
 def test_calling_ruler_with_overwrite_ents(ruler: SpaczzRuler, doc: Doc) -> None:
     """It overwrites existing entities."""
     ruler.overwrite = True
-    doc.ents += (Span(doc, 2, 4, label="WRONG"),)
+    doc.ents += (Span(doc, 2, 4, label="WRONG"),)  # type: ignore
     doc = ruler(doc)
     assert "WRONG" not in [ent.label_ for ent in doc.ents]
 
@@ -228,7 +230,7 @@ def test_calling_ruler_without_overwrite_will_keep_exisiting_ents(
     ruler: SpaczzRuler, doc: Doc
 ) -> None:
     """It keeps existing ents without overwrite_ents."""
-    doc.ents += (
+    doc.ents += (  # type: ignore
         Span(doc, 2, 4, label="WRONG"),
         Span(doc, 15, 16, label="WRONG"),
     )
@@ -249,11 +251,12 @@ def test_set_entity_ids(ruler: SpaczzRuler, nlp: Language) -> None:
     """It writes ids to entities."""
     doc = nlp("Grint Anderson was prescribed Zithroma.")
     doc = ruler(doc)
-    assert len(doc.ents) == 2
-    assert doc.ents[0].label_ == "NAME"
-    assert doc.ents[0].ent_id_ == "Developer"
-    assert doc.ents[1].label_ == "DRUG"
-    assert doc.ents[1].ent_id_ == "Antibiotic"
+    ents = cast(Tuple[Span, ...], doc.ents)
+    assert len(ents) == 2
+    assert ents[0].label_ == "NAME"
+    assert ents[0].ent_id_ == "Developer"
+    assert ents[1].label_ == "DRUG"
+    assert ents[1].ent_id_ == "Antibiotic"
 
 
 def test_only_set_one_ent_type(ruler: SpaczzRuler, doc: Doc) -> None:
@@ -445,25 +448,25 @@ def test_fuzzy_matching_paragraph(
 def test_token_matching_respects_order() -> None:
     """Token matches are added in the expected order."""
     nlp = spacy.blank("en")
+    patterns = [
+        {
+            "label": "COMPANY",
+            "pattern": [
+                {"IS_UPPER": True, "OP": "+"},
+                {"IS_PUNCT": True, "OP": "?"},
+                {"TEXT": {"REGEX": r"S\.\s?[A-Z]\.?\s?[A-Z]?\.?"}},
+                {"IS_PUNCT": True, "OP": "?"},
+            ],
+            "type": "token",
+            "id": "COMPANY SL",
+        }
+    ]
     if spacy.__version__ < "3.0.0":
-        ruler = SpaczzRuler(nlp)
-        nlp.add_pipe(ruler, first=True)
+        ruler1 = SpaczzRuler(nlp)
+        ruler1.add_patterns(patterns)
+        nlp.add_pipe(ruler1, first=True)  # type: ignore
     else:
-        ruler = nlp.add_pipe("spaczz_ruler", first=True)
-    ruler.add_patterns(
-        [
-            {
-                "label": "COMPANY",
-                "pattern": [
-                    {"IS_UPPER": True, "OP": "+"},
-                    {"IS_PUNCT": True, "OP": "?"},
-                    {"TEXT": {"REGEX": r"S\.\s?[A-Z]\.?\s?[A-Z]?\.?"}},
-                    {"IS_PUNCT": True, "OP": "?"},
-                ],
-                "type": "token",
-                "id": "COMPANY SL",
-            }
-        ]
-    )
+        ruler2 = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
+        ruler2.add_patterns(patterns)
     doc = nlp("My company is called LARGO AND MARMG S.L.")
     assert doc.ents[0].text == "LARGO AND MARMG S.L."

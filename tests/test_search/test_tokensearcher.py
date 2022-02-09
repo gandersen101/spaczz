@@ -68,7 +68,7 @@ def test_raises_type_error_when_doc_not_doc(searcher: TokenSearcher) -> None:
     """It raises a type error if doc is not a `Doc`."""
     with pytest.raises(TypeError):
         searcher.match(
-            "example",
+            "example",  # type: ignore
             [
                 {"TEXT": "SQL"},
                 {"LOWER": {"FREGEX": "(database){e<=1}"}},

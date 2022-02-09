@@ -1,6 +1,6 @@
 """Tests for tokenmatcher module."""
 import pickle
-from typing import List, Tuple
+from typing import Any, cast, Iterator, List, Tuple
 import warnings
 
 import pytest
@@ -18,7 +18,7 @@ def add_name_ent(
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _details = matches[i]
     entity = Span(doc, start, end, label="NAME")
-    doc.ents += (entity,)
+    doc.ents += (entity,)  # type: ignore
 
 
 @pytest.fixture
@@ -232,7 +232,10 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
         "DRAGON",
         [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
     )
-    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+    output = cast(
+        Iterator[Tuple[Tuple[Doc, Any], Any]],
+        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
+    )
     matches = [(entry[0][1], entry[1]) for entry in output]
     assert matches == [
         ([("DRAGON", 4, 5, None)], "Jund"),

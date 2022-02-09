@@ -596,7 +596,7 @@ class SpaczzRuler(Pipe):
                     e for e in entities if not (e.start < end and e.end > start)
                 ]
                 seen_tokens.update(range(start, end))
-        doc.ents = entities + new_entities
+        doc.ents = tuple(entities + new_entities)  # type: ignore
 
     def from_bytes(
         self: SpaczzRuler,

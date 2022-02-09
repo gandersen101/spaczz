@@ -6,14 +6,16 @@ from copy import deepcopy
 from typing import (
     Any,
     Callable,
+    cast,
     DefaultDict,
     Dict,
-    Generator,
     Iterable,
+    Iterator,
     List,
     Optional,
     Tuple,
     Type,
+    Union,
 )
 import warnings
 
@@ -115,8 +117,8 @@ class TokenMatcher:
         matches = matcher(doc)
         if matches:
             extended_matches = [
-                (self.vocab.strings[match_id], start, end, None)
-                for match_id, start, end in matches
+                (cast(str, self.vocab.strings[match_id]), start, end, None)
+                for match_id, start, end in cast(List[Tuple[int, int, int]], matches)
             ]
             extended_matches.sort(key=lambda x: (x[1], -x[2] - x[1]))
             for i, (label, _start, _end, _details) in enumerate(extended_matches):
@@ -278,17 +280,19 @@ class TokenMatcher:
 
     def pipe(
         self: TokenMatcher,
-        stream: Iterable[Doc],
+        docs: Union[Iterable[Doc], Iterable[Tuple[Doc, Any]]],
         batch_size: int = 1000,
         return_matches: bool = False,
         as_tuples: bool = False,
-    ) -> Generator[Any, None, None]:
+    ) -> Union[
+        Iterator[Tuple[Tuple[Doc, Any], Any]], Iterator[Tuple[Doc, Any]], Iterator[Doc]
+    ]:
         """Match a stream of `Doc` objects, yielding them in turn.
 
         Deprecated as of spaCy v3.0 and spaczz v0.5.
 
         Args:
-            stream: A stream of `Doc` objects.
+            docs: A stream of `Doc` objects.
             batch_size: Number of documents to accumulate into a working set.
                 Default is `1000`.
             return_matches: Yield the match lists along with the docs,
@@ -309,14 +313,14 @@ class TokenMatcher:
             PipeDeprecation,
         )
         if as_tuples:
-            for doc, context in stream:
+            for doc, context in cast(Iterable[Tuple[Doc, Any]], docs):
                 matches = self(doc)
                 if return_matches:
                     yield ((doc, matches), context)
                 else:
                     yield (doc, context)
         else:
-            for doc in stream:
+            for doc in cast(Iterable[Doc], docs):
                 matches = self(doc)
                 if return_matches:
                     yield (doc, matches)

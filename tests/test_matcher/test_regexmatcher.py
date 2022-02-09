@@ -1,6 +1,6 @@
 """Tests for the regexmatcher module."""
 import pickle
-from typing import List, Tuple
+from typing import Any, cast, Iterator, List, Tuple
 import warnings
 
 import pytest
@@ -20,7 +20,7 @@ def add_gpe_ent(
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
     _match_id, start, end, _fuzzy_counts = matches[i]
     entity = Span(doc, start, end, label="GPE")
-    doc.ents += (entity,)
+    doc.ents += (entity,)  # type: ignore
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def test_add_without_string_pattern_raises_error(
 ) -> None:
     """Trying to add non strings as patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", [nlp.make_doc("Test1")])
+        matcher.add("TEST", [nlp.make_doc("Test1")])  # type: ignore
 
 
 def test_add_str_pattern_outside_list_raises_error(matcher: RegexMatcher) -> None:
@@ -210,7 +210,10 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     )
     matcher = RegexMatcher(nlp.vocab)
     matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+    output = cast(
+        Iterator[Tuple[Tuple[Doc, Any], Any]],
+        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
+    )
     matches = [(entry[0][1], entry[1]) for entry in output]
     assert matches == [
         ([("GPE", 4, 6, (0, 0, 0))], "Country"),
