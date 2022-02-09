@@ -9,7 +9,7 @@ from spacy.vocab import Vocab
 
 from .._commonregex import get_common_regex
 from ..exceptions import RegexParseError
-from ..process import map_chars_to_tokens
+from ..util import map_chars_to_tokens
 
 
 class RegexSearcher:

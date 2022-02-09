@@ -1,7 +1,7 @@
-"""Tests for process module."""
+"""Tests for _fuzz module."""
 import pytest
 
-from spaczz.process import FuzzyFuncs
+from spaczz._fuzz import FuzzyFuncs
 
 
 def test_fuzzyfuncs_raises_value_error_w_unkown_match_type() -> None:

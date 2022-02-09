@@ -7,7 +7,7 @@ import regex
 from spacy.tokens import Doc, Token
 from spacy.vocab import Vocab
 
-from ..process import FuzzyFuncs
+from .._fuzz import FuzzyFuncs
 from ..util import n_wise
 
 
