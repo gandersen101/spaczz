@@ -2,7 +2,7 @@
 from typing import Dict, Pattern
 
 import pytest
-import regex
+import regex as re
 from spacy.language import Language
 
 from spaczz._commonregex import get_common_regex
@@ -31,7 +31,7 @@ def test_searcher_contains_predef_defaults(
 
 def test_searcher_uses_passed_predefs(nlp: Language) -> None:
     """It uses the predefs passed to it."""
-    predefs = {"test": regex.compile("test")}
+    predefs = {"test": re.compile("test")}
     searcher = RegexSearcher(vocab=nlp.vocab, predefs=predefs)
     assert "test" in searcher.predefs
 
@@ -141,7 +141,7 @@ def test_parse_regex_with_new_regex(searcher: RegexSearcher) -> None:
     """It turns the string into a regex pattern."""
     assert searcher.parse_regex(
         "(?i)Test",
-    ) == regex.compile("(?i)Test")
+    ) == re.compile("(?i)Test")
 
 
 def test_invalid_regexfor_regex_compile_raises_error(searcher: RegexSearcher) -> None:

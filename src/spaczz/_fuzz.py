@@ -80,7 +80,7 @@ class FuzzyFuncs:
 
         Example:
             >>> import spacy
-            >>> from spaczz.process import FuzzyFuncs
+            >>> from spaczz._fuzz import FuzzyFuncs
             >>> ff = FuzzyFuncs()
             >>> simple = ff.get("simple")
             >>> simple("hi", "hi")

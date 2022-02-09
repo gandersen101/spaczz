@@ -194,11 +194,13 @@ class RegexSearcher:
             RegexParseError: If regex compilation produces any errors.
 
         Example:
-            >>> import regex
-            >>> from spaczz.regex import RegexConfig
-            >>> predef = RegexConfig()
-            >>> pattern = predef.parse_regex("Test")
-            >>> isinstance(pattern, type(regex.compile("type")))
+            >>> import regex as re
+            >>> import spacy
+            >>> from spaczz.search import RegexSearcher
+            >>> nlp = spacy.blank("en")
+            >>> searcher = RegexSearcher(nlp.vocab)
+            >>> pattern = searcher.parse_regex("Test")
+            >>> isinstance(pattern, re.Pattern)
             True
         """
         if predef:
@@ -225,11 +227,13 @@ class RegexSearcher:
             ValueError: If the key does not exist in the predefined regex patterns.
 
         Example:
-            >>> import regex
-            >>> from spaczz.regex import RegexConfig
-            >>> config = RegexConfig()
-            >>> pattern = config.get_predef("phones")
-            >>> isinstance(pattern, type(regex.compile("type")))
+            >>> import regex as re
+            >>> import spacy
+            >>> from spaczz.search import RegexSearcher
+            >>> nlp = spacy.blank("en")
+            >>> searcher = RegexSearcher(nlp.vocab)
+            >>> pattern = searcher.get_predef("phones")
+            >>> isinstance(pattern, re.Pattern)
             True
         """
         predef_regex = self._predefs.get(predef)
