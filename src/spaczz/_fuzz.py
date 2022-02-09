@@ -66,7 +66,7 @@ class FuzzyFuncs:
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
 
-    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[[str, str], float]:
+    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[..., float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:
