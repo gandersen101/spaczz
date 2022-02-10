@@ -69,9 +69,7 @@ class RegexMatcher:
         )
         self._searcher = RegexSearcher(vocab=vocab, predefs=predefs)
 
-    def __call__(
-        self: RegexMatcher, doc: Doc
-    ) -> List[Tuple[str, int, int, Tuple[int, int, int]]]:
+    def __call__(self: RegexMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:
         r"""Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -89,7 +87,7 @@ class RegexMatcher:
             >>> doc = nlp.make_doc("I live in the united states, or the US")
             >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
             >>> matcher(doc)
-            [('GPE', 4, 6, (0, 0, 0)), ('GPE', 9, 10, (0, 0, 0))]
+            [('GPE', 4, 6, 100), ('GPE', 9, 10, 100)]
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -105,7 +103,7 @@ class RegexMatcher:
                         matches.add(match)
         if matches:
             sorted_matches = sorted(
-                matches, key=lambda x: (x[1], -x[2] - x[1], sum(x[3]))
+                matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
             )
             for i, (label, _start, _end, _subs) in enumerate(sorted_matches):
                 on_match = self._callbacks.get(label)
@@ -345,9 +343,7 @@ class RegexMatcher:
 
 
 RegexCallback = Optional[
-    Callable[
-        [RegexMatcher, Doc, int, List[Tuple[str, int, int, Tuple[int, int, int]]]], None
-    ]
+    Callable[[RegexMatcher, Doc, int, List[Tuple[str, int, int, int]]], None]
 ]
 
 

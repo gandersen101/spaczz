@@ -389,27 +389,31 @@ class SpaczzRuler:
         DefaultDict[str, Dict[Tuple[str, int, int], Any]],
     ]:
         """Used in call to find matches in a doc."""
-        fuzzy_matches = []
+        final_matches = []
         lookup: DefaultDict[str, Dict[Tuple[str, int, int], Any]] = defaultdict(dict)
-        for fuzzy_match in self.fuzzy_matcher(doc):
-            current_ratio = fuzzy_match[3]
-            best_ratio = lookup["ratios"].get(fuzzy_match[:3], 0)
+        ratio_matches = self.fuzzy_matcher(doc) + self.regex_matcher(doc)
+        ratio_matches_set = set(
+            [
+                (m_id, start, end, ratio)
+                for m_id, start, end, ratio in ratio_matches
+                if start != end
+            ]
+        )
+        sorted_ratio_matches = sorted(
+            ratio_matches_set, key=lambda x: (x[2] - x[1], -x[1], x[3]), reverse=True
+        )
+        for match in sorted_ratio_matches:
+            current_ratio = match[3]
+            best_ratio = lookup["ratios"].get(match[:3], 0)
             if current_ratio > best_ratio:
-                fuzzy_matches.append(fuzzy_match[:3])
-                lookup["ratios"][fuzzy_match[:3]] = current_ratio
-        regex_matches = []
-        for regex_match in self.regex_matcher(doc):
-            current_counts = regex_match[3]
-            best_counts = lookup["counts"].get(regex_match[:3])
-            if not best_counts or sum(current_counts) < sum(best_counts):
-                regex_matches.append(regex_match[:3])
-                lookup["counts"][regex_match[:3]] = current_counts
+                final_matches.append(match[:3])
+                lookup["ratios"][match[:3]] = current_ratio
         token_matches = []
         for token_match in self.token_matcher(doc):
             token_matches.append(token_match[:3])
-            lookup["details"][token_match[:3]] = 1
-        matches = fuzzy_matches + regex_matches + token_matches
-        unique_matches, lookup = self._filter_overlapping_matches(matches, lookup)
+            lookup["details"][token_match[:3]] = None
+        final_matches += token_matches
+        unique_matches, lookup = self._filter_overlapping_matches(final_matches, lookup)
         return unique_matches, lookup
 
     def set_annotations(
@@ -664,7 +668,7 @@ class SpaczzRuler:
                 a `defaultdict(dict)`.
 
         Returns:
-            The filtered list of match span tuples and the lookup dict.
+            The filtered list of match span tuples.
         """
         filtered_matches: List[Tuple[str, int, int]] = []
         for match in matches:
@@ -673,9 +677,6 @@ class SpaczzRuler:
             ):
                 filtered_matches.append(match)
                 if match in lookup["ratios"]:
-                    _ = lookup["counts"].pop(match, None)
-                    _ = lookup["details"].pop(match, None)
-                elif match in lookup["counts"]:
                     _ = lookup["details"].pop(match, None)
         return filtered_matches, lookup
 
@@ -687,17 +688,11 @@ class SpaczzRuler:
     ) -> Span:
         """Update custom attributes for matches."""
         ratio = lookup["ratios"].get((match_id, span.start, span.end))
-        counts = lookup["counts"].get((match_id, span.start, span.end))
-        details = lookup["details"].get((match_id, span.start, span.end))
         for token in span:
             token._.spaczz_token = True
             if ratio:
                 token._.spaczz_ratio = ratio
-                token._.spaczz_type = "fuzzy"
-            elif counts:
-                token._.spaczz_counts = counts
-                token._.spaczz_type = "regex"
-            elif details:
-                token._.spaczz_details = details
+                token._.spaczz_type = "fuzzy"  # need to split out fuzzy/regex
+            else:
                 token._.spaczz_type = "token"
         return span

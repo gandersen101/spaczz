@@ -11,6 +11,8 @@ from .._commonregex import get_common_regex
 from ..exceptions import RegexParseError
 from ..util import map_chars_to_tokens
 
+WEIGHTS = (1, 1, 2)
+
 
 class RegexSearcher:
     """Class for multi-token regex matching in spacy `Doc` objects.
@@ -22,8 +24,6 @@ class RegexSearcher:
         vocab: The shared vocabulary.
             Included for consistency and potential future-state.
     """
-
-    _predef_strings = ("default", "empty")
 
     def __init__(
         self: RegexSearcher,
@@ -92,7 +92,8 @@ class RegexSearcher:
         query: str,
         partial: bool = True,
         predef: bool = False,
-    ) -> List[Tuple[int, int, Tuple[int, int, int]]]:
+        min_r: int = 75,
+    ) -> List[Tuple[int, int, int]]:
         """Returns regex matches in a `Doc` object.
 
         Matches on the character level and then maps matches back
@@ -130,9 +131,12 @@ class RegexSearcher:
                 `"zip_codes"`
                 `"po_boxes"`
                 `"ssn_number"`.
+            min_r: Minimum match ratio required for fuzzy matching.
+                Can be overwritten with regex pattern options.
+                Default is `75`.
 
         Returns:
-            A list of span start index, end index, fuzzy change count tuples.
+            A list of tuples of match start indices, end indices, and match ratios.
 
         Raises:
             TypeError: If `doc` is not a `Doc`
@@ -145,7 +149,7 @@ class RegexSearcher:
             >>> searcher = RegexSearcher(nlp.vocab)
             >>> doc = nlp("My phone number is (555) 555-5555.")
             >>> searcher.match(doc, "phones", predef=True)
-            [(4, 10, (0, 0, 0))]
+            [(4, 10, 100)]
         """
         if not isinstance(doc, Doc):
             raise TypeError("doc must be a Doc object.")
@@ -157,7 +161,7 @@ class RegexSearcher:
         chars_to_tokens = map_chars_to_tokens(doc)
         for match in compiled_regex.finditer(doc.text):
             start, end = match.span()
-            counts = match.fuzzy_counts
+            counts = getattr(match, "fuzzy_counts", (0, 0, 0))
             span = doc.char_span(start, end)
             if span:
                 matches.append((span, counts))
@@ -169,7 +173,14 @@ class RegexSearcher:
                         span = Span(doc, start_token, end_token + 1)
                         matches.append((span, counts))
         if matches:
-            return [(match[0].start, match[0].end, match[1]) for match in matches]
+            return [
+                (
+                    match[0].start,
+                    match[0].end,
+                    self._normalize_to_ratio(match[0].text, match[1]),
+                )
+                for match in matches
+            ]
         else:
             return []
 
@@ -241,3 +252,22 @@ class RegexSearcher:
             return predef_regex
         else:
             raise ValueError(f"{predef} is not a regex pattern defined in `predefs`.")
+
+    @staticmethod
+    def _normalize_to_ratio(match: str, fuzzy_counts: Tuple[int, int, int]) -> int:
+        """Normalizes fuzzy counts to a fuzzy ratio."""
+        if fuzzy_counts == (0, 0, 0):
+            return 100
+        s1_len = len(match) + fuzzy_counts[0] - fuzzy_counts[1]
+        s2_len = len(match)
+        fuzzy_counts_ = tuple(a * b for a, b in zip(fuzzy_counts, WEIGHTS))
+        if WEIGHTS[2] <= WEIGHTS[0] + WEIGHTS[1]:
+            dist_max = min(s1_len, s2_len) * WEIGHTS[2]
+        else:
+            dist_max = s1_len * WEIGHTS[1] + s2_len * WEIGHTS[0]
+        if s1_len > s2_len:
+            dist_max += (s1_len - s2_len) * WEIGHTS[1]
+        elif s1_len < s2_len:
+            dist_max += (s2_len - s1_len) * WEIGHTS[0]
+        r = 100 * sum(fuzzy_counts_) / dist_max
+        return round(100 - r)

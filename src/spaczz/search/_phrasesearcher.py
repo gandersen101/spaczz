@@ -121,8 +121,7 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A list of tuples of match start indices,
-            end indices, and match ratios.
+            A list of tuples of match start indices, end indices, and match ratios.
 
         Raises:
             TypeError: doc must be a `Doc` object.
@@ -212,33 +211,33 @@ class _PhraseSearcher:
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
                     new_r = self.compare(
-                        query, doc[p_l - f : p_r], score_cutoff=min_r2, *args, **kwargs
+                        query, doc[p_l - f : p_r], score_cutoff=optim_r, *args, **kwargs
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r
                 if p_l + f < p_r:
                     new_r = self.compare(
-                        query, doc[p_l + f : p_r], score_cutoff=min_r2, *args, **kwargs
+                        query, doc[p_l + f : p_r], score_cutoff=optim_r, *args, **kwargs
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r
                 if p_r - f > p_l:
                     new_r = self.compare(
-                        query, doc[p_l : p_r - f], score_cutoff=min_r2, *args, **kwargs
+                        query, doc[p_l : p_r - f], score_cutoff=optim_r, *args, **kwargs
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
                     new_r = self.compare(
-                        query, doc[p_l : p_r + f], score_cutoff=min_r2, *args, **kwargs
+                        query, doc[p_l : p_r + f], score_cutoff=optim_r, *args, **kwargs
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r + f
@@ -246,11 +245,11 @@ class _PhraseSearcher:
                     new_r = self.compare(
                         query,
                         doc[p_l - f : p_r + f],
-                        score_cutoff=min_r2,
+                        score_cutoff=optim_r,
                         *args,
                         **kwargs,
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r + f
@@ -258,15 +257,15 @@ class _PhraseSearcher:
                     new_r = self.compare(
                         query,
                         doc[p_l + f : p_r - f],
-                        score_cutoff=min_r2,
+                        score_cutoff=optim_r,
                         *args,
                         **kwargs,
                     )
-                    if new_r and new_r > optim_r:
+                    if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r - f
-                if optim_r <= r:
+                if optim_r == r:
                     break
                 else:
                     r = optim_r

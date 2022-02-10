@@ -204,8 +204,8 @@ def test_calling_ruler(ruler: SpaczzRuler, doc: Doc) -> None:
     ents = [ent for ent in doc.ents]
     assert all(ent._.spaczz_ent for ent in ents)
     assert ents[0]._.spaczz_ratio == 86
-    assert ents[1]._.spaczz_counts == (0, 0, 0)
-    assert ents[6]._.spaczz_details == 1
+    assert ents[1]._.spaczz_ratio == 100
+    assert ents[6]._.spaczz_ratio is None
     assert len(doc.ents) == 7
 
 
