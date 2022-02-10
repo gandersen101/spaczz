@@ -3,22 +3,18 @@ from collections import defaultdict
 from functools import partial
 from itertools import repeat, tee
 from pathlib import Path
-from typing import Any, DefaultDict, Iterable, Union
+from typing import Any, DefaultDict, Dict, Iterable, Union
+
+from spacy.tokens import Doc
 
 
-def ensure_path(path: Union[str, Path]) -> Path:
-    """Ensure string is converted to a Path.
-
-    Args:
-        path: Anything. If string, it's converted to Path.
-
-    Returns:
-        Path or original argument.
-    """
-    if isinstance(path, str):
-        return Path(path)
-    else:
-        return path
+def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
+    """Maps characters in a `Doc` object to tokens."""
+    chars_to_tokens = {}
+    for token in doc:
+        for i in range(token.idx, token.idx + len(token.text)):
+            chars_to_tokens[i] = token.i
+    return chars_to_tokens
 
 
 def nest_defaultdict(default_factory: Any, depth: int = 1) -> DefaultDict[Any, Any]:
@@ -36,6 +32,21 @@ def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
         for _ in range(i):
             next(iterables[i], None)
     return zip(*iterables)
+
+
+def ensure_path(path: Union[str, Path]) -> Path:
+    """Ensure string is converted to a Path.
+
+    Args:
+        path: Anything. If string, it's converted to Path.
+
+    Returns:
+        Path or original argument.
+    """
+    if isinstance(path, str):
+        return Path(path)
+    else:
+        return path
 
 
 def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:

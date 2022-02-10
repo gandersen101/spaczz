@@ -7,7 +7,7 @@ from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
-from ..process import FuzzyFuncs
+from .._fuzz import FuzzyFuncs
 
 
 class FuzzySearcher(_PhraseSearcher):
@@ -57,9 +57,10 @@ class FuzzySearcher(_PhraseSearcher):
 
     def compare(
         self: FuzzySearcher,
-        query: Union[Doc, Span, Token],
-        reference: Union[Doc, Span, Token],
+        s1: Union[Doc, Span, Token],
+        s2: Union[Doc, Span, Token],
         ignore_case: bool = True,
+        score_cutoff: float = 0.0,
         fuzzy_func: str = "simple",
         *args: Any,
         **kwargs: Any,
@@ -71,10 +72,13 @@ class FuzzySearcher(_PhraseSearcher):
         and returns the resulting fuzzy ratio.
 
         Args:
-            query: First container for comparison.
-            reference: Second container for comparison.
-            ignore_case: Whether to lower-case `query` and `reference`
+            s1: First spaCy container for comparison.
+            s2: Second spaCy container for comparison.
+            ignore_case: Whether to lower-case `s1` and `s2`
                 before comparison or not. Default is `True`.
+            score_cutoff: Score threshold as a float between `0` and `100`.
+                For ratio < score_cutoff, `0` is returned instead.
+                Default is `0`, which deactivates this behaviour.
             fuzzy_func: Key name of fuzzy matching function to use.
                 All rapidfuzz matching functions with default settings
                 are available:
@@ -93,7 +97,7 @@ class FuzzySearcher(_PhraseSearcher):
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            The fuzzy ratio between `query` and `reference` as an `int`.
+            The fuzzy ratio between `s1` and `s2` as an `int`.
 
         Example:
             >>> import spacy
@@ -104,9 +108,13 @@ class FuzzySearcher(_PhraseSearcher):
             73
         """
         if ignore_case:
-            query_text = query.text.lower()
-            reference_text = reference.text.lower()
+            s1_text = s1.text.lower()
+            s2_text = s2.text.lower()
         else:
-            query_text = query.text
-            reference_text = reference.text
-        return round(self._fuzzy_funcs.get(fuzzy_func)(query_text, reference_text))
+            s1_text = s1.text
+            s2_text = s2.text
+        return round(
+            self._fuzzy_funcs.get(fuzzy_func)(
+                s1_text, s2_text, score_cutoff=score_cutoff
+            )
+        )

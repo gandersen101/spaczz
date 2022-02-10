@@ -1,19 +1,9 @@
-"""Module for various doc/text processing classes/functions."""
+"""Module for fuzzy matching functions."""
 from __future__ import annotations
 
 from typing import Callable, Dict
 
 from rapidfuzz import fuzz
-from spacy.tokens import Doc
-
-
-def map_chars_to_tokens(doc: Doc) -> Dict[int, int]:
-    """Maps characters in a `Doc` object to tokens."""
-    chars_to_tokens = {}
-    for token in doc:
-        for i in range(token.idx, token.idx + len(token.text)):
-            chars_to_tokens[i] = token.i
-    return chars_to_tokens
 
 
 class FuzzyFuncs:
@@ -76,7 +66,7 @@ class FuzzyFuncs:
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
 
-    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[[str, str], float]:
+    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[..., float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:
@@ -90,7 +80,7 @@ class FuzzyFuncs:
 
         Example:
             >>> import spacy
-            >>> from spaczz.process import FuzzyFuncs
+            >>> from spaczz._fuzz import FuzzyFuncs
             >>> ff = FuzzyFuncs()
             >>> simple = ff.get("simple")
             >>> simple("hi", "hi")

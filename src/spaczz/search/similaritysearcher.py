@@ -61,8 +61,8 @@ class SimilaritySearcher(_PhraseSearcher):
 
     def compare(
         self: SimilaritySearcher,
-        query: Union[Doc, Span, Token],
-        reference: Union[Doc, Span, Token],
+        s1: Union[Doc, Span, Token],
+        s2: Union[Doc, Span, Token],
         *args: Any,
         **kwargs: Any,
     ) -> int:
@@ -71,14 +71,14 @@ class SimilaritySearcher(_PhraseSearcher):
         spaCy containers are `Doc`, `Span`, or `Token` objects.
 
         Args:
-            query: First container for comparison.
-            reference: Second container for comparison.
+            s1: First spaCy container for comparison.
+            s2: Second spaCy container for comparison.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
 
         Returns:
-            The similarity score between `query` and `reference` as an `int`.
+            The similarity score between `s1` and `s2` as an `int`.
 
         Example:
             >>> import spacy
@@ -92,7 +92,7 @@ class SimilaritySearcher(_PhraseSearcher):
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            if query.vector_norm and reference.vector_norm:
-                return round(query.similarity(reference) * 100)
+            if s1.vector_norm and s2.vector_norm:
+                return round(s1.similarity(s2) * 100)
             else:
                 return 0

@@ -1,6 +1,6 @@
 """Tests for the fuzzymatcher module."""
 import pickle
-from typing import List, Tuple
+from typing import Any, cast, Iterator, List, Tuple
 import warnings
 
 import pytest
@@ -17,7 +17,7 @@ def add_name_ent(
     """Callback on match function. Adds "NAME" entities to doc."""
     _match_id, start, end, _ratio = matches[i]
     entity = Span(doc, start, end, label="NAME")
-    doc.ents += (entity,)
+    doc.ents += (entity,)  # type: ignore
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_add_where_patterns_are_not_doc_objects_raises_error(
 ) -> None:
     """Trying to add non Doc objects as patterns raises a TypeError."""
     with pytest.raises(TypeError):
-        matcher.add("TEST", ["Test1"])
+        matcher.add("TEST", ["Test1"])  # type: ignore
 
 
 def test_add_where_kwargs_are_not_dicts_raises_error(
@@ -214,7 +214,10 @@ def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
     )
     matcher = FuzzyMatcher(nlp.vocab)
     matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = matcher.pipe(doc_stream, return_matches=True, as_tuples=True)
+    output = cast(
+        Iterator[Tuple[Tuple[Doc, Any], Any]],
+        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
+    )
     matches = [(entry[0][1], entry[1]) for entry in output]
     assert matches == [
         ([("DRAGON", 4, 5, 86)], "Jund"),

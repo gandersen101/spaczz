@@ -1,7 +1,7 @@
 """Custom spaCy attributes for spaczz."""
 from __future__ import annotations
 
-from typing import Iterable, Optional, Set, Tuple, Type
+from typing import Iterable, Optional, Set, Type
 import warnings
 
 from spacy.tokens import Doc, Span, Token
@@ -22,16 +22,12 @@ class SpaczzAttrs:
                 Token.set_extension("spaczz_token", default=False)
                 Token.set_extension("spaczz_type", default=None)
                 Token.set_extension("spaczz_ratio", default=None)
-                Token.set_extension("spaczz_counts", default=None)
-                Token.set_extension("spaczz_details", default=None)
 
                 Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
                 Span.set_extension("spaczz_ent", getter=cls.get_spaczz_ent)
                 Span.set_extension("spaczz_type", getter=cls.get_span_type)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
-                Span.set_extension("spaczz_counts", getter=cls.get_counts)
-                Span.set_extension("spaczz_details", getter=cls.get_details)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types)
@@ -47,7 +43,6 @@ class SpaczzAttrs:
                 Token.set_extension("spaczz_token", default=False, force=True)
                 Token.set_extension("spaczz_type", default=None, force=True)
                 Token.set_extension("spaczz_ratio", default=None, force=True)
-                Token.set_extension("spaczz_counts", default=None, force=True)
 
                 Span.set_extension(
                     "spaczz_span", getter=cls.get_spaczz_span, force=True
@@ -57,7 +52,6 @@ class SpaczzAttrs:
                     "spaczz_types", getter=cls.get_span_types, force=True
                 )
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio, force=True)
-                Span.set_extension("spaczz_counts", getter=cls.get_counts, force=True)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc, force=True)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types, force=True)
@@ -96,24 +90,6 @@ class SpaczzAttrs:
         """Getter for spaczz_ratio `Span` attribute."""
         if cls._all_equal([token._.spaczz_ratio for token in span]):
             return span[0]._.spaczz_ratio
-        else:
-            return None
-
-    @classmethod
-    def get_counts(
-        cls: Type[SpaczzAttrs], span: Span
-    ) -> Optional[Tuple[int, int, int]]:
-        """Getter for spaczz_counts `Span` attribute."""
-        if cls._all_equal([token._.spaczz_counts for token in span]):
-            return span[0]._.spaczz_counts
-        else:
-            return None
-
-    @classmethod
-    def get_details(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
-        """Getter for current placeholder spaczz_details `Span` attribute."""
-        if cls._all_equal([token._.spaczz_details for token in span]):
-            return span[0]._.spaczz_details
         else:
             return None
 

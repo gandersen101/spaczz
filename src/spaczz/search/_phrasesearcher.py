@@ -29,19 +29,17 @@ class _PhraseSearcher:
         """Initializes a phrase searcher.
 
         Args:
-            vocab: A spaCy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are mostly pure-Python
-                currently and do not share vocabulary
+            vocab: A spaCy Vocab.
+                Purely for consistency between spaCy and spaczz matcher APIs for now.
+                spaczz matchers are currently pure-Python and do not share vocabulary
                 with spaCy pipelines.
         """
         self.vocab = vocab
 
     def compare(
         self: _PhraseSearcher,
-        query: Union[Doc, Span, Token],
-        reference: Union[Doc, Span, Token],
+        s1: Union[Doc, Span, Token],
+        s2: Union[Doc, Span, Token],
         ignore_case: bool = True,
         *args: Any,
         **kwargs: Any,
@@ -55,9 +53,9 @@ class _PhraseSearcher:
         Will be overwritten in child classes.
 
         Args:
-            query: First container for comparison.
-            reference: Second container for comparison.
-            ignore_case: Whether to lower-case `query` and `reference`
+            s1: First spaCy container for comparison.
+            s2: Second spaCy container for comparison.
+            ignore_case: Whether to lower-case `s1` and `s2`
                 before comparison or not. Default is `True`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
@@ -66,12 +64,12 @@ class _PhraseSearcher:
             `100` if equal, `0` if not.
         """
         if ignore_case:
-            query_text = query.text.lower()
-            reference_text = reference.text.lower()
+            s1_text = s1.text.lower()
+            s2_text = s2.text.lower()
         else:
-            query_text = query.text
-            reference_text = reference.text
-        if query_text == reference_text:
+            s1_text = s1.text
+            s2_text = s2.text
+        if s1_text == s2_text:
             return 100
         else:
             return 0
@@ -95,8 +93,8 @@ class _PhraseSearcher:
         then ascending start index.
 
         Args:
-            doc: `Doc` object to search over.
-            query: `Doc` object to match against doc.
+            doc: Doc to search over.
+            query: Doc to match against doc.
             flex: Number of tokens to move match match span boundaries
                 left and right during optimization.
                 Can be an integer value with a max of `len(query)`
@@ -123,8 +121,7 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A `list` of tuples of match start indices,
-            end indices, and match ratios.
+            A list of tuples of match start indices, end indices, and match ratios.
 
         Raises:
             TypeError: doc must be a `Doc` object.
@@ -213,42 +210,62 @@ class _PhraseSearcher:
             optim_r = r
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
-                    new_r = self.compare(query, doc[p_l - f : p_r], *args, **kwargs)
+                    new_r = self.compare(
+                        query, doc[p_l - f : p_r], score_cutoff=optim_r, *args, **kwargs
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r
                 if p_l + f < p_r:
-                    new_r = self.compare(query, doc[p_l + f : p_r], *args, **kwargs)
+                    new_r = self.compare(
+                        query, doc[p_l + f : p_r], score_cutoff=optim_r, *args, **kwargs
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r
                 if p_r - f > p_l:
-                    new_r = self.compare(query, doc[p_l : p_r - f], *args, **kwargs)
+                    new_r = self.compare(
+                        query, doc[p_l : p_r - f], score_cutoff=optim_r, *args, **kwargs
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r - f
                 if p_r + f <= len(doc):
-                    new_r = self.compare(query, doc[p_l : p_r + f], *args, **kwargs)
+                    new_r = self.compare(
+                        query, doc[p_l : p_r + f], score_cutoff=optim_r, *args, **kwargs
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r + f
                 if p_l - f >= 0 and p_r + f <= len(doc):
-                    new_r = self.compare(query, doc[p_l - f : p_r + f], *args, **kwargs)
+                    new_r = self.compare(
+                        query,
+                        doc[p_l - f : p_r + f],
+                        score_cutoff=optim_r,
+                        *args,
+                        **kwargs,
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r + f
                 if p_l + f < p_r and p_r - f > p_l:
-                    new_r = self.compare(query, doc[p_l + f : p_r - f], *args, **kwargs)
+                    new_r = self.compare(
+                        query,
+                        doc[p_l + f : p_r - f],
+                        score_cutoff=optim_r,
+                        *args,
+                        **kwargs,
+                    )
                     if new_r > optim_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r - f
-                if optim_r <= r:
+                if optim_r == r:
                     break
                 else:
                     r = optim_r
@@ -297,7 +314,9 @@ class _PhraseSearcher:
         match_values: Dict[int, int] = dict()
         i = 0
         while i + len(query) <= len(doc):
-            match = self.compare(query, doc[i : i + len(query)], *args, **kwargs)
+            match = self.compare(
+                query, doc[i : i + len(query)], score_cutoff=min_r1, *args, **kwargs
+            )
             if match >= min_r1:
                 match_values[i] = match
             i += 1

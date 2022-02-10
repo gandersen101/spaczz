@@ -37,13 +37,12 @@ import srsly
 
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher, RegexMatcher, TokenMatcher
-from ..regex import RegexConfig
 from ..util import ensure_path, nest_defaultdict, read_from_disk, write_to_disk
 
 
 DEFAULT_ENT_ID_SEP = "||"
-simple_frozen_dict = SimpleFrozenDict()
-simple_frozen_list = SimpleFrozenList()
+SIMPLE_FROZEN_DICT = SimpleFrozenDict()
+SIMPLE_FROZEN_LIST = SimpleFrozenList()
 
 
 @Language.factory(
@@ -52,9 +51,9 @@ simple_frozen_list = SimpleFrozenList()
     default_config={
         "overwrite_ents": False,
         "ent_id_sep": DEFAULT_ENT_ID_SEP,
-        "fuzzy_defaults": simple_frozen_dict,
-        "regex_defaults": simple_frozen_dict,
-        "token_defaults": simple_frozen_dict,
+        "fuzzy_defaults": SIMPLE_FROZEN_DICT,
+        "regex_defaults": SIMPLE_FROZEN_DICT,
+        "token_defaults": SIMPLE_FROZEN_DICT,
     },
     default_score_weights={
         "ents_f": 1.0,
@@ -120,10 +119,9 @@ class SpaczzRuler(Pipe):
         *,
         overwrite_ents: bool = False,
         ent_id_sep: str = DEFAULT_ENT_ID_SEP,
-        fuzzy_defaults: Dict[str, Any] = simple_frozen_dict,
-        regex_defaults: Dict[str, Any] = simple_frozen_dict,
-        token_defaults: Dict[str, Any] = simple_frozen_dict,
-        regex_config: Union[str, RegexConfig] = "default",
+        fuzzy_defaults: Dict[str, Any] = SIMPLE_FROZEN_DICT,
+        regex_defaults: Dict[str, Any] = SIMPLE_FROZEN_DICT,
+        token_defaults: Dict[str, Any] = SIMPLE_FROZEN_DICT,
         patterns: Optional[Iterable[Dict[str, Any]]] = None,
         **kwargs: Any,
     ) -> None:
@@ -164,9 +162,6 @@ class SpaczzRuler(Pipe):
                 Default is `None`.
             token_defaults: Modified default parameters to use with the `TokenMatcher`.
                 Default is `None`.
-            regex_config: Should largely be ignored as an artifact of an old spaczz
-                design pattern. Will likely be updated in the future.
-                Default is `"default"`.
             patterns: Optional patterns to load in. Default is `None`.
             kwargs: For backwards compatibility with "spaczz_" prepended parameters.
 
@@ -209,9 +204,7 @@ class SpaczzRuler(Pipe):
                     )
                 )
         self.fuzzy_matcher = FuzzyMatcher(nlp.vocab, **self.defaults["fuzzy_defaults"])
-        self.regex_matcher = RegexMatcher(
-            nlp.vocab, regex_config, **self.defaults["regex_defaults"]
-        )
+        self.regex_matcher = RegexMatcher(nlp.vocab, **self.defaults["regex_defaults"])
         self.token_matcher = TokenMatcher(nlp.vocab, **self.defaults["token_defaults"])
         patterns = kwargs.get("spaczz_patterns", patterns)
         if patterns is not None:
@@ -544,27 +537,31 @@ class SpaczzRuler(Pipe):
         DefaultDict[str, Dict[Tuple[str, int, int], Any]],
     ]:
         """Used in call to find matches in a doc."""
-        fuzzy_matches = []
+        final_matches = []
         lookup: DefaultDict[str, Dict[Tuple[str, int, int], Any]] = defaultdict(dict)
-        for fuzzy_match in self.fuzzy_matcher(doc):
-            current_ratio = fuzzy_match[3]
-            best_ratio = lookup["ratios"].get(fuzzy_match[:3], 0)
+        ratio_matches = self.fuzzy_matcher(doc) + self.regex_matcher(doc)
+        ratio_matches_set = set(
+            [
+                (m_id, start, end, ratio)
+                for m_id, start, end, ratio in ratio_matches
+                if start != end
+            ]
+        )
+        sorted_ratio_matches = sorted(
+            ratio_matches_set, key=lambda x: (x[2] - x[1], -x[1], x[3]), reverse=True
+        )
+        for match in sorted_ratio_matches:
+            current_ratio = match[3]
+            best_ratio = lookup["ratios"].get(match[:3], 0)
             if current_ratio > best_ratio:
-                fuzzy_matches.append(fuzzy_match[:3])
-                lookup["ratios"][fuzzy_match[:3]] = current_ratio
-        regex_matches = []
-        for regex_match in self.regex_matcher(doc):
-            current_counts = regex_match[3]
-            best_counts = lookup["counts"].get(regex_match[:3])
-            if not best_counts or sum(current_counts) < sum(best_counts):
-                regex_matches.append(regex_match[:3])
-                lookup["counts"][regex_match[:3]] = current_counts
+                final_matches.append(match[:3])
+                lookup["ratios"][match[:3]] = current_ratio
         token_matches = []
         for token_match in self.token_matcher(doc):
             token_matches.append(token_match[:3])
-            lookup["details"][token_match[:3]] = 1
-        matches = fuzzy_matches + regex_matches + token_matches
-        unique_matches, lookup = self._filter_overlapping_matches(matches, lookup)
+            lookup["details"][token_match[:3]] = None
+        final_matches += token_matches
+        unique_matches, lookup = self._filter_overlapping_matches(final_matches, lookup)
         return unique_matches, lookup
 
     def score(self: SpaczzRuler, examples: Any, **kwargs: Any) -> Any:
@@ -603,13 +600,13 @@ class SpaczzRuler(Pipe):
                     e for e in entities if not (e.start < end and e.end > start)
                 ]
                 seen_tokens.update(range(start, end))
-        doc.ents = entities + new_entities
+        doc.ents = tuple(entities + new_entities)  # type: ignore
 
     def from_bytes(
         self: SpaczzRuler,
         patterns_bytes: bytes,
         *,
-        exclude: Iterable[str] = simple_frozen_list,
+        exclude: Iterable[str] = SIMPLE_FROZEN_LIST,
     ) -> SpaczzRuler:
         """Load the spaczz ruler from a bytestring.
 
@@ -657,7 +654,7 @@ class SpaczzRuler(Pipe):
         return self
 
     def to_bytes(
-        self: SpaczzRuler, *, exclude: Iterable[str] = simple_frozen_list
+        self: SpaczzRuler, *, exclude: Iterable[str] = SIMPLE_FROZEN_LIST
     ) -> bytes:
         """Serialize the spaczz ruler patterns to a bytestring.
 
@@ -690,7 +687,7 @@ class SpaczzRuler(Pipe):
         self: SpaczzRuler,
         path: Union[str, Path],
         *,
-        exclude: Iterable[str] = simple_frozen_list,
+        exclude: Iterable[str] = SIMPLE_FROZEN_LIST,
     ) -> SpaczzRuler:
         """Load the spaczz ruler from a file.
 
@@ -757,7 +754,7 @@ class SpaczzRuler(Pipe):
         self: SpaczzRuler,
         path: Union[str, Path],
         *,
-        exclude: Iterable[str] = simple_frozen_list,
+        exclude: Iterable[str] = SIMPLE_FROZEN_LIST,
     ) -> None:
         """Save the spaczz ruler patterns to a directory.
 
@@ -901,9 +898,6 @@ class SpaczzRuler(Pipe):
             ):
                 filtered_matches.append(match)
                 if match in lookup["ratios"]:
-                    _ = lookup["counts"].pop(match, None)
-                    _ = lookup["details"].pop(match, None)
-                elif match in lookup["counts"]:
                     _ = lookup["details"].pop(match, None)
         return filtered_matches, lookup
 
@@ -915,17 +909,11 @@ class SpaczzRuler(Pipe):
     ) -> Span:
         """Update custom attributes for matches."""
         ratio = lookup["ratios"].get((match_id, span.start, span.end))
-        counts = lookup["counts"].get((match_id, span.start, span.end))
-        details = lookup["details"].get((match_id, span.start, span.end))
         for token in span:
             token._.spaczz_token = True
             if ratio:
                 token._.spaczz_ratio = ratio
-                token._.spaczz_type = "fuzzy"
-            elif counts:
-                token._.spaczz_counts = counts
-                token._.spaczz_type = "regex"
-            elif details:
-                token._.spaczz_details = details
+                token._.spaczz_type = "fuzzy"  # need to split out fuzzy/regex
+            else:
                 token._.spaczz_type = "token"
         return span

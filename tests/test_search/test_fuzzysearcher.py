@@ -288,7 +288,7 @@ def test_match_raises_error_when_doc_not_doc_obj(
     doc = "G-rant Anderson lives in TN."
     query = nlp("xenomorph")
     with pytest.raises(TypeError):
-        searcher.match(doc, query)
+        searcher.match(doc, query)  # type: ignore
 
 
 def test_match_raises_error_if_query_not_doc_obj(
@@ -298,7 +298,7 @@ def test_match_raises_error_if_query_not_doc_obj(
     doc = nlp("This is a doc")
     query = "Not a doc"
     with pytest.raises(TypeError):
-        searcher.match(doc, query)
+        searcher.match(doc, query)  # type: ignore
 
 
 def test_match_returns_empty_list_if_query_empty(

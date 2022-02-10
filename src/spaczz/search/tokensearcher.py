@@ -7,7 +7,7 @@ import regex
 from spacy.tokens import Doc, Token
 from spacy.vocab import Vocab
 
-from ..process import FuzzyFuncs
+from .._fuzz import FuzzyFuncs
 from ..util import n_wise
 
 
@@ -55,9 +55,10 @@ class TokenSearcher:
 
     def fuzzy_compare(
         self: TokenSearcher,
-        a: str,
-        b: str,
+        s1: str,
+        s2: str,
         ignore_case: bool = True,
+        score_cutoff: float = 0.0,
         fuzzy_func: str = "simple",
     ) -> int:
         """Peforms fuzzy matching between two strings.
@@ -66,10 +67,13 @@ class TokenSearcher:
         to two strings and returns the resulting fuzzy ratio.
 
         Args:
-            a: First string for comparison.
-            b: Second string for comparison.
+            s1: First string for comparison.
+            s2: Second string for comparison.
             ignore_case: Whether to lower-case a and b
                 before comparison or not. Default is `True`.
+            score_cutoff: Score threshold as a float between `0` and `100`.
+                For ratio < score_cutoff, `0` is returned instead.
+                Default is `0`, which deactivates this behaviour.
             fuzzy_func: Key name of fuzzy matching function to use.
                 The following rapidfuzz matching functions with default
                 settings are available:
@@ -89,9 +93,11 @@ class TokenSearcher:
             73
         """
         if ignore_case:
-            a = a.lower()
-            b = b.lower()
-        return round(self._fuzzy_funcs.get(fuzzy_func)(a, b))
+            s1 = s1.lower()
+            s2 = s2.lower()
+        return round(
+            self._fuzzy_funcs.get(fuzzy_func)(s1, s2, score_cutoff=score_cutoff)
+        )
 
     def match(
         self: TokenSearcher,
@@ -202,12 +208,17 @@ class TokenSearcher:
             if isinstance(pattern_dict, dict):
                 pattern_text, pattern_type = self._parse_type(pattern_dict)
                 if pattern_text and pattern_type == "FUZZY":
-                    if self.fuzzy_compare(
-                        seq[i].text,
-                        pattern_text,
-                        case_bool,
-                        pattern_dict.get("FUZZY_FUNC", fuzzy_func),
-                    ) >= pattern_dict.get("MIN_R", min_r):
+                    min_r_ = pattern_dict.get("MIN_R", min_r)
+                    if (
+                        self.fuzzy_compare(
+                            seq[i].text,
+                            pattern_text,
+                            case_bool,
+                            min_r_,
+                            pattern_dict.get("FUZZY_FUNC", fuzzy_func),
+                        )
+                        >= min_r_
+                    ):
                         seq_matches.append((case, seq[i].text))
                     else:
                         return []
