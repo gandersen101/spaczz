@@ -92,7 +92,7 @@ class RegexSearcher:
         query: str,
         partial: bool = True,
         predef: bool = False,
-        min_r: int = 75,
+        min_r: int = 0,  # need to actually utilize this
     ) -> List[Tuple[int, int, int]]:
         """Returns regex matches in a `Doc` object.
 
@@ -133,7 +133,7 @@ class RegexSearcher:
                 `"ssn_number"`.
             min_r: Minimum match ratio required for fuzzy matching.
                 Can be overwritten with regex pattern options.
-                Default is `75`.
+                Default is `0`.
 
         Returns:
             A list of tuples of match start indices, end indices, and match ratios.
