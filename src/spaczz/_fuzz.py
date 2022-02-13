@@ -17,7 +17,7 @@ class FuzzyFuncs:
         match_type (str): Whether the fuzzy matching functions
             should support multi-token strings ("phrase") or
             only single-token strings ("token").
-        _fuzzy_funcs (dict[str, Callable[[str, str], int]]):
+        fuzzy_funcs (dict[str, Callable[[str, str], int]]):
             The available fuzzy matching functions:
             "simple" = `ratio`
             "partial" = `partial_ratio`
@@ -46,7 +46,7 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self._fuzzy_funcs: Dict[str, Callable] = {
+            self.fuzzy_funcs: Dict[str, Callable] = {
                 "simple": fuzz.ratio,
                 "partial": fuzz.partial_ratio,
                 "token_set": fuzz.token_set_ratio,
@@ -59,7 +59,7 @@ class FuzzyFuncs:
                 "quick": fuzz.QRatio,
             }
         elif match_type == "token":
-            self._fuzzy_funcs = {
+            self.fuzzy_funcs = {
                 "simple": fuzz.ratio,
                 "quick": fuzz.QRatio,
             }
@@ -87,13 +87,13 @@ class FuzzyFuncs:
             100.0
         """
         try:
-            return self._fuzzy_funcs[fuzzy_func.lower()]
+            return self.fuzzy_funcs[fuzzy_func.lower()]
         except KeyError:
             raise ValueError(
                 (
                     f"No fuzzy {self.match_type} matching function",
                     f"called: {fuzzy_func}.",
                     "Matching function must be in the following (case insensitive):",
-                    f"{list(self._fuzzy_funcs.keys())}",
+                    f"{list(self.fuzzy_funcs.keys())}",
                 )
             )

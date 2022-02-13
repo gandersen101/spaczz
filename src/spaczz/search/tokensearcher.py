@@ -58,7 +58,7 @@ class TokenSearcher:
         s1: str,
         s2: str,
         ignore_case: bool = True,
-        score_cutoff: float = 0.0,
+        score_cutoff: int = 0,
         fuzzy_func: str = "simple",
     ) -> int:
         """Peforms fuzzy matching between two strings.

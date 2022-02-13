@@ -25,20 +25,6 @@ class FuzzySearcher(_PhraseSearcher):
     Attributes:
         vocab (Vocab): The shared vocabulary.
             Included for consistency and potential future-state.
-        _fuzzy_funcs (FuzzyFuncs):
-            Container class housing fuzzy matching functions.
-            Functions are accessible via the classes `get()` method
-            by their given key name. All rapidfuzz matching functions
-            with default settings are available:
-            "simple" = `ratio`
-            "partial" = `partial_ratio`
-            "token_set" = `token_set_ratio`
-            "token_sort" = `token_sort_ratio`
-            "partial_token_set" = `partial_token_set_ratio`
-            "partial_token_sort" = `partial_token_sort_ratio`
-            "quick" = `QRatio`
-            "weighted" = `WRatio`
-            "quick_lev" = `quick_lev_ratio`
     """
 
     def __init__(self: FuzzySearcher, vocab: Vocab) -> None:
@@ -60,7 +46,7 @@ class FuzzySearcher(_PhraseSearcher):
         s1: Union[Doc, Span, Token],
         s2: Union[Doc, Span, Token],
         ignore_case: bool = True,
-        score_cutoff: float = 0.0,
+        score_cutoff: int = 0,
         fuzzy_func: str = "simple",
         *args: Any,
         **kwargs: Any,
@@ -86,12 +72,12 @@ class FuzzySearcher(_PhraseSearcher):
                 "partial" = `partial_ratio`
                 "token_set" = `token_set_ratio`
                 "token_sort" = `token_sort_ratio`
+                "token" = `token_ratio`
                 "partial_token_set" = `partial_token_set_ratio`
                 "partial_token_sort" = `partial_token_sort_ratio`
-                "quick" = `QRatio`
-                "weighted" = `WRatio`
-                "token" = `token_ratio`
                 "partial_token" = `partial_token_ratio`
+                "weighted" = `WRatio`
+                "quick" = `QRatio`
                 Default is `"simple"`.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
