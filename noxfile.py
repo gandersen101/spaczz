@@ -10,11 +10,11 @@ from nox.sessions import Session
 
 package = "spaczz"
 nox.options.sessions = "lint", "mypy", "tests"
-locations = "src", "tests", "noxfile.py", "docs/conf.py"
+locations = "src", "tests", "./noxfile.py", "docs/conf.py"
 min_cov = 98
-python = "3.9"
-pythons = ["3.9", "3.8", "3.7"]
-spacy_v3 = "3.2.1"
+python = "3.10"
+pythons = ["3.10", "3.9", "3.8", "3.7"]
+spacy_v3 = "3.3.0"
 spacy_v2 = "2.3.7"
 mypy_extras = ["nox", "numpy", "pytest", "rapidfuzz", "spacy"]
 
