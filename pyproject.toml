@@ -12,59 +12,74 @@ documentation = "https://spaczz.readthedocs.io"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-spacy = ">= 2.2, < 4.0"
+spacy = ">=3.0, <4.0"
 regex = ">=2020.6.8"
 importlib_metadata = {version = "*", python = "<3.8"}
-rapidfuzz = ">=1.0, < 3.0"
+rapidfuzz = ">=1.0, <3.0"
 
 [tool.poetry.dev-dependencies]
-flake8 = "*"
-black = "*"
+flake8 = "^4.0"
+black = "^22.3"
 pytest = "*"
 coverage = {version = "*", extras = ["toml"]}
 pytest-cov = "*"
-flake8-black = "*"
-flake8-bugbear = "*"
-flake8-bandit = "*"
+flake8-black = "^0.3"
+flake8-bugbear = "^22.4"
+flake8-bandit = "^3.0"
 safety = "*"
-flake8-import-order = "*"
-mypy = ">=0.9"
-flake8-annotations = "*"
-flake8-docstrings = "*"
-darglint = "*"
-xdoctest = "*"
+flake8-import-order = "^0.18"
+mypy = "~=0.9"
+flake8-annotations = "^2.9"
+flake8-docstrings = "^1.6"
+darglint = "^1.8"
+xdoctest = "^1.0"
 sphinx = ">=4.0.2, <5.0"
 rstcheck = "*"
 sphinx-autodoc-typehints = "*"
 sphinx-autobuild = "*"
 codecov = "*"
 ipykernel = "*"
+isort = "^5.10.1"
 
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 97
 
 [tool.coverage.run]
 branch = true
 source = ["spaczz"]
 
-[tool.coverage.report]
-show_missing = true
+[tool.isort]
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+force_single_line = true
+force_sort_within_sections = true
+lexicographical = true
+single_line_exclusions = ["typing"]
+order_by_type = false
+group_by_package = true
 
 [tool.mypy]
 
 [[tool.mypy.overrides]]
 module = [
     "regex",
-    "spacy.*",
     "srsly",
 ]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [build-system]
 requires = ["poetry>=1.0.0"]

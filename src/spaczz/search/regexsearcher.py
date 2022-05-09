@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Pattern, Tuple, Union
 
 import regex as re
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
+from spacy.tokens import Span
 from spacy.vocab import Vocab
 
-from .._commonregex import get_common_regex
+from ..commonregex import get_common_regex
 from ..exceptions import RegexParseError
 from ..util import map_chars_to_tokens
 

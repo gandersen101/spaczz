@@ -9,12 +9,31 @@ repos:
         args: ["--autofix"]
       - id: end-of-file-fixer
       - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 22.3.0
+  - repo: local
+    hooks:
+      - id: isort
+        name: isort
+        entry: poetry run isort src tests ./noxfile.py docs/conf.py
+        language: python
+        pass_filenames: false
+  - repo: local
     hooks:
       - id: black
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+        name: black
+        entry: poetry run black src tests ./noxfile.py docs/conf.py
+        language: python
+        pass_filenames: false
+  - repo: local
     hooks:
       - id: flake8
-        additional_dependencies: [flake8-annotations, flake8-bugbear, flake8-bandit, flake8-docstrings, flake8-import-order]
+        name: flake8
+        entry: poetry run flake8 src tests ./noxfile.py docs/conf.py
+        language: python
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy src tests docs/conf.py
+        language: python
+        pass_filenames: false

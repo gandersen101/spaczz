@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
-from spacy.tokens import Doc, Token
+from spacy.tokens import Doc
+from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from .._fuzz import FuzzyFuncs
+from ..fuzz import FuzzyFuncs
 from ..util import n_wise
 
 

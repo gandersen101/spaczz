@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from typing import Any, Union
 
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc
+from spacy.tokens import Span
+from spacy.tokens import Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
-from .._fuzz import FuzzyFuncs
+from ..fuzz import FuzzyFuncs
 
 
 class FuzzySearcher(_PhraseSearcher):
