@@ -16,4 +16,4 @@ jobs:
         architecture: x64
     - run: pip install nox==2022.*
     - run: pip install poetry==1.*
-    - run: nox
+    - run: nox -p ${{matrix.python}}

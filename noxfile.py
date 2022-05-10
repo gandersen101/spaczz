@@ -11,7 +11,7 @@ nox.options.sessions = "lint", "mypy", "tests"
 
 PACKAGE = "spaczz"
 LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
-PYTHON = "3.10"
+PYTHON = "3.9"
 PYTHONS = ["3.10", "3.9", "3.8", "3.7"]
 MYPY_EXTRAS = ["jinja2", "nox", "numpy", "pytest", "rapidfuzz", "spacy"]
 
@@ -114,6 +114,23 @@ def mypy(session: Session) -> None:
     args = session.posargs or LOCATIONS
     install_with_constraints(session, "mypy", *MYPY_EXTRAS)
     session.run("mypy", *args)
+
+
+# todo - fix
+@nox.session(python=PYTHON)
+def readme(session: Session) -> None:
+    """Run the README notebook and convert it to Markdown."""
+    session.run("poetry", "install", "--no-dev", external=True)
+    install_with_constraints(session, "nbconvert")
+    session.run(
+        "jupyter",
+        "nbconvert",
+        "--to",
+        "notebook",
+        "--execute",
+        "./notebooks/README.ipynb",
+    )
+    session.run("jupyter", "nbconvert", "--to", "markdown", "./notebooks/README.ipynb")
 
 
 @nox.session(python=PYTHON)

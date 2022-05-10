@@ -16,6 +16,12 @@ spacy = ">=3.0, <4.0"
 regex = ">=2020.6.8"
 importlib_metadata = {version = "*", python = "<3.8"}
 rapidfuzz = ">=1.0, <3.0"
+numpy = [
+    {version = ">=1.15, <1.22", python = "~3.7"},
+    {version = ">=1.17.3", python = "~3.8"},
+    {version = ">=1.19.3", python = "~3.9"},
+    {version = ">=1.21.2", python = "^3.10"}
+]
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0"
@@ -28,7 +34,7 @@ flake8-bugbear = "^22.4"
 flake8-bandit = "^3.0"
 safety = "*"
 flake8-import-order = "^0.18"
-mypy = "~=0.9"
+mypy = ">=0.9, <1.0"
 flake8-annotations = "^2.9"
 flake8-docstrings = "^1.6"
 darglint = "^1.8"
