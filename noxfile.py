@@ -116,7 +116,6 @@ def mypy(session: Session) -> None:
     session.run("mypy", *args)
 
 
-# todo - fix
 @nox.session(python=PYTHON)
 def readme(session: Session) -> None:
     """Run the README notebook and convert it to Markdown."""
@@ -125,12 +124,11 @@ def readme(session: Session) -> None:
     session.run(
         "jupyter",
         "nbconvert",
-        "--to",
-        "notebook",
+        "--to=markdown",
         "--execute",
-        "./notebooks/README.ipynb",
+        "notebooks/README.ipynb",
     )
-    session.run("jupyter", "nbconvert", "--to", "markdown", "./notebooks/README.ipynb")
+    session.run("mv", "-f", "notebooks/README.md", "README.md", external=True)
 
 
 @nox.session(python=PYTHON)

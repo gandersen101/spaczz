@@ -9,6 +9,7 @@ repos:
         args: ["--autofix"]
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
       - id: isort
