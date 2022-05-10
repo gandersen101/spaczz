@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.6.0"
+version = "0.6.0a0"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
@@ -12,59 +12,80 @@ documentation = "https://spaczz.readthedocs.io"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-spacy = ">= 2.2.0, < 4.0.0"
+spacy = ">=3.0, <4.0"
 regex = ">=2020.6.8"
-importlib_metadata = {version = ">=1.0.0", python = "<3.8"}
-rapidfuzz = "^1.9"
+importlib_metadata = {version = "*", python = "<3.8"}
+rapidfuzz = ">=1.0, <3.0"
+numpy = [
+    {version = ">=1.15, <1.22", python = "~3.7"},
+    {version = ">=1.17.3", python = "~3.8"},
+    {version = ">=1.19.3", python = "~3.9"},
+    {version = ">=1.21.2", python = "^3.10"}
+]
 
 [tool.poetry.dev-dependencies]
-flake8 = ">=3.8.3"
-black = ">=19.10b0"
-pytest = ">=5.4.3"
-coverage = {version = ">=5.1", extras = ["toml"]}
-pytest-cov = ">=2.10.0"
-flake8-black = "0.*"
-flake8-bugbear = ">=20.1.4"
-flake8-bandit = ">=2.1.2"
-safety = ">=1.9.0"
-flake8-import-order = ">=0.18"
-mypy = ">=0.900"
-flake8-annotations = ">=2.1.0"
-flake8-docstrings = ">=1.5.0"
-darglint = ">=1.4.1"
-xdoctest = "0.*"
-sphinx = ">=3.1.1"
-rstcheck = ">=3.3.1"
-sphinx-autodoc-typehints = ">=1.11.0"
-sphinx-autobuild = ">=0.7.1"
-codecov = ">=2.1.7"
+flake8 = "^4.0"
+black = "^22.3"
+pytest = "*"
+coverage = {version = "*", extras = ["toml"]}
+pytest-cov = "*"
+flake8-black = "^0.3"
+flake8-bugbear = "^22.4"
+flake8-bandit = "^3.0"
+safety = "*"
+flake8-import-order = "^0.18"
+mypy = ">=0.9, <1.0"
+flake8-annotations = "^2.9"
+flake8-docstrings = "^1.6"
+darglint = "^1.8"
+xdoctest = "^1.0"
+sphinx = ">=4.0.2, <5.0"
+rstcheck = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-autobuild = "*"
+codecov = "*"
 ipykernel = "*"
+isort = "^5.10.1"
 
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 97
 
 [tool.coverage.run]
 branch = true
 source = ["spaczz"]
 
-[tool.coverage.report]
-show_missing = true
+[tool.isort]
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+force_single_line = true
+force_sort_within_sections = true
+lexicographical = true
+single_line_exclusions = ["typing"]
+order_by_type = false
+group_by_package = true
 
 [tool.mypy]
 
 [[tool.mypy.overrides]]
 module = [
     "regex",
-    "spacy.*",
     "srsly",
 ]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [build-system]
 requires = ["poetry>=1.0.0"]

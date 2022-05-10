@@ -4,9 +4,12 @@ from __future__ import annotations
 from typing import Iterable, Optional, Set, Type
 import warnings
 
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc
+from spacy.tokens import Span
+from spacy.tokens import Token
 
-from .exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
+from .exceptions import AttrOverwriteWarning
+from .exceptions import SpaczzSpanDeprecation
 
 
 class SpaczzAttrs:

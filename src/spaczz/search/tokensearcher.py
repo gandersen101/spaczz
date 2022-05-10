@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import regex
-from spacy.tokens import Doc, Token
+from spacy.tokens import Doc
+from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from .._fuzz import FuzzyFuncs
+from ..fuzz import FuzzyFuncs
 from ..util import n_wise
 
 
@@ -58,7 +59,7 @@ class TokenSearcher:
         s1: str,
         s2: str,
         ignore_case: bool = True,
-        score_cutoff: float = 0.0,
+        score_cutoff: int = 0,
         fuzzy_func: str = "simple",
     ) -> int:
         """Peforms fuzzy matching between two strings.

@@ -3,7 +3,6 @@ from typing import Dict, Pattern
 
 import regex as re
 
-
 _commonregex = {
     "dates": re.compile(
         r"""(?ix)(?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?

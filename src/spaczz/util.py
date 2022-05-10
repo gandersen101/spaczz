@@ -1,7 +1,8 @@
 """Module for various utility functions."""
 from collections import defaultdict
 from functools import partial
-from itertools import repeat, tee
+from itertools import repeat
+from itertools import tee
 from pathlib import Path
 from typing import Any, DefaultDict, Dict, Iterable, Union
 

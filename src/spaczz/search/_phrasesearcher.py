@@ -5,10 +5,13 @@ from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc
+from spacy.tokens import Span
+from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from ..exceptions import FlexWarning, RatioWarning
+from ..exceptions import FlexWarning
+from ..exceptions import RatioWarning
 
 
 class _PhraseSearcher:

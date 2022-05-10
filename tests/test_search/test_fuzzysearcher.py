@@ -5,7 +5,8 @@ import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.exceptions import FlexWarning, RatioWarning
+from spaczz.exceptions import FlexWarning
+from spaczz.exceptions import RatioWarning
 from spaczz.search import FuzzySearcher
 
 

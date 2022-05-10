@@ -20,7 +20,8 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import KwargsWarning, PipeDeprecation
+from ..exceptions import KwargsWarning
+from ..exceptions import PipeDeprecation
 from ..search import RegexSearcher
 from ..util import nest_defaultdict
 

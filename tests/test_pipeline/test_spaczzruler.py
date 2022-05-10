@@ -7,7 +7,8 @@ from typing import Any, cast, Dict, List, Tuple
 import pytest
 import spacy
 from spacy.language import Language
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
+from spacy.tokens import Span
 import srsly
 
 from spaczz.exceptions import PatternTypeWarning
@@ -156,17 +157,10 @@ def test_add_patterns_with_other_pipeline_components(
 ) -> None:
     """It disables other pipeline components when adding patterns."""
     nlp = spacy.blank("en")
-    if spacy.__version__ < "3.0.0":
-        nlp.add_pipe(nlp.create_pipe("ner"))  # type: ignore
-        ruler1 = SpaczzRuler(nlp)
-        nlp.add_pipe(ruler1, first=True)  # type: ignore
-        ruler1.add_patterns(patterns)
-        assert len(ruler1) == len(patterns)
-    else:
-        _ = nlp.add_pipe("ner")
-        ruler2 = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
-        ruler2.add_patterns(patterns)
-        assert len(ruler2) == len(patterns)
+    _ = nlp.add_pipe("ner")
+    ruler = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
+    ruler.add_patterns(patterns)
+    assert len(ruler) == len(patterns)
 
 
 def test_contains(ruler: SpaczzRuler) -> None:
@@ -406,9 +400,8 @@ def test_spaczz_patterns_to_from_disk(
 
 def test_ruler_clear(ruler: SpaczzRuler) -> None:
     """It clears the ruler's patterns."""
-    if spacy.__version__ >= "3.0.0":
-        ruler.clear()
-        assert len(ruler) == 0
+    ruler.clear()
+    assert len(ruler) == 0
 
 
 def test_fuzzy_matching_basic(nlp: Language, countries: List[Dict[str, Any]]) -> None:
@@ -461,12 +454,7 @@ def test_token_matching_respects_order() -> None:
             "id": "COMPANY SL",
         }
     ]
-    if spacy.__version__ < "3.0.0":
-        ruler1 = SpaczzRuler(nlp)
-        ruler1.add_patterns(patterns)
-        nlp.add_pipe(ruler1, first=True)  # type: ignore
-    else:
-        ruler2 = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
-        ruler2.add_patterns(patterns)
+    ruler = cast(SpaczzRuler, nlp.add_pipe("spaczz_ruler", first=True))
+    ruler.add_patterns(patterns)
     doc = nlp("My company is called LARGO AND MARMG S.L.")
     assert doc.ents[0].text == "LARGO AND MARMG S.L."

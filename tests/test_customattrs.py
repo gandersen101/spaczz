@@ -4,7 +4,8 @@ from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.customattrs import SpaczzAttrs
-from spaczz.exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
+from spaczz.exceptions import AttrOverwriteWarning
+from spaczz.exceptions import SpaczzSpanDeprecation
 
 
 @pytest.fixture

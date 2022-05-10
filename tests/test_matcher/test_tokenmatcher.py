@@ -7,7 +7,8 @@ import pytest
 import spacy
 from spacy.errors import MatchPatternError
 from spacy.language import Language
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
+from spacy.tokens import Span
 
 from spaczz.matcher import TokenMatcher
 

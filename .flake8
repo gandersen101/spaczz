@@ -12,12 +12,13 @@
 # S = bandit warnings
 # W = pycodestyle warnings
 select = ANN,B,B9,BLK,C,D,DAR,E,F,I,S,W
+# ANN401 = Dynamically typed expressions (typing.Any) are disallowed
 # B904 = within an `except` clause, raise exceptions with `raise ... from err`
 # E203 = slice notation whitespace, invalid
 # E501 = line length, handled by bugbear B950
 # S301, S403 = pickle warnings from security
 # W503 = bin op line break, invalid
-ignore = B904, E203, E501, S301, S403, W503
+ignore = ANN401, B904, E203, E501, S301, S403, W503
 # up to 88 allowed by bugbear B950
 max-line-length = 80
 max-complexity = 18

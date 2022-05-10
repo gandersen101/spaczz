@@ -5,7 +5,7 @@ import pytest
 import regex as re
 from spacy.language import Language
 
-from spaczz._commonregex import get_common_regex
+from spaczz.commonregex import get_common_regex
 from spaczz.exceptions import RegexParseError
 from spaczz.search import RegexSearcher
 

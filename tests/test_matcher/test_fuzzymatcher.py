@@ -5,7 +5,8 @@ import warnings
 
 import pytest
 from spacy.language import Language
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
+from spacy.tokens import Span
 
 from spaczz.exceptions import KwargsWarning
 from spaczz.matcher.fuzzymatcher import FuzzyMatcher

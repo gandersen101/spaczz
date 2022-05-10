@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, Dict
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz as rfuzz
 
 
 class FuzzyFuncs:
@@ -17,7 +17,7 @@ class FuzzyFuncs:
         match_type (str): Whether the fuzzy matching functions
             should support multi-token strings ("phrase") or
             only single-token strings ("token").
-        _fuzzy_funcs (dict[str, Callable[[str, str], int]]):
+        fuzzy_funcs (dict[str, Callable[[str, str], int]]):
             The available fuzzy matching functions:
             "simple" = `ratio`
             "partial" = `partial_ratio`
@@ -46,22 +46,22 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self._fuzzy_funcs: Dict[str, Callable] = {
-                "simple": fuzz.ratio,
-                "partial": fuzz.partial_ratio,
-                "token_set": fuzz.token_set_ratio,
-                "token_sort": fuzz.token_sort_ratio,
-                "token": fuzz.token_ratio,
-                "partial_token_set": fuzz.partial_token_set_ratio,
-                "partial_token_sort": fuzz.partial_token_sort_ratio,
-                "partial_token": fuzz.partial_token_ratio,
-                "weighted": fuzz.WRatio,
-                "quick": fuzz.QRatio,
+            self.fuzzy_funcs: Dict[str, Callable] = {
+                "simple": rfuzz.ratio,
+                "partial": rfuzz.partial_ratio,
+                "token_set": rfuzz.token_set_ratio,
+                "token_sort": rfuzz.token_sort_ratio,
+                "token": rfuzz.token_ratio,
+                "partial_token_set": rfuzz.partial_token_set_ratio,
+                "partial_token_sort": rfuzz.partial_token_sort_ratio,
+                "partial_token": rfuzz.partial_token_ratio,
+                "weighted": rfuzz.WRatio,
+                "quick": rfuzz.QRatio,
             }
         elif match_type == "token":
-            self._fuzzy_funcs = {
-                "simple": fuzz.ratio,
-                "quick": fuzz.QRatio,
+            self.fuzzy_funcs = {
+                "simple": rfuzz.ratio,
+                "quick": rfuzz.QRatio,
             }
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
@@ -80,20 +80,20 @@ class FuzzyFuncs:
 
         Example:
             >>> import spacy
-            >>> from spaczz._fuzz import FuzzyFuncs
+            >>> from spaczz.fuzz import FuzzyFuncs
             >>> ff = FuzzyFuncs()
             >>> simple = ff.get("simple")
             >>> simple("hi", "hi")
             100.0
         """
         try:
-            return self._fuzzy_funcs[fuzzy_func.lower()]
+            return self.fuzzy_funcs[fuzzy_func.lower()]
         except KeyError:
             raise ValueError(
                 (
                     f"No fuzzy {self.match_type} matching function",
                     f"called: {fuzzy_func}.",
                     "Matching function must be in the following (case insensitive):",
-                    f"{list(self._fuzzy_funcs.keys())}",
+                    f"{list(self.fuzzy_funcs.keys())}",
                 )
             )

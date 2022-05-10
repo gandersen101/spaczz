@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Pattern, Tuple, Union
 
 import regex as re
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
+from spacy.tokens import Span
 from spacy.vocab import Vocab
 
-from .._commonregex import get_common_regex
+from ..commonregex import get_common_regex
 from ..exceptions import RegexParseError
 from ..util import map_chars_to_tokens
 
@@ -92,7 +93,7 @@ class RegexSearcher:
         query: str,
         partial: bool = True,
         predef: bool = False,
-        min_r: int = 75,
+        min_r: int = 0,
     ) -> List[Tuple[int, int, int]]:
         """Returns regex matches in a `Doc` object.
 
@@ -132,8 +133,10 @@ class RegexSearcher:
                 `"po_boxes"`
                 `"ssn_number"`.
             min_r: Minimum match ratio required for fuzzy matching.
-                Can be overwritten with regex pattern options.
-                Default is `75`.
+                Can be overwritten with regex pattern options. Fuzzy regex patterns
+                allow more fined-grained control so by default no min_r is set.
+                Ratio results are more for informational, and `SpaczzRuler` sorting
+                purposes. Default is `0`.
 
         Returns:
             A list of tuples of match start indices, end indices, and match ratios.
@@ -173,7 +176,7 @@ class RegexSearcher:
                         span = Span(doc, start_token, end_token + 1)
                         matches.append((span, counts))
         if matches:
-            return [
+            output_matches = [
                 (
                     match[0].start,
                     match[0].end,
@@ -181,6 +184,10 @@ class RegexSearcher:
                 )
                 for match in matches
             ]
+            if min_r:
+                return [match for match in output_matches if match[2] >= min_r]
+            else:
+                return output_matches
         else:
             return []
 

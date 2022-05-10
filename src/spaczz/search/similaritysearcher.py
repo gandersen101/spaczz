@@ -4,7 +4,9 @@ from __future__ import annotations
 from typing import Any, Union
 import warnings
 
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc
+from spacy.tokens import Span
+from spacy.tokens import Token
 from spacy.vocab import Vocab
 
 from . import _PhraseSearcher
@@ -87,12 +89,7 @@ class SimilaritySearcher(_PhraseSearcher):
             >>> searcher = SimilaritySearcher(nlp.vocab)
             >>> doc1 = nlp("I like apples.")
             >>> doc2 = nlp("I like grapes.")
-            >>> searcher.compare(doc1, doc2)
-            94
+            >>> searcher.compare(doc1, doc2) > 0
+            True
         """
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            if s1.vector_norm and s2.vector_norm:
-                return round(s1.similarity(s2) * 100)
-            else:
-                return 0
+        return round(s1.similarity(s2) * 100)
