@@ -14,26 +14,26 @@ repos:
       - id: isort
         name: isort
         entry: poetry run isort src tests ./noxfile.py docs/conf.py
-        language: python
+        language: system
         pass_filenames: false
   - repo: local
     hooks:
       - id: black
         name: black
         entry: poetry run black src tests ./noxfile.py docs/conf.py
-        language: python
+        language: system
         pass_filenames: false
   - repo: local
     hooks:
       - id: flake8
         name: flake8
         entry: poetry run flake8 src tests ./noxfile.py docs/conf.py
-        language: python
+        language: system
         pass_filenames: false
   - repo: local
     hooks:
       - id: mypy
         name: mypy
         entry: poetry run mypy src tests docs/conf.py
-        language: python
+        language: system
         pass_filenames: false

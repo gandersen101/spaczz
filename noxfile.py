@@ -169,7 +169,7 @@ def tests(session: Session) -> None:
         "pytest",
         "pytest-cov",
     )
-    session.run("PYTHON", "-m", "spacy", "download", "en_core_web_md")
+    session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
 
 
@@ -179,5 +179,5 @@ def xdoctest(session: Session) -> None:
     args = session.posargs or ["all"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "xdoctest")
-    session.run("PYTHON", "-m", "spacy", "download", "en_core_web_md")
-    session.run("PYTHON", "-m", "xdoctest", PACKAGE, *args)
+    session.run("python", "-m", "spacy", "download", "en_core_web_md")
+    session.run("python", "-m", "xdoctest", PACKAGE, *args)
