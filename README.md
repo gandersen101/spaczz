@@ -5,6 +5,15 @@
 
 # spaczz: Fuzzy matching and more for spaCy
 
+**Announcement**
+Users of `spaczz` have surely noticed it has been essentially out of development for a couple years now. This coincides with a career-shift that, while right for me, has taken me out of the NLP space. I built `spaczz` to address needs I had at the time, and no longer having those needs, `spaczz`'s development has fallen by the wayside.
+
+I consider `spaczz` a huge personal achievement and I am truly amazed and grateful that many others have found use in it. Therefore, I feel I owe it to you users to address some feature requests and make sure `spaczz` continues working properly, which I intend to do going forward. Please do keep in mind it is just me working on `spaczz` as a hobby project. My hope is that something better than `spaczz` comes along and supercedes it. In fact, it looks like some work is being done on `spaCy` proper to (enable fuzzy matching)[https://github.com/explosion/spaCy/pull/11359].
+
+I am working on `v0.6.0` of `spaczz` now which should address most of the feature requests people have made over the past couple years, however, performance will still be the `spaczz`'s major bottleneck. This latest release will drop `spaCy v2` support. I'm sorry to do this without a deprecation cycle, but it will certainly streamline the release.
+
+**Overview**
+
 Spaczz provides fuzzy matching and additional regex matching functionality for [spaCy](https://spacy.io/).
 Spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
 
