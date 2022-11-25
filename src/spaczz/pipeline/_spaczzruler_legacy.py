@@ -85,7 +85,7 @@ class SpaczzRuler:
                 spaczz config parameters start with "spaczz_" to keep them
                 from colliding with other cfg components.
                 SpaczzRuler cfg components include (with "spaczz_" prepended to them):
-                    `overwrite_ents` (bool): Whether to overwrite exisiting Doc.ents
+                    `overwrite_ents` (bool): Whether to overwrite existing Doc.ents
                         with new matches. Default is False.
                     `ent_id_sep` (str): String to separate entity labels and ids on.
                     `fuzzy_defaults` (dict[str, Any]): Modified default parameters to
@@ -483,7 +483,7 @@ class SpaczzRuler:
         """Serialize the spaczz ruler patterns to a bytestring.
 
         Args:
-            **kwargs: Other config paramters, mostly for consistency.
+            **kwargs: Other config parameters, mostly for consistency.
 
         Returns:
             The serialized patterns.
@@ -508,7 +508,7 @@ class SpaczzRuler:
 
         Args:
             path: The JSONL file to load.
-            **kwargs: Other config paramters, mostly for consistency.
+            **kwargs: Other config parameters, mostly for consistency.
 
         Returns:
             The loaded spaczz ruler.
@@ -552,7 +552,7 @@ class SpaczzRuler:
 
         Args:
             path: The JSONL file to save.
-            **kwargs: Other config paramters, mostly for consistency.
+            **kwargs: Other config parameters, mostly for consistency.
         """
         path = ensure_path(path)
         cfg = {
