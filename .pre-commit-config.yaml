@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.4.0
     hooks:
       - id: check-yaml
       - id: check-toml
@@ -17,22 +17,16 @@ repos:
         entry: poetry run isort src tests ./noxfile.py docs/conf.py
         language: system
         pass_filenames: false
-  - repo: local
-    hooks:
       - id: black
         name: black
         entry: poetry run black src tests ./noxfile.py docs/conf.py
         language: system
         pass_filenames: false
-  - repo: local
-    hooks:
       - id: flake8
         name: flake8
         entry: poetry run flake8 src tests ./noxfile.py docs/conf.py
         language: system
         pass_filenames: false
-  - repo: local
-    hooks:
       - id: mypy
         name: mypy
         entry: poetry run mypy src tests docs/conf.py

@@ -111,14 +111,14 @@ def lorem(fixtures: Path) -> str:
 
 
 def test_empty_default_ruler(nlp: Language) -> None:
-    """It initialzes an empty ruler."""
+    """It initializes an empty ruler."""
     ruler = SpaczzRuler(nlp)
     assert not ruler.fuzzy_patterns
     assert not ruler.regex_patterns
 
 
 def test_ruler_with_changed_matcher_defaults(nlp: Language) -> None:
-    """It intializes with changed defaults in the matchers."""
+    """It initializes with changed defaults in the matchers."""
     ruler = SpaczzRuler(nlp, spaczz_fuzzy_defaults={"ignore_case": False})
     assert ruler.fuzzy_matcher.defaults == {"ignore_case": False}
 

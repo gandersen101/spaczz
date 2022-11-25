@@ -202,7 +202,7 @@ def test__optimize_finds_better_match_with_max_flex(
 
 
 def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
-    """It returns the intial match when flex value = 0."""
+    """It returns the initial match when flex value = 0."""
     doc = nlp("Patient was prescribed Zithroma tablets.")
     query = nlp("zithromax")
     match_values = {3: 94}
@@ -222,7 +222,7 @@ def test__optimize_with_no_flex(searcher: FuzzySearcher, nlp: Language) -> None:
 def test__optimize_where_bpl_would_equal_bpr(
     searcher: FuzzySearcher, nlp: Language
 ) -> None:
-    """It returns the intial match when flex value = 0."""
+    """It returns the initial match when flex value = 0."""
     doc = nlp("trabalho, investimento e escolhas corajosas,")
     query = nlp("Courtillier Musqué")
     assert searcher.match(doc, query, flex="max") == []

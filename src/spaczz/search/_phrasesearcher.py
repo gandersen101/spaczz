@@ -105,7 +105,7 @@ class _PhraseSearcher:
                 or the strings `"max"`, `"min"`, or `"default"`.
                 Default is `"default"`: `len(query) // 2`.
             min_r1: Minimum match ratio required for
-                selection during the intial search over doc.
+                selection during the initial search over doc.
                 If `flex == 0`, `min_r1` will be overwritten by `min_r2`.
                 If `flex > 0`, `min_r1` must be lower than `min_r2`
                 and "low" in general because match boundaries are
@@ -298,7 +298,7 @@ class _PhraseSearcher:
             doc: `Doc` object to search over.
             query: `Doc` object to match against doc.
             min_r1: Minimum match ratio required for
-                selection during the intial search over `doc`.
+                selection during the initial search over `doc`.
                 This should be lower than `min_r2` and "low" in general
                 because match span boundaries are not flexed here.
                 `0` means all spans of query length in doc will

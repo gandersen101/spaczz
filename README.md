@@ -5,8 +5,18 @@
 
 # spaczz: Fuzzy matching and more for spaCy
 
-spaczz provides fuzzy matching and additional regex matching functionality for [spaCy](https://spacy.io/).
-spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
+**Announcement**
+Users of `spaczz` have surely noticed it has been essentially out of development for a couple years now. This coincides with a career-shift that, while right for me, has taken me out of the NLP space. I built `spaczz` to address needs I had at the time, and no longer having those needs, `spaczz`'s development has fallen by the wayside.
+
+I consider `spaczz` a huge personal achievement and I am truly amazed and grateful that many others have found use in it. Therefore, I feel I owe it to you users to address some feature requests and make sure `spaczz` continues working properly, which I intend to do going forward. Please do keep in mind it is just me working on `spaczz` as a hobby project. My hope is that something better than `spaczz` comes along and supercedes it. In fact, it looks like some work is being done on `spaCy` proper to (enable fuzzy matching)[https://github.com/explosion/spaCy/pull/11359].
+
+I am working on `v0.6.0` of `spaczz` now which should address most of the feature requests people have made over the past couple years, however, performance will still be the `spaczz`'s major bottleneck. This latest release will drop `spaCy v2` support. I'm sorry to do this without a deprecation cycle, but it will certainly streamline the release.
+
+**Overview**
+
+Spaczz provides fuzzy matching and additional regex matching functionality for [spaCy](https://spacy.io/).
+Spaczz's components have similar APIs to their spaCy counterparts and spaczz pipeline components can integrate into spaCy pipelines where they can be saved/loaded as models.
+>>>>>>> master
 
 Fuzzy matching is currently performed with matchers from [RapidFuzz](https://github.com/maxbachmann/rapidfuzz)'s fuzz module and regex matching currently relies on the [regex](https://pypi.org/project/regex/) library. spaczz certainly takes additional influence from other libraries and resources. For additional details see the references section.
 
@@ -173,7 +183,7 @@ The full list of keyword arguments available for fuzzy matching rules includes:
     - "quick" = `QRatio`
 - `ignore_case`: If strings should be lower-cased before comparison or not. Default is `True`.
 - `flex`: Number of tokens to move match match boundaries left and right during optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower),or the strings "max", "min", or "default". Default is `"default"`: `len(query) // 2`.
-- `min_r1`: Minimum match ratio required forselection during the intial search over doc. If `flex == 0`, `min_r1` will be overwritten by `min_r2`. If `flex > 0`, `min_r1` must be lower than `min_r2` and "low" in general because match boundaries are not flexed initially. Default is `50`.
+- `min_r1`: Minimum match ratio required for selection during the initial search over doc. If `flex == 0`, `min_r1` will be overwritten by `min_r2`. If `flex > 0`, `min_r1` must be lower than `min_r2` and "low" in general because match boundaries are not flexed initially. Default is `50`.
 - `min_r2`: Minimum match ratio required for selection during match optimization. Needs to be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
 - `thresh`: If this ratio is exceeded in initial scan, and `flex > 0`, no optimization will be attempted. If `flex == 0`, `thresh` has no effect. Default is `100`.
 
@@ -299,7 +309,7 @@ Also as a somewhat experimental feature, the similarity matcher is not currently
 The full list of keyword arguments available for similarity matching rules includes:
 
 - `flex`: Number of tokens to move match span boundaries left and right during match optimization. Can be an integer value with a max of `len(query)` and a min of `0` (will warn and change if higher or lower), `"max"`, `"min"`, or `"default"`. Default is `"default"`: `len(query) // 2`.
-- `min_r1`: Minimum similarity match ratio required for selection during the intial search over doc. This should be lower than `min_r2` and "low" in general because match span boundaries are not flexed initially. `0` means all spans of query length in doc will have their boundaries flexed and will be re-compared during match optimization. Lower `min_r1` will result in more fine-grained matching but will run slower. Default is `50`.
+- `min_r1`: Minimum similarity match ratio required for selection during the initial search over doc. This should be lower than `min_r2` and "low" in general because match span boundaries are not flexed initially. `0` means all spans of query length in doc will have their boundaries flexed and will be re-compared during match optimization. Lower `min_r1` will result in more fine-grained matching but will run slower. Default is `50`.
 - `min_r2`: Minimum similarity match ratio required for selection during match optimization. Should be higher than `min_r1` and "high" in general to ensure only quality matches are returned. Default is `75`.
 - `thresh`: If this ratio is exceeded in initial scan no optimization will be attempted. Default is `100`.
 
