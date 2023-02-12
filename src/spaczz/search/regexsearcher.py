@@ -1,18 +1,16 @@
 """Module for RegexSearcher: multi-token regex matching in spaCy `Doc` objects."""
-from __future__ import annotations
-
-from typing import Any, Dict, List, Pattern, Tuple, Union
+import typing as ty
 
 import regex as re
 from spacy.tokens import Doc
 from spacy.tokens import Span
 from spacy.vocab import Vocab
 
-from ..commonregex import get_common_regex
 from ..exceptions import RegexParseError
+from ..registry import re_patterns
+from ..registry import re_weights
+from ..util import filter_overlapping_matches
 from ..util import map_chars_to_tokens
-
-WEIGHTS = (1, 1, 2)
 
 
 class RegexSearcher:
@@ -27,9 +25,8 @@ class RegexSearcher:
     """
 
     def __init__(
-        self: RegexSearcher,
+        self: "RegexSearcher",
         vocab: Vocab,
-        predefs: Union[str, Dict[str, Union[str, Pattern]]] = "default",
     ) -> None:
         """Initializes a regex searcher.
 
@@ -38,63 +35,18 @@ class RegexSearcher:
                 Purely for consistency between spaCy and spaczz matcher APIs for now.
                 spaczz matchers are currently pure-Python and do not share vocabulary
                 with spaCy pipelines.
-            predefs: Predefined regex patterns.
-                Uses the default predef patterns if "default", none if "empty",
-                or a custom mapping of names to regex pattern strings.
-                Default is `"default"`.
-
-        Raises:
-            ValueError: If predef patterns are not compiled,
-                or cannot be compiled, to regex patterns.
-                Or a unknown string value was provided.
         """
         self.vocab = vocab
-        if isinstance(predefs, str):
-            if predefs == "default":
-                self._predefs = get_common_regex()
-            elif predefs == "empty":
-                self._predefs = {}
-            else:
-                raise ValueError(
-                    "If `predefs` is a string value it must be one of "
-                    "either `'default'` or `'empty'`."
-                )
-        else:
-            try:
-                predefs_ = {}
-                for k, v in predefs.items():
-                    if isinstance(v, str):
-                        predefs_[k] = re.compile(v)
-                    elif hasattr(v, "pattern"):
-                        predefs_[k] = v
-                    else:
-                        raise ValueError(
-                            "All predef regex patterns must either be compilable or "
-                            "pre-compiled as regex patterns."
-                            f"First problem pattern: {v}"
-                        )
-                self._predefs = predefs_
-            except (re._regex_core.error, TypeError, ValueError) as e:
-                raise ValueError(
-                    "All predef regex patterns must either be compilable or "
-                    "pre-compiled as regex patterns."
-                    f"First problem pattern: {v}\n"
-                    f"Due to: {e}"
-                )
-
-    @property
-    def predefs(self: RegexSearcher) -> Dict[str, Pattern]:
-        """Getter for predefined regex patterns."""
-        return self._predefs.copy()
 
     def match(
-        self: RegexSearcher,
+        self: "RegexSearcher",
         doc: Doc,
         query: str,
         partial: bool = True,
         predef: bool = False,
-        min_r: int = 0,
-    ) -> List[Tuple[int, int, int]]:
+        min_r: int = 75,
+        fuzzy_weights: str = "indel",
+    ) -> ty.List[ty.Tuple[int, int, int, str]]:
         """Returns regex matches in a `Doc` object.
 
         Matches on the character level and then maps matches back
@@ -137,13 +89,10 @@ class RegexSearcher:
                 allow more fined-grained control so by default no min_r is set.
                 Ratio results are more for informational, and `SpaczzRuler` sorting
                 purposes. Default is `0`.
+            fuzzy_weights: Placeholder.
 
         Returns:
             A list of tuples of match start indices, end indices, and match ratios.
-
-        Raises:
-            TypeError: If `doc` is not a `Doc`
-            TypeError: If `query` is not a `str`.
 
         Example:
             >>> import spacy
@@ -154,48 +103,47 @@ class RegexSearcher:
             >>> searcher.match(doc, "phones", predef=True)
             [(4, 10, 100)]
         """
-        if not isinstance(doc, Doc):
-            raise TypeError("doc must be a Doc object.")
-        if isinstance(query, str):
-            compiled_regex = self.parse_regex(query, predef)
-        else:
-            raise TypeError(f"query must be a str, not {type(query)}.")
-        matches = []
-        chars_to_tokens = map_chars_to_tokens(doc)
-        for match in compiled_regex.finditer(doc.text):
-            start, end = match.span()
-            counts = getattr(match, "fuzzy_counts", (0, 0, 0))
-            span = doc.char_span(start, end)
-            if span:
-                matches.append((span, counts))
-            else:
-                if partial:
-                    start_token = chars_to_tokens.get(start)
-                    end_token = chars_to_tokens.get(end - 1)
-                    if start_token and end_token:
-                        span = Span(doc, start_token, end_token + 1)
-                        matches.append((span, counts))
-        if matches:
-            output_matches = [
-                (
-                    match[0].start,
-                    match[0].end,
-                    self._normalize_to_ratio(match[0].text, match[1]),
-                )
-                for match in matches
-            ]
-            if min_r:
-                return [match for match in output_matches if match[2] >= min_r]
-            else:
-                return output_matches
-        else:
-            return []
+        compiled_regex = self._parse_regex(query, predef=predef)
+        char_to_token_map = map_chars_to_tokens(doc)
 
-    def parse_regex(
-        self: RegexSearcher,
+        regex_matches = (
+            _spans_from_regex(
+                doc, match=match, partial=partial, char_to_token_map=char_to_token_map
+            )
+            for match in compiled_regex.finditer(doc.text)
+        )
+
+        formatted_matches = (
+            (
+                regex_match[0].start,
+                regex_match[0].end,
+                self._normalize_to_ratio(
+                    regex_match[0].text,
+                    fuzzy_counts=regex_match[1],
+                    fuzzy_weights=fuzzy_weights,
+                ),
+                compiled_regex.pattern,
+            )
+            for regex_match in regex_matches
+            if regex_match
+        )
+
+        return filter_overlapping_matches(
+            sorted(
+                (
+                    formatted_match
+                    for formatted_match in formatted_matches
+                    if formatted_match[2] >= min_r
+                ),
+                key=lambda x: (-x[2], x[0]),
+            )
+        )
+
+    @staticmethod
+    def _parse_regex(
         regex_str: str,
         predef: bool = False,
-    ) -> Any:
+    ) -> ty.Pattern:
         """Parses a string into a regex pattern.
 
         Will treat `regex_str` as a key name for a predefined regex if `predef=True`.
@@ -222,59 +170,58 @@ class RegexSearcher:
             True
         """
         if predef:
-            compiled_regex = self.get_predef(regex_str)
-        else:
-            try:
-                compiled_regex = re.compile(
-                    regex_str,
-                )
-            except (re._regex_core.error, TypeError, ValueError) as e:
-                raise RegexParseError(e)
-        return compiled_regex
-
-    def get_predef(self: RegexSearcher, predef: str) -> Any:
-        """Returns a regex pattern from the predefined patterns available.
-
-        Args:
-            predef: The key name of a predefined regex pattern.
-
-        Returns:
-            A compiled regex pattern.
-
-        Raises:
-            ValueError: If the key does not exist in the predefined regex patterns.
-
-        Example:
-            >>> import regex as re
-            >>> import spacy
-            >>> from spaczz.search import RegexSearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = RegexSearcher(nlp.vocab)
-            >>> pattern = searcher.get_predef("phones")
-            >>> isinstance(pattern, re.Pattern)
-            True
-        """
-        predef_regex = self._predefs.get(predef)
-        if predef_regex:
-            return predef_regex
-        else:
-            raise ValueError(f"{predef} is not a regex pattern defined in `predefs`.")
+            return re_patterns.get(regex_str)
+        try:
+            return re.compile(
+                regex_str,
+            )
+        except (re._regex_core.error, TypeError, ValueError) as e:
+            raise RegexParseError(e)
 
     @staticmethod
-    def _normalize_to_ratio(match: str, fuzzy_counts: Tuple[int, int, int]) -> int:
+    def _normalize_to_ratio(
+        match: str, fuzzy_counts: ty.Tuple[int, int, int], fuzzy_weights: str
+    ) -> int:
         """Normalizes fuzzy counts to a fuzzy ratio."""
         if fuzzy_counts == (0, 0, 0):
             return 100
-        s1_len = len(match) + fuzzy_counts[0] - fuzzy_counts[1]
+
+        weights = re_weights.get(fuzzy_weights)
+        s1_len = len(match) - fuzzy_counts[1] + fuzzy_counts[2]
         s2_len = len(match)
-        fuzzy_counts_ = tuple(a * b for a, b in zip(fuzzy_counts, WEIGHTS))
-        if WEIGHTS[2] <= WEIGHTS[0] + WEIGHTS[1]:
-            dist_max = min(s1_len, s2_len) * WEIGHTS[2]
+        fuzzy_counts_ = (
+            a * b
+            for a, b in zip(  # noqa: B905
+                (fuzzy_counts[1], fuzzy_counts[2], fuzzy_counts[0]), weights
+            )
+        )
+
+        if weights[2] <= weights[0] + weights[1]:
+            dist_max = min(s1_len, s2_len) * weights[2]
         else:
-            dist_max = s1_len * WEIGHTS[1] + s2_len * WEIGHTS[0]
+            dist_max = s1_len * weights[1] + s2_len * weights[0]
+
         if s1_len > s2_len:
-            dist_max += (s1_len - s2_len) * WEIGHTS[1]
+            dist_max += (s1_len - s2_len) * weights[1]
         elif s1_len < s2_len:
-            dist_max += (s2_len - s1_len) * WEIGHTS[0]
+            dist_max += (s2_len - s1_len) * weights[0]
+
         r = 100 * sum(fuzzy_counts_) / dist_max
         return round(100 - r)
+
+
+def _spans_from_regex(
+    doc: Doc, match: re.Match[str], partial: bool, char_to_token_map: ty.Dict[int, int]
+) -> ty.Optional[ty.Tuple[Span, ty.Tuple[int, int, int]]]:
+    start, end = match.span()
+    counts = getattr(match, "fuzzy_counts", (0, 0, 0))
+    span = doc.char_span(start, end)
+    if span:
+        return (span, counts)
+    if partial:
+        start_token = char_to_token_map.get(start)
+        end_token = char_to_token_map.get(end - 1)
+        if start_token and end_token:
+            span = Span(doc, start_token, end_token + 1)
+            return (span, counts)
+    return None

@@ -179,10 +179,10 @@ class SpaczzRuler(Pipe):
         self.name = name
         self.overwrite = kwargs.get("spaczz_overwrite_ents", overwrite_ents)
         self.fuzzy_patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
-            list, 2
+            list
         )
         self.regex_patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
-            list, 2
+            list
         )
         self.token_patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = defaultdict(
             list
@@ -513,8 +513,8 @@ class SpaczzRuler(Pipe):
 
     def clear(self: SpaczzRuler) -> None:
         """Reset all patterns."""
-        self.fuzzy_patterns = nest_defaultdict(list, 2)
-        self.regex_patterns = nest_defaultdict(list, 2)
+        self.fuzzy_patterns = nest_defaultdict(list)
+        self.regex_patterns = nest_defaultdict(list)
         self.token_patterns = defaultdict(list)
         self._ent_ids = defaultdict(dict)
 

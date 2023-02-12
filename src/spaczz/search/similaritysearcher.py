@@ -1,15 +1,11 @@
 """Module for SimilaritySearcher: vector similarity matching in spaCy `Doc` objects."""
-from __future__ import annotations
-
-from typing import Any, Union
+import typing as ty
 import warnings
 
-from spacy.tokens import Doc
-from spacy.tokens import Span
-from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from . import _PhraseSearcher
+from ._phrasesearcher import _PhraseSearcher
+from ..customtypes import TextContainer
 from ..exceptions import MissingVectorsWarning
 
 
@@ -19,15 +15,15 @@ class SimilaritySearcher(_PhraseSearcher):
     Similarity matching is done on the token level.
     The class provides methods for finding the best similarity match
     span in a `Doc`, the n best similarity matched spans in a `Doc`,
-    and similarity matching between any two given spaCy containers
+    and similarity matching between any two given `SpacyContainer`s
     (`Doc`, `Span`, `Token`).
 
     Similarity matching uses spaCy word vectors if available,
     therefore spaCy vocabs without word vectors may not produce
     useful results. The spaCy medium and large English models provide
-    work vectors that will work for this purpose.
+    word vectors that will work for this purpose.
 
-    Searching in/with spaCy Docs that do not have vector values
+    Searching in/with `SpacyConatainer`s that do not have vector values
     will always return a similarity score of 0.
 
     Warnings from spaCy about the above two scenarios are suppressed
@@ -38,7 +34,7 @@ class SimilaritySearcher(_PhraseSearcher):
             Included for consistency and potential future-state.
     """
 
-    def __init__(self: SimilaritySearcher, vocab: Vocab) -> None:
+    def __init__(self: "SimilaritySearcher", vocab: Vocab) -> None:
         """Initializes a similarity searcher.
 
         Args:
@@ -62,11 +58,10 @@ class SimilaritySearcher(_PhraseSearcher):
             )
 
     def compare(
-        self: SimilaritySearcher,
-        s1: Union[Doc, Span, Token],
-        s2: Union[Doc, Span, Token],
-        *args: Any,
-        **kwargs: Any,
+        self: "SimilaritySearcher",
+        s1: TextContainer,
+        s2: TextContainer,
+        **kwargs: ty.Any,
     ) -> int:
         """Peforms similarity matching between two spaCy container objects.
 
@@ -75,8 +70,7 @@ class SimilaritySearcher(_PhraseSearcher):
         Args:
             s1: First spaCy container for comparison.
             s2: Second spaCy container for comparison.
-            *args: Overflow for child positional arguments.
-            **kwargs: Overflow for child keyword arguments.
+            **kwargs: Overflow for kwargs from parent class.
 
 
         Returns:

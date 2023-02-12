@@ -1,24 +1,20 @@
 """Module for FuzzySearcher: fuzzy matching in spaCy `Doc` objects."""
-from __future__ import annotations
+import typing as ty
 
-from typing import Any, Union
-
-from spacy.tokens import Doc
-from spacy.tokens import Span
-from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from . import _PhraseSearcher
-from ..fuzz import FuzzyFuncs
+from ._phrasesearcher import _PhraseSearcher
+from ..customtypes import TextContainer
+from ..registry import fuzzy_funcs
 
 
 class FuzzySearcher(_PhraseSearcher):
-    """Class for fuzzy searching/matching in spacy `Doc` objects.
+    """Class for fuzzy matching in spacy `Doc` objects.
 
-    Fuzzy searching is done on the token level.
+    Fuzzy matching is done on the token level.
     The class provides methods for finding the best fuzzy match
     span in a `Doc`, the n best fuzzy matched spans in a `Doc`,
-    and fuzzy matching between any two given spaCy containers
+    and fuzzy matching between any two given `SpacyContainer`s
     (`Doc`, `Span`, `Token`).
 
     Fuzzy matching is currently provided by rapidfuzz and the searcher
@@ -29,7 +25,7 @@ class FuzzySearcher(_PhraseSearcher):
             Included for consistency and potential future-state.
     """
 
-    def __init__(self: FuzzySearcher, vocab: Vocab) -> None:
+    def __init__(self: "FuzzySearcher", vocab: Vocab) -> None:
         """Initializes a fuzzy searcher.
 
         Args:
@@ -41,17 +37,15 @@ class FuzzySearcher(_PhraseSearcher):
                 with spaCy pipelines.
         """
         super().__init__(vocab=vocab)
-        self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs(match_type="phrase")
 
     def compare(
-        self: FuzzySearcher,
-        s1: Union[Doc, Span, Token],
-        s2: Union[Doc, Span, Token],
+        self: "FuzzySearcher",
+        s1: TextContainer,
+        s2: TextContainer,
         ignore_case: bool = True,
         score_cutoff: int = 0,
         fuzzy_func: str = "simple",
-        *args: Any,
-        **kwargs: Any,
+        **kwargs: ty.Any
     ) -> int:
         """Peforms fuzzy matching between two spaCy container objects.
 
@@ -81,8 +75,7 @@ class FuzzySearcher(_PhraseSearcher):
                 "weighted" = `WRatio`
                 "quick" = `QRatio`
                 Default is `"simple"`.
-            *args: Overflow for child positional arguments.
-            **kwargs: Overflow for child keyword arguments.
+            **kwargs: Overflow for kwargs from parent class.
 
         Returns:
             The fuzzy ratio between `s1` and `s2` as an `int`.
@@ -102,7 +95,5 @@ class FuzzySearcher(_PhraseSearcher):
             s1_text = s1.text
             s2_text = s2.text
         return round(
-            self._fuzzy_funcs.get(fuzzy_func)(
-                s1_text, s2_text, score_cutoff=score_cutoff
-            )
+            fuzzy_funcs.get(fuzzy_func)(s1_text, s2_text, score_cutoff=score_cutoff)
         )

@@ -1,34 +1,30 @@
 """Module for _PhraseSearcher: flexible phrase searching in spaCy `Doc` objects."""
-from __future__ import annotations
-
-from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
+import abc
+import typing as ty
 import warnings
 
 from spacy.tokens import Doc
-from spacy.tokens import Span
-from spacy.tokens import Token
 from spacy.vocab import Vocab
 
+from ..customtypes import DocLike
+from ..customtypes import FlexType
+from ..customtypes import TextContainer
 from ..exceptions import FlexWarning
 from ..exceptions import RatioWarning
+from ..util import filter_overlapping_matches
 
 
-class _PhraseSearcher:
-    """Base class for flexible phrase searching in spaCy `Doc` objects.
+class _PhraseSearcher(abc.ABC):
+    """Abstract base class for flexible phrase searching in spaCy `Doc` objects.
 
     Phrase matching is done on the token level.
-
-    Not intended for use as-is. All methods and attributes except
-    the `compare` abstract method are shared with the `FuzzySearcher` and
-    `SimilaritySearcher`.
 
     Attributes:
         vocab: The shared vocabulary.
             Included for consistency and potential future-state.
     """
 
-    def __init__(self: _PhraseSearcher, vocab: Vocab) -> None:
+    def __init__(self: "_PhraseSearcher", vocab: Vocab) -> None:
         """Initializes a phrase searcher.
 
         Args:
@@ -39,73 +35,50 @@ class _PhraseSearcher:
         """
         self.vocab = vocab
 
+    @abc.abstractmethod
     def compare(
-        self: _PhraseSearcher,
-        s1: Union[Doc, Span, Token],
-        s2: Union[Doc, Span, Token],
-        ignore_case: bool = True,
-        *args: Any,
-        **kwargs: Any,
+        self: "_PhraseSearcher",
+        s1: TextContainer,
+        s2: TextContainer,
+        **kwargs: ty.Any,
     ) -> int:
-        """Base method for comparing two spaCy container objects.
-
-        Tests the equality between the unicode string representation
-        of each container (`Doc`, `Span`, `Token`) and returns
-        an integer boolean representation as 100 or 0.
-
-        Will be overwritten in child classes.
-
-        Args:
-            s1: First spaCy container for comparison.
-            s2: Second spaCy container for comparison.
-            ignore_case: Whether to lower-case `s1` and `s2`
-                before comparison or not. Default is `True`.
-            *args: Overflow for child positional arguments.
-            **kwargs: Overflow for child keyword arguments.
-
-        Returns:
-            `100` if equal, `0` if not.
-        """
-        if ignore_case:
-            s1_text = s1.text.lower()
-            s2_text = s2.text.lower()
-        else:
-            s1_text = s1.text
-            s2_text = s2.text
-        if s1_text == s2_text:
-            return 100
-        else:
-            return 0
+        """Abstract method."""
+        pass  # pragma: no cover
 
     def match(
-        self: _PhraseSearcher,
+        self: "_PhraseSearcher",
         doc: Doc,
-        query: Doc,
-        flex: Union[str, int] = "default",
-        min_r1: int = 50,
-        min_r2: int = 75,
+        query: DocLike,
+        *,
+        flex: FlexType = "default",
+        min_r: int = 75,
         thresh: int = 100,
-        *args: Any,
-        **kwargs: Any,
-    ) -> List[Tuple[int, int, int]]:
+        min_r1: ty.Optional[int] = None,
+        min_r2: ty.Optional[int] = None,
+        **kwargs: ty.Any,
+    ) -> ty.List[ty.Tuple[int, int, int, str]]:
         """Returns phrase matches in a `Doc` object.
 
-        Finds phrase matches in `doc` based on the `query`,
-        assuming the minimum match ratios (`min_r1` and `min_r2`) are met.
-        Matches will be sorted by descending matching score,
-        then ascending start index.
+        Finds matches in `doc` based on `query`, assuming the minimum match ratios
+        (`min_r1` and `min_r2`) are met.
+        Matches will be sorted by descending match ratio, then ascending start index.
 
         Args:
-            doc: Doc to search over.
-            query: Doc to match against doc.
-            flex: Number of tokens to move match match span boundaries
+            doc: `Doc` to search for matches.
+            query: `Doc`, `Span`, or `Token` to match against `doc`.
+            flex: Number of tokens to move match boundaries
                 left and right during optimization.
-                Can be an integer value with a max of `len(query)`
-                and a min of `0` (will warn and change if higher or lower),
-                or the strings `"max"`, `"min"`, or `"default"`.
+                Can be an `int` with a max of `len(query)` and a min of `0`,
+                (will warn and change if higher or lower).
+                `"max"`, `"min"`, or `"default"` are also valid.
                 Default is `"default"`: `len(query) // 2`.
+            min_r: Placeholder.
+            thresh: If this ratio is exceeded in initial scan,
+                and `flex > 0`, no optimization will be attempted.
+                If `flex == 0`, `thresh` has no effect.
+                Default is `100`.
             min_r1: Minimum match ratio required for
-                selection during the initial search over doc.
+                selection during the initial search over `doc`.
                 If `flex == 0`, `min_r1` will be overwritten by `min_r2`.
                 If `flex > 0`, `min_r1` must be lower than `min_r2`
                 and "low" in general because match boundaries are
@@ -116,96 +89,83 @@ class _PhraseSearcher:
                 Needs to be higher than `min_r1` and "high" in general
                 to ensure only quality matches are returned.
                 Default is `75`.
-            thresh: If this ratio is exceeded in initial scan,
-                and `flex > 0`, no optimization will be attempted.
-                If `flex == 0`, `thresh` has no effect.
-                Default is `100`.
-            *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A list of tuples of match start indices, end indices, and match ratios.
-
-        Raises:
-            TypeError: doc must be a `Doc` object.
-            TypeError: query must be a `Doc` object.
+            A `List` of match `Tuple`s each containing a start index, end index,
+            and match ratio.
         """
-        if not isinstance(doc, Doc):
-            raise TypeError("doc must be a Doc object.")
-        if not isinstance(query, Doc):
-            raise TypeError("query must be a Doc object.")
         flex = self._calc_flex(query, flex)
-        min_r1, min_r2, thresh = self._check_ratios(min_r1, min_r2, thresh, flex)
-        match_values = self._scan(doc, query, min_r1, *args, **kwargs)
-        if match_values:
-            positions = (k for k in match_values.keys())
+        min_r1_, min_r2_ = self._set_ratios(min_r, min_r1, min_r2)
+        min_r1_, min_r2_, thresh = self._check_ratios(min_r1_, min_r2_, thresh, flex)
+        match_map = self._scan(doc, query, min_r1=min_r1_, **kwargs)
+
+        if match_map:
+            positions = (k for k in match_map.keys())
             matches_w_nones = (
                 self._optimize(
                     doc,
                     query,
-                    match_values,
-                    pos,
-                    flex,
-                    min_r2,
-                    thresh,
-                    *args,
+                    match_values=match_map,
+                    pos=pos,
+                    flex=flex,
+                    min_r2=min_r2_,
+                    thresh=thresh,
                     **kwargs,
                 )
                 for pos in positions
             )
-            matches = [match for match in matches_w_nones if match]
-            if matches:
-                matches.sort(key=lambda x: (-x[2], x[0]))
-                filtered_matches = self._filter_overlapping_matches(matches)
-                return filtered_matches
-            else:
-                return []
-        else:
-            return []
+
+            return filter_overlapping_matches(
+                sorted(
+                    ((*match, query.text) for match in matches_w_nones if match),
+                    key=lambda x: (-x[2], x[0]),
+                ),
+            )
+
+        return []
 
     def _optimize(
-        self: _PhraseSearcher,
+        self: "_PhraseSearcher",
         doc: Doc,
-        query: Doc,
-        match_values: Dict[int, int],
+        query: DocLike,
+        match_values: ty.Mapping[int, int],
         pos: int,
         flex: int,
         min_r2: int,
         thresh: int,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Optional[Tuple[int, int, int]]:
-        """Optimizes a potential match by flexing match span boundaries.
+        *args: ty.Any,
+        **kwargs: ty.Any,
+    ) -> ty.Optional[ty.Tuple[int, int, int]]:
+        """Optimizes a potential match by flexing match boundaries.
 
-        For a match span from `._scan` that has match ratio
-        greater than or equal to `min_r1` the span boundaries
-        will be extended both left and right by flex number
-        of tokens and matched back to the original query.
-        The optimal start and end index are then returned
-        along with the span's match ratio of the match ratio
-        exceeds `min_r2`.
+        For a match from `._scan` that has match ratio >= `min_r1`, the match boundaries
+        will be extended both left and right by `flex` number of tokens and matched
+        back to the original `query`.
+        The optimal start index, end index, and match ratio are returned
+        if the match ratio >= `min_r2`.
 
         Args:
             doc: `Doc` object being searched over.
-            query: `Doc` object to match against doc.
-            match_values: Dictionary of initial match spans
-                start indices and match ratios.
-            pos: Start index of match being optimized.
-            flex: Number of tokens to move match span boundaries
+            query: `Doc` object to match against `doc`.
+            match_values: `Mapping` of initial match
+                start indices keys to match ratios values.
+            pos: Start index of the match being optimized.
+            flex: Number of tokens to move match boundaries
                 left and right during match optimization.
             min_r2: Minimum match ratio required
                 to pass optimization. This should be high enough
                 to only return quality matches.
-            thresh: If this ratio is exceeded in initial scan,
+            thresh: If this ratio <= match ratio from the initial scan,
                 no optimization will be attempted.
             *args: Overflow for child positional arguments.
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A `tuple` of match start index,
-            end index, and match ratio
-            or `None`.
+            A match `Tuple` including start index,
+            end index, and match ratio or `None`.
         """
+        doc_len = len(doc)
         p_l, bp_l = [pos] * 2
         p_r, bp_r = [pos + len(query)] * 2
         r = match_values[pos]
@@ -236,7 +196,7 @@ class _PhraseSearcher:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r - f
-                if p_r + f <= len(doc):
+                if p_r + f <= doc_len:
                     new_r = self.compare(
                         query, doc[p_l : p_r + f], score_cutoff=optim_r, *args, **kwargs
                     )
@@ -244,7 +204,7 @@ class _PhraseSearcher:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r + f
-                if p_l - f >= 0 and p_r + f <= len(doc):
+                if p_l - f >= 0 and p_r + f <= doc_len:
                     new_r = self.compare(
                         query,
                         doc[p_l - f : p_r + f],
@@ -274,29 +234,28 @@ class _PhraseSearcher:
                     r = optim_r
         if r >= min_r2:
             return (bp_l, bp_r, r)
-        else:
-            return None
+        return None
 
     def _scan(
-        self: _PhraseSearcher,
+        self: "_PhraseSearcher",
         doc: Doc,
-        query: Doc,
+        query: DocLike,
         min_r1: int,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Optional[Dict[int, int]]:
-        """Returns a `dict` of potential match start indices and match ratios.
+        *args: ty.Any,
+        **kwargs: ty.Any,
+    ) -> ty.Optional[ty.Dict[int, int]]:
+        """Returns a `Dict` of potential match start indices and match ratios.
 
-        Iterates through the `doc` by spans of `query` length,
-        and matches each span against query.
+        Iterates through `doc` by chunks of `len(query)`
+        and comapares each resulting `Span` against the `query`.
 
-        If a span's match ratio is greater than or equal to the
-        `min_r1` it is added to a dict with it's start index
+        If a `Span`'s match ratio is greater than or equal to the
+        `min_r1`, the `Span` is added to a `Dict` with it's start index
         as the key and it's ratio as the value.
 
         Args:
             doc: `Doc` object to search over.
-            query: `Doc` object to match against doc.
+            query: `Doc` object to match against `doc`.
             min_r1: Minimum match ratio required for
                 selection during the initial search over `doc`.
                 This should be lower than `min_r2` and "low" in general
@@ -310,15 +269,21 @@ class _PhraseSearcher:
             **kwargs: Overflow for child keyword arguments.
 
         Returns:
-            A `dict` of match start index, match ratio pairs or `None`.
+            A `Dict` of match start index keys to match ratio values or `None`.
         """
-        if not len(query):
+        doc_len = len(doc)
+        query_len = len(query)
+        if not query_len:
             return None
-        match_values: Dict[int, int] = dict()
+        match_values: ty.Dict[int, int] = dict()
         i = 0
-        while i + len(query) <= len(doc):
+        while i + query_len <= doc_len:
             match = self.compare(
-                query, doc[i : i + len(query)], score_cutoff=min_r1, *args, **kwargs
+                query,
+                doc[i : i + query_len],
+                score_cutoff=min_r1,
+                *args,
+                **kwargs,
             )
             if match >= min_r1:
                 match_values[i] = match
@@ -329,35 +294,33 @@ class _PhraseSearcher:
             return None
 
     @staticmethod
-    def _calc_flex(query: Doc, flex: Union[str, int]) -> int:
-        """Returns `flex` value based on initial value and the `query`.
+    def _calc_flex(query: DocLike, flex: FlexType) -> int:
+        """Returns a valid `flex` value given `query`.
 
         By default `flex` is set to `len(query) // 2`.
 
-        If `flex` is an integer value greater than `len(query)`,
-        `flex` will be set to that value instead.
+        If `flex` is `'max'`, or an `int` > `len(query)`,
+        `flex` will be set to `len(query)` value instead.
 
-        If `flex` is an integer value less than `0`,
+        If `flex` is `'min`', or an `int` < `0`,
         `flex` will be set to `0` instead.
 
         Args:
-            query: The `Doc` object to match with.
+            query: The `Doc`, `Span`, or `Token` to match with.
             flex: Either `"default"`: `len(query) // 2`,
                 `"max"`: `len(query)`,
                 `"min"`: `0`,
-                or an integer value.
+                or an `int`.
 
         Returns:
             The new `flex` value.
 
         Raises:
-            TypeError: If `flex` is not `"default"`, `"max"`, `"min"`, or an `int`.
+            ValueError: If `flex` is not `"default"`, `"max"`, `"min"`, or an `int`.
 
         Warnings:
             FlexWarning:
-                If `flex` is > `len(query)`.
-            FlexWarning:
-                If `flex` is < `0`.
+                If `flex` > `len(query)` or `flex` < `0`.
 
         Example:
             >>> import spacy
@@ -370,89 +333,60 @@ class _PhraseSearcher:
         """
         if flex == "default":
             flex = len(query) // 2
-        if flex == "max":
+        elif flex == "max":
             flex = len(query)
-        if flex == "min":
+        elif flex == "min":
             flex = 0
         elif isinstance(flex, int):
-            if flex > len(query):
+            query_len = len(query)
+            if flex > query_len:
                 warnings.warn(
-                    f"""flex of size {flex} is greater than len(query).
-                        Setting to that max value instead.""",
+                    f"""`flex` of size `{flex}` is > `len(query)`, `{query_len}`.
+                        Setting flex to `{query_len}` instead.""",
                     FlexWarning,
                 )
-                flex = len(query)
-            if flex < 0:
+                flex = query_len
+            elif flex < 0:
                 warnings.warn(
-                    """flex values less than 0 are not allowed.
-                    Setting to the min, 0, instead.""",
+                    """`flex` values < `0` are not allowed.
+                    Setting to the min, `0`, instead.""",
                     FlexWarning,
                 )
                 flex = 0
         else:
-            raise TypeError(
+            raise ValueError(
                 (
-                    "Flex must either be the strings default,",
-                    "max, or min, or an int.",
+                    "`flex` must be the string value of `'default'`,",
+                    "`'max'` or `'min'`, or an `int`.",
                 )
             )
         return flex
 
     @staticmethod
+    def _set_ratios(
+        min_r: int, min_r1: ty.Optional[int], min_r2: ty.Optional[int]
+    ) -> ty.Tuple[int, int]:
+        """Sets `min_r1` and `min_r2` based on `min_r` heuristic or provided values."""
+        min_r1_ = min_r1 if min_r1 is not None else round(min_r / 1.5)
+        min_r2_ = min_r2 if min_r2 is not None else min_r
+        return min_r1_, min_r2_
+
+    @staticmethod
     def _check_ratios(
         min_r1: int, min_r2: int, thresh: int, flex: int
-    ) -> Tuple[int, int, int]:
+    ) -> ty.Tuple[int, int, int]:
         """Ensures match ratio requirements are not set to illegal values."""
         if flex:
             if min_r1 > min_r2:
                 warnings.warn(
-                    """min_r1 > min_r2,
-                setting min_r1 equal to min_r2""",
-                    RatioWarning,
+                    "`min_r1` > `min_r2`, setting `min_r1` = `min_r2`", RatioWarning
                 )
                 min_r1 = min_r2
             if thresh < min_r2:
                 warnings.warn(
-                    """thresh < min_r2,
-                setting thresh equal to min_r2""",
-                    RatioWarning,
+                    "`thresh` < `min_r2`, setting `thresh` = `min_r2`", RatioWarning
                 )
                 thresh = min_r2
         else:
             min_r1 = min_r2
         return min_r1, min_r2, thresh
-
-    @staticmethod
-    def _filter_overlapping_matches(
-        matches: List[Tuple[int, int, int]]
-    ) -> List[Tuple[int, int, int]]:
-        """Prevents multiple match spans from overlapping.
-
-        Expects matches to be pre-sorted by descending ratio
-        then ascending start index.
-        If more than one match span includes the same tokens
-        the first of these match spans in matches is kept.
-
-        Args:
-            matches: `list` of match tuples
-                (start index, end index, fuzzy ratio).
-
-        Returns:
-            The filtered `list` of match span tuples.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.search import _PhraseSearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = _PhraseSearcher(nlp.vocab)
-            >>> matches = [(1, 3, 80), (1, 2, 70)]
-            >>> searcher._filter_overlapping_matches(matches)
-            [(1, 3, 80)]
-        """
-        filtered_matches: List[Tuple[int, int, int]] = []
-        for match in matches:
-            if not set(range(match[0], match[1])).intersection(
-                chain(*[set(range(n[0], n[1])) for n in filtered_matches])
-            ):
-                filtered_matches.append(match)
-        return filtered_matches

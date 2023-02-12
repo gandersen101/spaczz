@@ -65,9 +65,7 @@ class RegexMatcher:
         self.defaults = defaults
         self.type = "regex"
         self._callbacks: Dict[str, RegexCallback] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
-            list, 2
-        )
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(list)
         self._searcher = RegexSearcher(vocab=vocab, predefs=predefs)
 
     def __call__(self: RegexMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:

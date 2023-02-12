@@ -1,9 +1,21 @@
 """Module for fuzzy matching functions."""
-from __future__ import annotations
+import typing as ty
 
-from typing import Callable, Dict
-
+import catalogue
 from rapidfuzz import fuzz as rfuzz
+
+fuzzy_funcs = catalogue.create("spaczz", "fuzz", entry_points=True)
+fuzzy_funcs.register("simple", func=rfuzz.ratio)
+fuzzy_funcs.register("partial", func=rfuzz.partial_ratio)
+fuzzy_funcs.register("patial", func=rfuzz.partial_ratio_alignment)
+fuzzy_funcs.register("token", func=rfuzz.token_ratio)
+fuzzy_funcs.register("token_set", func=rfuzz.token_set_ratio)
+fuzzy_funcs.register("token_sort", func=rfuzz.token_sort_ratio)
+fuzzy_funcs.register("partial_token", func=rfuzz.partial_token_ratio)
+fuzzy_funcs.register("partial_token_set", func=rfuzz.partial_token_set_ratio)
+fuzzy_funcs.register("partial_token_sort", func=rfuzz.partial_token_sort_ratio)
+fuzzy_funcs.register("weighted", func=rfuzz.WRatio)
+fuzzy_funcs.register("quick", func=rfuzz.QRatio)
 
 
 class FuzzyFuncs:
@@ -33,7 +45,7 @@ class FuzzyFuncs:
             if match_type = "token".
     """
 
-    def __init__(self: FuzzyFuncs, match_type: str = "phrase") -> None:
+    def __init__(self: "FuzzyFuncs", match_type: str = "phrase") -> None:
         """Initializes a `FuzzyFuncs` container.
 
         Args:
@@ -46,7 +58,7 @@ class FuzzyFuncs:
         """
         self.match_type = match_type
         if match_type == "phrase":
-            self.fuzzy_funcs: Dict[str, Callable] = {
+            self.fuzzy_funcs: ty.Dict[str, ty.Callable] = {
                 "simple": rfuzz.ratio,
                 "partial": rfuzz.partial_ratio,
                 "token_set": rfuzz.token_set_ratio,
@@ -66,7 +78,7 @@ class FuzzyFuncs:
         else:
             raise ValueError("match_type must be either 'phrase' or 'token'.")
 
-    def get(self: FuzzyFuncs, fuzzy_func: str) -> Callable[..., float]:
+    def get(self: "FuzzyFuncs", fuzzy_func: str) -> ty.Callable[..., float]:
         """Returns a fuzzy matching function based on it's key name.
 
         Args:

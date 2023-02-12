@@ -2,6 +2,7 @@
 import pytest
 from spacy.language import Language
 
+from spaczz.exceptions import MissingVectorsWarning
 from spaczz.search import SimilaritySearcher
 
 
@@ -9,6 +10,12 @@ from spaczz.search import SimilaritySearcher
 def searcher(model: Language) -> SimilaritySearcher:
     """It returns a similarity searcher."""
     return SimilaritySearcher(vocab=model.vocab)
+
+
+def test_searcher_w_empty_vector_vocab(nlp: Language) -> None:
+    """Raises a MissingVectorsWarning."""
+    with pytest.warns(MissingVectorsWarning):
+        SimilaritySearcher(vocab=nlp.vocab)
 
 
 def test_compare_works_with_defaults(

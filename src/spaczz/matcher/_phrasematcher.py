@@ -68,9 +68,7 @@ class _PhraseMatcher:
         self.defaults = defaults
         self.type = "_phrase"
         self._callbacks: Dict[str, PhraseCallback] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(
-            list, 2
-        )
+        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(list)
         self._searcher = _PhraseSearcher(vocab=vocab)
 
     def __call__(self: _PhraseMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:

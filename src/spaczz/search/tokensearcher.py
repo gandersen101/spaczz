@@ -8,7 +8,7 @@ from spacy.tokens import Doc
 from spacy.tokens import Token
 from spacy.vocab import Vocab
 
-from ..fuzz import FuzzyFuncs
+from ..registry import fuzzy_funcs
 from ..util import n_wise
 
 
@@ -52,7 +52,6 @@ class TokenSearcher:
                 with spaCy pipelines.
         """
         self.vocab = vocab
-        self._fuzzy_funcs: FuzzyFuncs = FuzzyFuncs(match_type="token")
 
     def fuzzy_compare(
         self: TokenSearcher,
@@ -96,9 +95,7 @@ class TokenSearcher:
         if ignore_case:
             s1 = s1.lower()
             s2 = s2.lower()
-        return round(
-            self._fuzzy_funcs.get(fuzzy_func)(s1, s2, score_cutoff=score_cutoff)
-        )
+        return round(fuzzy_funcs.get(fuzzy_func)(s1, s2, score_cutoff=score_cutoff))
 
     def match(
         self: TokenSearcher,
@@ -160,12 +157,10 @@ class TokenSearcher:
             if seq_matches:
                 matches.append(seq_matches)
         if matches:
-            filtered_matches = [
-                i for n, i in enumerate(matches) if i not in matches[:n]
+            return [
+                match for i, match in enumerate(matches) if match not in matches[:i]
             ]
-            return filtered_matches
-        else:
-            return matches
+        return matches
 
     @staticmethod
     def regex_compare(text: str, pattern: str, ignore_case: bool = False) -> bool:
@@ -237,10 +232,10 @@ class TokenSearcher:
     @staticmethod
     def _parse_case(token: Dict[str, Any]) -> Tuple[Union[str, Dict, None], str, bool]:
         """Parses the case of a token pattern."""
-        if token.get("TEXT"):
-            return token.get("TEXT"), "TEXT", False
-        else:
-            return token.get("LOWER"), "LOWER", True
+        text = token.get("TEXT")
+        if text:
+            return text, "TEXT", False
+        return token.get("LOWER"), "LOWER", True
 
     @staticmethod
     def _parse_type(pattern_dict: Dict[str, Any]) -> Tuple[str, str]:
@@ -251,5 +246,4 @@ class TokenSearcher:
             return fuzzy_text, "FUZZY"
         elif isinstance(regex_text, str):
             return regex_text, "FREGEX"
-        else:
-            return "", ""
+        return "", ""

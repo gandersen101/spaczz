@@ -126,8 +126,7 @@ class TokenMatcher:
                 if on_match:
                     on_match(self, doc, i, extended_matches)
             return extended_matches
-        else:
-            return []
+        return []
 
     def __contains__(self: TokenMatcher, label: str) -> bool:
         """Whether the matcher contains patterns for a label."""

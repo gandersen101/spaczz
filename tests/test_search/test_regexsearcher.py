@@ -1,12 +1,10 @@
 """Tests for the regexsearcher module."""
-from typing import Dict, Pattern
-
 import pytest
 import regex as re
 from spacy.language import Language
 
-from spaczz.commonregex import get_common_regex
 from spaczz.exceptions import RegexParseError
+from spaczz.registry import re_patterns
 from spaczz.search import RegexSearcher
 
 
@@ -16,43 +14,31 @@ def searcher(nlp: Language) -> RegexSearcher:
     return RegexSearcher(vocab=nlp.vocab)
 
 
-@pytest.fixture(scope="module")
-def predefs() -> Dict[str, Pattern]:
-    """It returns predefined common regexes."""
-    return get_common_regex()
-
-
-def test_searcher_contains_predef_defaults(
-    searcher: RegexSearcher, predefs: Dict[str, Pattern]
-) -> None:
-    """It's config contains predefined defaults."""
-    assert searcher.predefs == predefs
-
-
-def test_searcher_uses_passed_predefs(nlp: Language) -> None:
-    """It uses the predefs passed to it."""
-    predefs = {"test": re.compile("test")}
-    searcher = RegexSearcher(vocab=nlp.vocab, predefs=predefs)
-    assert "test" in searcher.predefs
-
-
-def test_searcher_raises_error_if_predefs_is_not_valid(nlp: Language) -> None:
-    """It raises a ValueError if predefs is not recognized string or valid dict."""
-    with pytest.raises(ValueError):
-        RegexSearcher(vocab=nlp.vocab, predefs="Will cause error")
-
-
-def test_searcher_has_empty_predefs_if_empty_passed(nlp: Language) -> None:
-    """Its predefs are empty."""
-    searcher = RegexSearcher(vocab=nlp.vocab, predefs="empty")
-    assert searcher.predefs == {}
-
-
 def test_match(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces matches."""
     doc = nlp("My phone number is (555) 555-5555, not (554) 554-5554.")
+    re_pattern = re_patterns.get("phones")
     matches = searcher.match(doc, "phones", predef=True)
-    assert matches == [(4, 10, 100), (12, 18, 100)]
+    assert matches == [
+        (4, 10, 100, re_pattern.pattern),
+        (12, 18, 100, re_pattern.pattern),
+    ]
+
+
+def test_match_w_fuzzy_regex(searcher: RegexSearcher, nlp: Language) -> None:
+    """It produces a fuzzy match."""
+    doc = nlp("I live in the US.")
+    re_pattern = r"(USA){d<=1}"
+    matches = searcher.match(doc, re_pattern, min_r=80)
+    assert matches == [(4, 5, 80, re_pattern)]
+
+
+def test_match_w_fuzzy_regex2(searcher: RegexSearcher, nlp: Language) -> None:
+    """It produces a fuzzy match."""
+    doc = nlp("nic bole")
+    re_pattern = r"(nicobolas){e<=5}"
+    matches = searcher.match(doc, re_pattern, min_r=70)
+    assert matches == [(0, 2, 71, re_pattern)]
 
 
 def test_match_will_expand_on_partial_match_if_partials(
@@ -62,8 +48,8 @@ def test_match_will_expand_on_partial_match_if_partials(
     doc = nlp(
         "We want to identify 'USA' even though only first two letters will matched."
     )
-    matches = searcher.match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)")
-    assert matches == [(5, 6, 100)]
+    matches = searcher.match(doc, r"[Uu](nited|\.?) ?[Ss](tates|\.?)")
+    assert matches == [(5, 6, 100, r"[Uu](nited|\.?) ?[Ss](tates|\.?)")]
 
 
 def test_match_on_german_combination_words(
@@ -73,8 +59,8 @@ def test_match_on_german_combination_words(
     doc = nlp(
         "We want to identify a geman word combination Aussagekraft or Kraftfahrzeug"
     )
-    matches = searcher.match(doc, "(kraft|Kraft)")
-    assert matches == [(8, 9, 100), (10, 11, 100)]
+    matches = searcher.match(doc, r"(kraft|Kraft)")
+    assert matches == [(8, 9, 100, r"(kraft|Kraft)"), (10, 11, 100, r"(kraft|Kraft)")]
 
 
 def test_match_will_not_expand_if_not_partials(
@@ -84,7 +70,7 @@ def test_match_will_not_expand_if_not_partials(
     doc = nlp(
         "We want to identify 'USA' even though only first two letters will matched."
     )
-    matches = searcher.match(doc, "[Uu](nited|\\.?) ?[Ss](tates|\\.?)", partial=False)
+    matches = searcher.match(doc, r"[Uu](nited|\.?) ?[Ss](tates|\.?)", partial=False)
     assert matches == []
 
 
@@ -95,56 +81,23 @@ def test_match_will_not_match_if_regex_starts_ends_with_space(
     doc = nlp(
         "We want to identify US but will fail because regex includes whitespaces."
     )
-    matches = searcher.match(doc, "\\s[Uu](nited|\\.?) ?[Ss](tates|\\.?)\\s")
+    matches = searcher.match(doc, r"\s[Uu](nited|\.?) ?[Ss](tates|\.?)\s")
     assert matches == []
 
 
-def test_match_raises_error_if_regex_str_not_str(
-    searcher: RegexSearcher, nlp: Language
-) -> None:
-    """It raises a type error if regex_str is not a string."""
-    doc = nlp("My phone number is (555) 555-5555.")
-    with pytest.raises(TypeError):
-        searcher.match(doc, 1, predef=True)  # type: ignore
-
-
-def test_match_raises_error_if_doc_not_doc(
-    searcher: RegexSearcher, nlp: Language
-) -> None:
-    """It raises a type error if regex_str is not a string."""
-    doc = "not a doc"
-    with pytest.raises(TypeError):
-        searcher.match(doc, "test")  # type: ignore
-
-
-def test_get_predef_returns_existing_regex(
-    searcher: RegexSearcher, predefs: Dict[str, Pattern]
-) -> None:
-    """It returns a predefined compiled regex pattern."""
-    assert searcher.get_predef("times") == predefs["times"]
-
-
-def test_get_predef_raises_error_with_undefined_regex(searcher: RegexSearcher) -> None:
-    """It raises a ValueError if predef is not actually predefined."""
-    with pytest.raises(ValueError):
-        searcher.get_predef("unknown")
-
-
-def test_parse_regex_with_predef(
-    searcher: RegexSearcher, predefs: Dict[str, Pattern]
-) -> None:
+def test__parse_regex_with_predef(searcher: RegexSearcher) -> None:
     """It returns a predefined regex pattern."""
-    assert searcher.parse_regex("phones", predef=True) == predefs["phones"]
+    assert searcher._parse_regex("phones", predef=True) == re_patterns.get("phones")
 
 
-def test_parse_regex_with_new_regex(searcher: RegexSearcher) -> None:
+def test__parse_regex_with_new_regex(searcher: RegexSearcher) -> None:
     """It turns the string into a regex pattern."""
-    assert searcher.parse_regex(
-        "(?i)Test",
-    ) == re.compile("(?i)Test")
+    assert searcher._parse_regex(
+        r"(?i)Test",
+    ) == re.compile(r"(?i)Test")
 
 
-def test_invalid_regexfor_regex_compile_raises_error(searcher: RegexSearcher) -> None:
+def test__parse_regex_w_invalid_regex_raises_error(searcher: RegexSearcher) -> None:
     """Using an invalid type raises a RegexParseError."""
     with pytest.raises(RegexParseError):
-        searcher.parse_regex("[")
+        searcher._parse_regex(r"[")

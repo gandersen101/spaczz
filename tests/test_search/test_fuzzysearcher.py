@@ -1,5 +1,5 @@
 """Tests for fuzzysearcher module."""
-from typing import Dict
+import typing as ty
 
 import pytest
 from spacy.language import Language
@@ -17,7 +17,7 @@ def searcher(nlp: Language) -> FuzzySearcher:
 
 
 @pytest.fixture
-def initial_matches() -> Dict[int, int]:
+def initial_matches() -> ty.Dict[int, int]:
     """Example initial fuzzy matches."""
     return {1: 30, 4: 50, 5: 50, 8: 100, 9: 100}
 
@@ -101,10 +101,35 @@ def test__calc_flex_warns_if_flex_less_than_0(
 def test__calc_flex_raises_error_if_non_valid_value(
     nlp: Language, searcher: FuzzySearcher
 ) -> None:
-    """It raises TypeError if flex is not an int or "default"."""
+    """It raises ValueError if flex is not an int or "default"."""
     query = nlp("Test query.")
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         searcher._calc_flex(query, None)  # type: ignore
+
+
+def test__set_ratios_passes_set_min_r1_r2_through(searcher: FuzzySearcher) -> None:
+    """It passes set min_r1 and min_r2 values through."""
+    assert searcher._set_ratios(75, 40, 80) == (40, 80)
+
+
+def test__set_ratios_passes_set_min_r1_through(searcher: FuzzySearcher) -> None:
+    """It passes set min_r1 value through while setting min_r2."""
+    assert searcher._set_ratios(75, 40, None) == (40, 75)
+
+
+def test__set_ratios_passes_set_min_r2_through(searcher: FuzzySearcher) -> None:
+    """It passes set min_r2 value through while setting min_r1."""
+    assert searcher._set_ratios(75, None, 80) == (50, 80)
+
+
+def test__set_ratios_sets_min_r1_r2(searcher: FuzzySearcher) -> None:
+    """It passes set min_r2 value through while setting min_r1."""
+    assert searcher._set_ratios(75, None, None) == (50, 75)
+
+
+def test__set_ratios_respects_0s(searcher: FuzzySearcher) -> None:
+    """It passes set min_r1 and min_r2 values through, respecting 0s."""
+    assert searcher._set_ratios(75, 0, 0) == (0, 0)
 
 
 def test__check_ratios_passes_valid_values_w_flex(searcher: FuzzySearcher) -> None:
@@ -228,21 +253,13 @@ def test__optimize_where_bpl_would_equal_bpr(
     assert searcher.match(doc, query, flex="max") == []
 
 
-def test__filter_overlapping_matches_filters_correctly(
-    searcher: FuzzySearcher,
-) -> None:
-    """It only returns the first match if more than one encompass the same tokens."""
-    matches = [(1, 2, 80), (1, 3, 70)]
-    assert searcher._filter_overlapping_matches(matches) == [(1, 2, 80)]
-
-
 def test_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> None:
     """It returns all the fuzzy matches that meet threshold correctly sorted."""
     doc = nlp("chiken from Popeyes is better than chken from Chick-fil-A")
     query = nlp("chicken")
     assert searcher.match(doc, query, ignore_case=False) == [
-        (0, 1, 92),
-        (6, 7, 83),
+        (0, 1, 92, "chicken"),
+        (6, 7, 83, "chicken"),
     ]
 
 
@@ -251,7 +268,7 @@ def test_match_finds_best_matches2(searcher: FuzzySearcher, nlp: Language) -> No
     doc = nlp("My favorite wine is white goldriesling.")
     query = nlp("gold riesling")
     assert searcher.match(doc, query) == [
-        (5, 6, 96),
+        (5, 6, 96, "gold riesling"),
     ]
 
 
@@ -260,7 +277,7 @@ def test_match_finds_best_matches3(searcher: FuzzySearcher, nlp: Language) -> No
     doc = nlp("My favorite wine is white gold riesling.")
     query = nlp("goldriesling")
     assert searcher.match(doc, query, flex="max") == [
-        (5, 7, 96),
+        (5, 7, 96, "goldriesling"),
     ]
 
 
@@ -280,26 +297,6 @@ def test_match_return_empty_list_when_no_matches_after_adjust(
     doc = nlp("G-rant Anderson lives in TN.")
     query = nlp("Garth, Anderdella")
     assert searcher.match(doc, query) == []
-
-
-def test_match_raises_error_when_doc_not_doc_obj(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It raises a TypeError if doc is not a Doc object."""
-    doc = "G-rant Anderson lives in TN."
-    query = nlp("xenomorph")
-    with pytest.raises(TypeError):
-        searcher.match(doc, query)  # type: ignore
-
-
-def test_match_raises_error_if_query_not_doc_obj(
-    searcher: FuzzySearcher, nlp: Language
-) -> None:
-    """It raises a TypeError if query not a doc."""
-    doc = nlp("This is a doc")
-    query = "Not a doc"
-    with pytest.raises(TypeError):
-        searcher.match(doc, query)  # type: ignore
 
 
 def test_match_returns_empty_list_if_query_empty(
