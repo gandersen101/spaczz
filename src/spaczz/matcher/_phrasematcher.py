@@ -97,7 +97,7 @@ class _PhraseMatcher:
                 matches_wo_label = self._searcher.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label for match_wo_label in matches_wo_label
+                        (label,) + match_wo_label + (pattern.__repr__(),) for match_wo_label in matches_wo_label
                     ]
                     for match in matches_w_label:
                         matches.add(match)
