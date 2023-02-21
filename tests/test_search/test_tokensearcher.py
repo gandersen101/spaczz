@@ -16,7 +16,7 @@ def searcher(nlp: Language) -> TokenSearcher:
 def example(nlp: Language) -> Doc:
     """Example doc for search."""
     return nlp(
-        "The manager gave me SQL databesE ACESS so now I can acces the SQL databasE."
+        "The manager gave me SQL databesE ACESS so now I can acces the SQL datAbase."
     )
 
 
@@ -26,10 +26,10 @@ def test_match_lower(searcher: TokenSearcher, example: Doc) -> None:
         example,
         [
             {"TEXT": "SQL"},
-            {"LOWER": {"FREGEX": "(database){e<=1}"}},
+            {"LOWER": {"FREGEX": r"^(database){e<=1}$"}},
             {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
         ],
-    ) == [[None, ("LOWER", "databesE"), ("LOWER", "ACESS")]]
+    ) == [[("", "", 100), ("LOWER", "databesE", 88), ("LOWER", "ACESS", 91)]]
 
 
 def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
@@ -39,17 +39,19 @@ def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
         [
             {"TEXT": {"FUZZY": "access"}, "POS": "NOUN"},
             {},
-            {"TEXT": {"REGEX": "[Ss][Qq][Ll]"}},
-            {"TEXT": {"FREGEX": "(database){e<=1}"}},
+            {"TEXT": {"REGEX": r"[Ss][Qq][Ll]"}},
+            {"TEXT": {"FREGEX": r"^(database){e<=1}$"}},
         ],
-    ) == [[("TEXT", "acces"), None, None, ("TEXT", "databasE.")]]
+    ) == [
+        [("TEXT", "acces", 91), ("", "", 100), ("", "", 100), ("TEXT", "datAbase", 88)]
+    ]
 
 
 def test_match_multiple_matches(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text will return multiple matches if found."""
     assert searcher.match(example, [{"LOWER": {"FUZZY": "access"}}]) == [
-        [("LOWER", "ACESS")],
-        [("LOWER", "acces")],
+        [("LOWER", "ACESS", 91)],
+        [("LOWER", "acces", 91)],
     ]
 
 
@@ -64,33 +66,29 @@ def test_empty_doc(searcher: TokenSearcher, nlp: Language) -> None:
     assert searcher.match(doc, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
 
 
-def test_raises_type_error_when_doc_not_doc(searcher: TokenSearcher) -> None:
-    """It raises a type error if doc is not a `Doc`."""
-    with pytest.raises(TypeError):
-        searcher.match(
-            "example",  # type: ignore
-            [
-                {"TEXT": "SQL"},
-                {"LOWER": {"FREGEX": "(database){e<=1}"}},
-                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
-            ],
-        )
+def test_empty_pattern(searcher: TokenSearcher, example: Doc) -> None:
+    """Empty pattern returns empty list."""
+    assert searcher.match(example, []) == []
 
 
-def test_raises_type_error_when_pattern_not_list(
-    searcher: TokenSearcher, example: Doc
-) -> None:
-    """It raises a type error if pattern is not a `list`."""
-    with pytest.raises(TypeError):
-        searcher.match(
-            example,
-            {"TEXT": "SQL"},  # type: ignore
-        )
+def test__n_wise_n1(searcher: TokenSearcher, nlp: Language) -> None:
+    """It iterates in slices of length 1, one step at a time."""
+    doc = nlp("This is a longer test sentence.")
+    seq = next(searcher._n_wise(doc, n=1))
+    assert len(seq) == 1
+    assert seq[0].text == "This"
 
 
-def test_raises_value_error_when_pattern_has_zero_tokens(
-    searcher: TokenSearcher, example: Doc
-) -> None:
-    """It raises a value error if pattern has zero tokens."""
-    with pytest.raises(ValueError):
-        searcher.match(example, [])
+def test__n_wise_n2(searcher: TokenSearcher, nlp: Language) -> None:
+    """It iterates in slices of length 2, one step at a time."""
+    doc = nlp("This is a longer test sentence.")
+    seq = next(searcher._n_wise(doc, n=2))
+    assert len(seq) == 2
+    assert seq[1].text == "is"
+
+
+def test__n_wise_n0(searcher: TokenSearcher, nlp: Language) -> None:
+    """It iterates in slices of length 0, one step at a time."""
+    doc = nlp("This is a longer test sentence.")
+    with pytest.raises(StopIteration):
+        next(searcher._n_wise(doc, n=0))

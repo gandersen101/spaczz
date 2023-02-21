@@ -1,9 +1,7 @@
 """Tests for the regexsearcher module."""
 import pytest
-import regex as re
 from spacy.language import Language
 
-from spaczz.exceptions import RegexParseError
 from spaczz.registry import re_patterns
 from spaczz.search import RegexSearcher
 
@@ -29,7 +27,7 @@ def test_match_w_fuzzy_regex(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces a fuzzy match."""
     doc = nlp("I live in the US.")
     re_pattern = r"(USA){d<=1}"
-    matches = searcher.match(doc, re_pattern, min_r=80)
+    matches = searcher.match(doc, re_pattern)
     assert matches == [(4, 5, 80, re_pattern)]
 
 
@@ -39,6 +37,14 @@ def test_match_w_fuzzy_regex2(searcher: RegexSearcher, nlp: Language) -> None:
     re_pattern = r"(nicobolas){e<=5}"
     matches = searcher.match(doc, re_pattern, min_r=70)
     assert matches == [(0, 2, 71, re_pattern)]
+
+
+def test_match_w_fuzzy_regex_w_min_r(searcher: RegexSearcher, nlp: Language) -> None:
+    """It produces a fuzzy match."""
+    doc = nlp("nic bole")
+    re_pattern = r"(nicobolas){e<=5}"
+    matches = searcher.match(doc, re_pattern, min_r=80)
+    assert matches == []
 
 
 def test_match_will_expand_on_partial_match_if_partials(
@@ -85,19 +91,11 @@ def test_match_will_not_match_if_regex_starts_ends_with_space(
     assert matches == []
 
 
-def test__parse_regex_with_predef(searcher: RegexSearcher) -> None:
-    """It returns a predefined regex pattern."""
-    assert searcher._parse_regex("phones", predef=True) == re_patterns.get("phones")
-
-
-def test__parse_regex_with_new_regex(searcher: RegexSearcher) -> None:
-    """It turns the string into a regex pattern."""
-    assert searcher._parse_regex(
-        r"(?i)Test",
-    ) == re.compile(r"(?i)Test")
-
-
-def test__parse_regex_w_invalid_regex_raises_error(searcher: RegexSearcher) -> None:
-    """Using an invalid type raises a RegexParseError."""
-    with pytest.raises(RegexParseError):
-        searcher._parse_regex(r"[")
+def test__map_chars_to_tokens(searcher: RegexSearcher, nlp: Language) -> None:
+    """It creates map of character indices to token indices."""
+    doc = nlp("Test sentence.")
+    char_to_token_map = searcher._map_chars_to_tokens(doc)
+    assert char_to_token_map[0] == 0
+    assert char_to_token_map[5] == 1
+    assert char_to_token_map[13] == 2
+    assert len(char_to_token_map) == 13

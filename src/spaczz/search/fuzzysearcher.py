@@ -43,7 +43,7 @@ class FuzzySearcher(_PhraseSearcher):
         s1: TextContainer,
         s2: TextContainer,
         ignore_case: bool = True,
-        score_cutoff: int = 0,
+        min_r: int = 0,
         fuzzy_func: str = "simple",
         **kwargs: ty.Any
     ) -> int:
@@ -58,8 +58,8 @@ class FuzzySearcher(_PhraseSearcher):
             s2: Second spaCy container for comparison.
             ignore_case: Whether to lower-case `s1` and `s2`
                 before comparison or not. Default is `True`.
-            score_cutoff: Score threshold as a float between `0` and `100`.
-                For ratio < score_cutoff, `0` is returned instead.
+            min_r: Minimum ratio needed to match as a value between `0` and `100`.
+                For ratio < min_r, `0` is returned instead.
                 Default is `0`, which deactivates this behaviour.
             fuzzy_func: Key name of fuzzy matching function to use.
                 All rapidfuzz matching functions with default settings
@@ -94,6 +94,4 @@ class FuzzySearcher(_PhraseSearcher):
         else:
             s1_text = s1.text
             s2_text = s2.text
-        return round(
-            fuzzy_funcs.get(fuzzy_func)(s1_text, s2_text, score_cutoff=score_cutoff)
-        )
+        return round(fuzzy_funcs.get(fuzzy_func)(s1_text, s2_text, score_cutoff=min_r))

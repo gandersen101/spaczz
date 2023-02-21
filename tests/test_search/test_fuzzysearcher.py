@@ -171,14 +171,14 @@ def test__scan_returns_matches_over_min_r1(
     ) == {4: 86}
 
 
-def test__scan_returns_all_matches_with_no_min_r1(
+def test__scan_returns_all_matches_gt0_with_no_min_r1(
     searcher: FuzzySearcher, nlp: Language, scan_example: Doc
 ) -> None:
     """It returns all spans of len(query) in doc if min_r1 = 0."""
     query = nlp("Shirley")
     assert searcher._scan(
         scan_example, query, fuzzy_func="simple", min_r1=0, ignore_case=True
-    ) == {0: 0, 1: 0, 2: 18, 3: 22, 4: 86}
+    ) == {2: 18, 3: 22, 4: 86}
 
 
 def test__scan_with_no_matches(

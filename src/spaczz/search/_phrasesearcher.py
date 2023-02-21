@@ -6,12 +6,12 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from .searchutil import filter_overlapping_matches
 from ..customtypes import DocLike
 from ..customtypes import FlexType
 from ..customtypes import TextContainer
 from ..exceptions import FlexWarning
 from ..exceptions import RatioWarning
-from ..util import filter_overlapping_matches
 
 
 class _PhraseSearcher(abc.ABC):
@@ -174,33 +174,33 @@ class _PhraseSearcher(abc.ABC):
             for f in range(1, flex + 1):
                 if p_l - f >= 0:
                     new_r = self.compare(
-                        query, doc[p_l - f : p_r], score_cutoff=optim_r, *args, **kwargs
+                        query, doc[p_l - f : p_r], min_r=optim_r, *args, **kwargs
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r
                 if p_l + f < p_r:
                     new_r = self.compare(
-                        query, doc[p_l + f : p_r], score_cutoff=optim_r, *args, **kwargs
+                        query, doc[p_l + f : p_r], min_r=optim_r, *args, **kwargs
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r
                 if p_r - f > p_l:
                     new_r = self.compare(
-                        query, doc[p_l : p_r - f], score_cutoff=optim_r, *args, **kwargs
+                        query, doc[p_l : p_r - f], min_r=optim_r, *args, **kwargs
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r - f
                 if p_r + f <= doc_len:
                     new_r = self.compare(
-                        query, doc[p_l : p_r + f], score_cutoff=optim_r, *args, **kwargs
+                        query, doc[p_l : p_r + f], min_r=optim_r, *args, **kwargs
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l
                         bp_r = p_r + f
@@ -208,11 +208,11 @@ class _PhraseSearcher(abc.ABC):
                     new_r = self.compare(
                         query,
                         doc[p_l - f : p_r + f],
-                        score_cutoff=optim_r,
+                        min_r=optim_r,
                         *args,
                         **kwargs,
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l - f
                         bp_r = p_r + f
@@ -220,11 +220,11 @@ class _PhraseSearcher(abc.ABC):
                     new_r = self.compare(
                         query,
                         doc[p_l + f : p_r - f],
-                        score_cutoff=optim_r,
+                        min_r=optim_r,
                         *args,
                         **kwargs,
                     )
-                    if new_r > optim_r:
+                    if new_r:
                         optim_r = new_r
                         bp_l = p_l + f
                         bp_r = p_r - f
@@ -281,11 +281,11 @@ class _PhraseSearcher(abc.ABC):
             match = self.compare(
                 query,
                 doc[i : i + query_len],
-                score_cutoff=min_r1,
+                min_r=min_r1 if min_r1 else 1,
                 *args,
                 **kwargs,
             )
-            if match >= min_r1:
+            if match:
                 match_values[i] = match
             i += 1
         if match_values:

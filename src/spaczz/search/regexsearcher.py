@@ -6,11 +6,9 @@ from spacy.tokens import Doc
 from spacy.tokens import Span
 from spacy.vocab import Vocab
 
-from ..exceptions import RegexParseError
-from ..registry import re_patterns
-from ..registry import re_weights
-from ..util import filter_overlapping_matches
-from ..util import map_chars_to_tokens
+from .searchutil import filter_overlapping_matches
+from .searchutil import normalize_fuzzy_regex_counts
+from .searchutil import parse_regex
 
 
 class RegexSearcher:
@@ -103,11 +101,11 @@ class RegexSearcher:
             >>> searcher.match(doc, "phones", predef=True)
             [(4, 10, 100)]
         """
-        compiled_regex = self._parse_regex(query, predef=predef)
-        char_to_token_map = map_chars_to_tokens(doc)
+        compiled_regex = parse_regex(query, predef=predef)
+        char_to_token_map = self._map_chars_to_tokens(doc)
 
         regex_matches = (
-            _spans_from_regex(
+            self._spans_from_regex(
                 doc, match=match, partial=partial, char_to_token_map=char_to_token_map
             )
             for match in compiled_regex.finditer(doc.text)
@@ -117,7 +115,7 @@ class RegexSearcher:
             (
                 regex_match[0].start,
                 regex_match[0].end,
-                self._normalize_to_ratio(
+                normalize_fuzzy_regex_counts(
                     regex_match[0].text,
                     fuzzy_counts=regex_match[1],
                     fuzzy_weights=fuzzy_weights,
@@ -140,88 +138,30 @@ class RegexSearcher:
         )
 
     @staticmethod
-    def _parse_regex(
-        regex_str: str,
-        predef: bool = False,
-    ) -> ty.Pattern:
-        """Parses a string into a regex pattern.
-
-        Will treat `regex_str` as a key name for a predefined regex if `predef=True`.
-
-        Args:
-            regex_str: String to compile into a regex pattern.
-            predef: Whether regex should be interpreted as a key to
-                a predefined regex pattern or not. Default is `False`.
-
-        Returns:
-            A compiled regex pattern.
-
-        Raises:
-            RegexParseError: If regex compilation produces any errors.
-
-        Example:
-            >>> import regex as re
-            >>> import spacy
-            >>> from spaczz.search import RegexSearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = RegexSearcher(nlp.vocab)
-            >>> pattern = searcher.parse_regex("Test")
-            >>> isinstance(pattern, re.Pattern)
-            True
-        """
-        if predef:
-            return re_patterns.get(regex_str)
-        try:
-            return re.compile(
-                regex_str,
-            )
-        except (re._regex_core.error, TypeError, ValueError) as e:
-            raise RegexParseError(e)
+    def _map_chars_to_tokens(doc: Doc) -> ty.Dict[int, int]:
+        """Maps characters in a `Doc` object to tokens."""
+        chars_to_tokens = {}
+        for token in doc:
+            for i in range(token.idx, token.idx + len(token.text)):
+                chars_to_tokens[i] = token.i
+        return chars_to_tokens
 
     @staticmethod
-    def _normalize_to_ratio(
-        match: str, fuzzy_counts: ty.Tuple[int, int, int], fuzzy_weights: str
-    ) -> int:
-        """Normalizes fuzzy counts to a fuzzy ratio."""
-        if fuzzy_counts == (0, 0, 0):
-            return 100
-
-        weights = re_weights.get(fuzzy_weights)
-        s1_len = len(match) - fuzzy_counts[1] + fuzzy_counts[2]
-        s2_len = len(match)
-        fuzzy_counts_ = (
-            a * b
-            for a, b in zip(  # noqa: B905
-                (fuzzy_counts[1], fuzzy_counts[2], fuzzy_counts[0]), weights
-            )
-        )
-
-        if weights[2] <= weights[0] + weights[1]:
-            dist_max = min(s1_len, s2_len) * weights[2]
-        else:
-            dist_max = s1_len * weights[1] + s2_len * weights[0]
-
-        if s1_len > s2_len:
-            dist_max += (s1_len - s2_len) * weights[1]
-        elif s1_len < s2_len:
-            dist_max += (s2_len - s1_len) * weights[0]
-
-        r = 100 * sum(fuzzy_counts_) / dist_max
-        return round(100 - r)
-
-
-def _spans_from_regex(
-    doc: Doc, match: re.Match[str], partial: bool, char_to_token_map: ty.Dict[int, int]
-) -> ty.Optional[ty.Tuple[Span, ty.Tuple[int, int, int]]]:
-    start, end = match.span()
-    counts = getattr(match, "fuzzy_counts", (0, 0, 0))
-    span = doc.char_span(start, end)
-    if span:
-        return (span, counts)
-    if partial:
-        start_token = char_to_token_map.get(start)
-        end_token = char_to_token_map.get(end - 1)
-        if start_token and end_token:
-            span = Span(doc, start_token, end_token + 1)
+    def _spans_from_regex(
+        doc: Doc,
+        match: re.Match[str],
+        partial: bool,
+        char_to_token_map: ty.Dict[int, int],
+    ) -> ty.Optional[ty.Tuple[Span, ty.Tuple[int, int, int]]]:
+        start, end = match.span()
+        counts = getattr(match, "fuzzy_counts", (0, 0, 0))
+        span = doc.char_span(start, end)
+        if span:
             return (span, counts)
-    return None
+        if partial:
+            start_token = char_to_token_map.get(start)
+            end_token = char_to_token_map.get(end - 1)
+            if start_token and end_token:
+                span = Span(doc, start_token, end_token + 1)
+                return (span, counts)
+        return None
