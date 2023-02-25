@@ -47,6 +47,21 @@ def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
     ]
 
 
+def test_match_w_extra_kwargs(searcher: TokenSearcher, example: Doc) -> None:
+    """The searcher with lower-cased text is working as intended."""
+    assert (
+        searcher.match(
+            example,
+            [
+                {"TEXT": "SQL"},
+                {"LOWER": {"FREGEX": r"^(database){e<=1}$", "MIN_R": 90}},
+                {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
+            ],
+        )
+        == []
+    )
+
+
 def test_match_multiple_matches(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text will return multiple matches if found."""
     assert searcher.match(example, [{"LOWER": {"FUZZY": "access"}}]) == [

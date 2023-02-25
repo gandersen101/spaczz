@@ -86,13 +86,11 @@ class TokenSearcher:
             self._iter_pattern(seq, pattern, min_r=min_r)
             for seq in self._n_wise(doc, len(pattern))
         ]
-        if matches:
-            return [
-                match
-                for i, match in enumerate(matches)
-                if match and match not in matches[:i]
-            ]
-        return matches
+        return [
+            match
+            for i, match in enumerate(matches)
+            if match and match not in matches[:i]
+        ]
 
     @staticmethod
     def fuzzy_compare(
@@ -136,6 +134,7 @@ class TokenSearcher:
         if ignore_case:
             s1 = s1.lower()
             s2 = s2.lower()
+
         return round(fuzzy_funcs.get(fuzzy_func)(s1, s2, score_cutoff=min_r))
 
     @staticmethod

@@ -1,7 +1,6 @@
 """Tests for the fuzzymatcher module."""
 import pickle
-from typing import Any, cast, Iterator, List, Tuple
-import warnings
+import typing as ty
 
 import pytest
 from spacy.language import Language
@@ -13,10 +12,13 @@ from spaczz.matcher.fuzzymatcher import FuzzyMatcher
 
 
 def add_name_ent(
-    matcher: FuzzyMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, int]]
+    matcher: FuzzyMatcher,
+    doc: Doc,
+    i: int,
+    matches: ty.List[ty.Tuple[str, int, int, int, str]],
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
-    _match_id, start, end, _ratio = matches[i]
+    _match_id, start, end, _ratio, _pattern = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)  # type: ignore
 
@@ -146,10 +148,10 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: FuzzyMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
     assert matcher(doc) == [
-        ("ANIMAL", 1, 2, 83),
-        ("SOUND", 4, 5, 80),
-        ("ANIMAL", 16, 17, 83),
-        ("NAME", 18, 19, 77),
+        ("ANIMAL", 1, 2, 83, "Heifer"),
+        ("SOUND", 4, 5, 80, "mooo"),
+        ("ANIMAL", 16, 17, 83, "chicken"),
+        ("NAME", 18, 19, 77, "Steven"),
     ]
 
 
@@ -168,64 +170,6 @@ def test_matcher_uses_on_match_callback(matcher: FuzzyMatcher, doc: Doc) -> None
     assert "Stephen" in ent_text
 
 
-def test_matcher_pipe(nlp: Language) -> None:
-    """It returns a stream of Doc objects."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp.make_doc("test doc 1: Corvold"),
-        nlp.make_doc("test doc 2: Prosh"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects as tuples with context."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp.make_doc("test doc 1: Corvold"), "Jund"),
-        (nlp.make_doc("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream, as_tuples=True)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_matches(nlp: Language) -> None:
-    """It returns a stream of Doc objects and matches as tuples."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp.make_doc("test doc 1: Corvold"),
-        nlp.make_doc("test doc 2: Prosh"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = matcher.pipe(doc_stream, return_matches=True)
-    matches = [entry[1] for entry in output]
-    assert matches == [[("DRAGON", 4, 5, 86)], [("DRAGON", 4, 5, 91)]]
-
-
-def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects and matches and context as tuples."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp.make_doc("test doc 1: Corvold"), "Jund"),
-        (nlp.make_doc("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = FuzzyMatcher(nlp.vocab)
-    matcher.add("DRAGON", [nlp.make_doc("Korvold"), nlp.make_doc("Prossh")])
-    output = cast(
-        Iterator[Tuple[Tuple[Doc, Any], Any]],
-        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
-    )
-    matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [
-        ([("DRAGON", 4, 5, 86)], "Jund"),
-        ([("DRAGON", 4, 5, 91)], "Jund"),
-    ]
-
-
 def test_pickling_matcher(matcher: FuzzyMatcher) -> None:
     """It pickles the matcher object."""
     bytestring = pickle.dumps(matcher)
@@ -237,8 +181,8 @@ def test_unpickling_matcher(matcher: FuzzyMatcher, doc: Doc) -> None:
     bytestring = pickle.dumps(matcher)
     matcher = pickle.loads(bytestring)
     assert matcher(doc) == [
-        ("ANIMAL", 1, 2, 83),
-        ("SOUND", 4, 5, 80),
-        ("ANIMAL", 16, 17, 83),
-        ("NAME", 18, 19, 77),
+        ("ANIMAL", 1, 2, 83, "Heifer"),
+        ("SOUND", 4, 5, 80, "mooo"),
+        ("ANIMAL", 16, 17, 83, "chicken"),
+        ("NAME", 18, 19, 77, "Steven"),
     ]

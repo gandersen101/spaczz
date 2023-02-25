@@ -1,7 +1,5 @@
 """Module for FuzzyMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
-from __future__ import annotations
-
-from typing import Any
+import typing as ty
 
 from spacy.vocab import Vocab
 
@@ -31,7 +29,9 @@ class FuzzyMatcher(_PhraseMatcher):
 
     name = "fuzzy_matcher"
 
-    def __init__(self: FuzzyMatcher, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(
+        self: "FuzzyMatcher", vocab: Vocab, **defaults: ty.Dict[str, ty.Any]
+    ) -> None:
         """Initializes the fuzzy matcher with the given defaults.
 
         Args:
@@ -48,4 +48,9 @@ class FuzzyMatcher(_PhraseMatcher):
         """
         super().__init__(vocab=vocab, **defaults)
         self.type = "fuzzy"
-        self._searcher = FuzzySearcher(vocab=vocab)
+        self._searcher = self._get_searcher(vocab)
+
+    @staticmethod
+    def _get_searcher(vocab: Vocab) -> FuzzySearcher:
+        """Placeholder."""
+        return FuzzySearcher(vocab)

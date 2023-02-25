@@ -1,33 +1,17 @@
 """Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
-from __future__ import annotations
-
-from typing import (
-    Any,
-    Callable,
-    cast,
-    DefaultDict,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+import abc
+import typing as ty
 import warnings
 
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..exceptions import KwargsWarning
-from ..exceptions import PipeDeprecation
 from ..search import _PhraseSearcher
 from ..util import nest_defaultdict
 
 
-class _PhraseMatcher:
+class _PhraseMatcher(abc.ABC):
     """spaCy-like matcher for finding flexible matches in `Doc` objects.
 
     Matches added patterns against the `Doc` object it is called on.
@@ -50,7 +34,7 @@ class _PhraseMatcher:
 
     name = "_phrase_matcher"
 
-    def __init__(self: _PhraseMatcher, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: "_PhraseMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
         """Initializes the base phrase matcher with the given defaults.
 
         Args:
@@ -67,11 +51,15 @@ class _PhraseMatcher:
         """
         self.defaults = defaults
         self.type = "_phrase"
-        self._callbacks: Dict[str, PhraseCallback] = {}
-        self._patterns: DefaultDict[str, DefaultDict[str, Any]] = nest_defaultdict(list)
-        self._searcher = _PhraseSearcher(vocab=vocab)
+        self._callbacks: ty.Dict[str, PhraseCallback] = {}
+        self._patterns: ty.DefaultDict[
+            str, ty.DefaultDict[str, ty.Any]
+        ] = nest_defaultdict(list)
+        self._searcher = self._get_searcher(vocab)
 
-    def __call__(self: _PhraseMatcher, doc: Doc) -> List[Tuple[str, int, int, int]]:
+    def __call__(
+        self: "_PhraseMatcher", doc: Doc
+    ) -> ty.List[ty.Tuple[str, int, int, int, str]]:
         """Find all sequences matching the supplied patterns in `doc`.
 
         Args:
@@ -92,7 +80,9 @@ class _PhraseMatcher:
         """
         matches = set()
         for label, patterns in self._patterns.items():
-            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+            for pattern, kwargs in zip(  # noqa: B905
+                patterns["patterns"], patterns["kwargs"]
+            ):
                 if not kwargs:
                     kwargs = self.defaults
                 matches_wo_label = self._searcher.match(doc, pattern, **kwargs)
@@ -102,29 +92,26 @@ class _PhraseMatcher:
                     ]
                     for match in matches_w_label:
                         matches.add(match)
-        if matches:
-            sorted_matches = sorted(
-                matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
-            )
-            for i, (label, _start, _end, _ratio) in enumerate(sorted_matches):
-                on_match = self._callbacks.get(label)
-                if on_match:
-                    on_match(self, doc, i, sorted_matches)
-            return sorted_matches
-        else:
-            return []
+        sorted_matches = sorted(
+            matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
+        )
+        for i, (label, _start, _end, _ratio, _pattern) in enumerate(sorted_matches):
+            on_match = self._callbacks.get(label)
+            if on_match:
+                on_match(self, doc, i, sorted_matches)
+        return sorted_matches
 
-    def __contains__(self: _PhraseMatcher, label: str) -> bool:
+    def __contains__(self: "_PhraseMatcher", label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self: _PhraseMatcher) -> int:
+    def __len__(self: "_PhraseMatcher") -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     def __reduce__(
-        self: _PhraseMatcher,
-    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
+        self: "_PhraseMatcher",
+    ) -> ty.Tuple[ty.Any, ty.Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -136,7 +123,7 @@ class _PhraseMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: _PhraseMatcher) -> Tuple[str, ...]:
+    def labels(self: "_PhraseMatcher") -> ty.Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -154,7 +141,7 @@ class _PhraseMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: _PhraseMatcher) -> List[Dict[str, Any]]:
+    def patterns(self: "_PhraseMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
         """Get all patterns and kwargs that were added to the matcher.
 
         Returns:
@@ -179,7 +166,9 @@ class _PhraseMatcher:
         """
         all_patterns = []
         for label, patterns in self._patterns.items():
-            for pattern, kwargs in zip(patterns["patterns"], patterns["kwargs"]):
+            for pattern, kwargs in zip(  # noqa: B905
+                patterns["patterns"], patterns["kwargs"]
+            ):
                 p = {"label": label, "pattern": pattern.text, "type": self.type}
                 if kwargs:
                     p["kwargs"] = kwargs
@@ -187,16 +176,16 @@ class _PhraseMatcher:
         return all_patterns
 
     @property
-    def vocab(self: _PhraseMatcher) -> Vocab:
+    def vocab(self: "_PhraseMatcher") -> Vocab:
         """Returns the spaCy `Vocab` object utilized."""
         return self._searcher.vocab
 
     def add(
-        self: _PhraseMatcher,
+        self: "_PhraseMatcher",
         label: str,
-        patterns: List[Doc],
-        kwargs: Optional[List[Dict[str, Any]]] = None,
-        on_match: PhraseCallback = None,
+        patterns: ty.List[Doc],
+        kwargs: ty.Optional[ty.List[ty.Dict[str, ty.Any]]] = None,
+        on_match: "PhraseCallback" = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -254,7 +243,7 @@ class _PhraseMatcher:
                 The extra kwargs will be ignored.""",
                 KwargsWarning,
             )
-        for pattern, kwarg in zip(patterns, kwargs):
+        for pattern, kwarg in zip(patterns, kwargs):  # noqa: B905
             if isinstance(pattern, Doc):
                 self._patterns[label]["patterns"].append(pattern)
             else:
@@ -265,7 +254,7 @@ class _PhraseMatcher:
                 raise TypeError("Kwargs must be a list of dicts.")
         self._callbacks[label] = on_match
 
-    def remove(self: _PhraseMatcher, label: str) -> None:
+    def remove(self: "_PhraseMatcher", label: str) -> None:
         """Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -292,69 +281,26 @@ class _PhraseMatcher:
                 f"The label: {label} does not exist within the matcher rules."
             )
 
-    def pipe(
-        self: _PhraseMatcher,
-        docs: Union[Iterable[Doc], Iterable[Tuple[Doc, Any]]],
-        batch_size: int = 1000,
-        return_matches: bool = False,
-        as_tuples: bool = False,
-    ) -> Union[
-        Iterator[Tuple[Tuple[Doc, Any], Any]], Iterator[Tuple[Doc, Any]], Iterator[Doc]
-    ]:
-        """Match a stream of `Doc` objects, yielding them in turn.
-
-        Deprecated as of spaCy v3.0 and spaczz v0.5.
-
-        Args:
-            docs: An iterable of `Doc` objects.
-            batch_size: Number of documents to accumulate into a working set.
-                Default is `1000`.
-            return_matches: Yield the match lists along with the docs,
-                making results (doc, matches) tuples. Default is `False`.
-            as_tuples: Interpret the input stream as (doc, context) tuples,
-                and yield (result, context) tuples out.
-                If both return_matches and as_tuples are `True`,
-                the output will be a sequence of ((doc, matches), context) tuples.
-                Default is `False`.
-
-        Yields:
-            `Doc` objects, in order.
-        """
-        warnings.warn(
-            """As of spaczz v0.5 and spaCy v3.0, the matcher.pipe method
-        is deprecated. If you need to match on a stream of documents,
-        you can use nlp.pipe and call the matcher on each Doc object.""",
-            PipeDeprecation,
-        )
-        if as_tuples:
-            for doc, context in cast(Iterable[Tuple[Doc, Any]], docs):
-                matches = self(doc)
-                if return_matches:
-                    yield ((doc, matches), context)
-                else:
-                    yield (doc, context)
-        else:
-            for doc in cast(Iterable[Doc], docs):
-                matches = self(doc)
-                if return_matches:
-                    yield (doc, matches)
-                else:
-                    yield doc
+    @staticmethod
+    @abc.abstractmethod
+    def _get_searcher(vocab: Vocab) -> _PhraseSearcher:
+        """Placeholder."""
+        pass  # pragma: no cover
 
 
-PMT = TypeVar("PMT", bound=_PhraseMatcher)
-PhraseCallback = Optional[
-    Callable[[PMT, Doc, int, List[Tuple[str, int, int, int]]], None]
+PMT = ty.TypeVar("PMT", bound=_PhraseMatcher)
+PhraseCallback = ty.Optional[
+    ty.Callable[[PMT, Doc, int, ty.List[ty.Tuple[str, int, int, int, str]]], None]
 ]
 
 
 def unpickle_matcher(
-    matcher: Type[_PhraseMatcher],
+    matcher: ty.Type[_PhraseMatcher],
     vocab: Vocab,
-    patterns: DefaultDict[str, DefaultDict[str, Any]],
-    callbacks: Dict[str, PhraseCallback],
-    defaults: Any,
-) -> Any:
+    patterns: ty.DefaultDict[str, ty.DefaultDict[str, ty.Any]],
+    callbacks: ty.Dict[str, PhraseCallback],
+    defaults: ty.Any,
+) -> ty.Any:
     """Will return a matcher from pickle protocol."""
     matcher_instance = matcher(vocab, **defaults)
     for key, specs in patterns.items():

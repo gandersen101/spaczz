@@ -1,7 +1,5 @@
 """Module for SimilarityMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
-from __future__ import annotations
-
-from typing import Any
+import typing as ty
 
 from spacy.vocab import Vocab
 
@@ -31,7 +29,9 @@ class SimilarityMatcher(_PhraseMatcher):
 
     name = "similarity_matcher"
 
-    def __init__(self: SimilarityMatcher, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(
+        self: "SimilarityMatcher", vocab: Vocab, **defaults: ty.Dict[str, ty.Any]
+    ) -> None:
         """Initializes the similarity matcher with the given defaults.
 
         Args:
@@ -48,4 +48,9 @@ class SimilarityMatcher(_PhraseMatcher):
         """
         super().__init__(vocab=vocab, **defaults)
         self.type = "similarity"
-        self._searcher = SimilaritySearcher(vocab=vocab)
+        self._searcher = self._get_searcher(vocab)
+
+    @staticmethod
+    def _get_searcher(vocab: Vocab) -> SimilaritySearcher:
+        """Placeholder."""
+        return SimilaritySearcher(vocab)
