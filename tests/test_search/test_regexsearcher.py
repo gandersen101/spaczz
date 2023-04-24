@@ -15,11 +15,10 @@ def searcher(nlp: Language) -> RegexSearcher:
 def test_match(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces matches."""
     doc = nlp("My phone number is (555) 555-5555, not (554) 554-5554.")
-    re_pattern = re_patterns.get("phones")
     matches = searcher.match(doc, "phones", predef=True)
     assert matches == [
-        (4, 10, 100, re_pattern.pattern),
-        (12, 18, 100, re_pattern.pattern),
+        (4, 10, 100),
+        (12, 18, 100),
     ]
 
 
@@ -28,7 +27,7 @@ def test_match_w_fuzzy_regex(searcher: RegexSearcher, nlp: Language) -> None:
     doc = nlp("I live in the US.")
     re_pattern = r"(USA){d<=1}"
     matches = searcher.match(doc, re_pattern)
-    assert matches == [(4, 5, 80, re_pattern)]
+    assert matches == [(4, 5, 80)]
 
 
 def test_match_w_fuzzy_regex2(searcher: RegexSearcher, nlp: Language) -> None:
@@ -36,7 +35,7 @@ def test_match_w_fuzzy_regex2(searcher: RegexSearcher, nlp: Language) -> None:
     doc = nlp("nic bole")
     re_pattern = r"(nicobolas){e<=5}"
     matches = searcher.match(doc, re_pattern, min_r=70)
-    assert matches == [(0, 2, 71, re_pattern)]
+    assert matches == [(0, 2, 71)]
 
 
 def test_match_w_fuzzy_regex_w_min_r(searcher: RegexSearcher, nlp: Language) -> None:
@@ -55,7 +54,7 @@ def test_match_will_expand_on_partial_match_if_partials(
         "We want to identify 'USA' even though only first two letters will matched."
     )
     matches = searcher.match(doc, r"[Uu](nited|\.?) ?[Ss](tates|\.?)")
-    assert matches == [(5, 6, 100, r"[Uu](nited|\.?) ?[Ss](tates|\.?)")]
+    assert matches == [(5, 6, 100)]
 
 
 def test_match_on_german_combination_words(
@@ -66,7 +65,7 @@ def test_match_on_german_combination_words(
         "We want to identify a geman word combination Aussagekraft or Kraftfahrzeug"
     )
     matches = searcher.match(doc, r"(kraft|Kraft)")
-    assert matches == [(8, 9, 100, r"(kraft|Kraft)"), (10, 11, 100, r"(kraft|Kraft)")]
+    assert matches == [(8, 9, 100), (10, 11, 100)]
 
 
 def test_match_will_not_expand_if_not_partials(

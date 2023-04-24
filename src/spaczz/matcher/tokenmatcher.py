@@ -1,11 +1,11 @@
 """Module for TokenMatcher with an API semi-analogous to spaCy's Matcher."""
-from collections import defaultdict
 from copy import deepcopy
 import typing as ty
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
+import srsly
 
 from ..search import TokenSearcher
 
@@ -73,7 +73,7 @@ class TokenMatcher:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end, None) tuples, describing the matches.
+            A list of (key, start, end, ratio, pattern) tuples, describing the matches.
             The final None is a placeholder for future match details.
 
         Example:
@@ -89,33 +89,44 @@ class TokenMatcher:
             >>> matcher(doc)
             [('NAME', 0, 2, None)]
         """
-        mapped_patterns = defaultdict(list)
-        matcher = Matcher(self.vocab)
+        matches = set()
         for label, patterns in self._patterns.items():
             for pattern in patterns:
-                mapped_patterns[label].extend(
-                    _spacyfy(
-                        self._searcher.match(doc, pattern, **self.defaults),
-                        pattern,
-                    )
-                )
-        for label in mapped_patterns.keys():
-            matcher.add(label, mapped_patterns[label])
-        matches = matcher(doc)
-        if matches:
-            extended_matches = [
-                (ty.cast(str, self.vocab.strings[match_id]), start, end, None)
-                for match_id, start, end in ty.cast(
-                    ty.List[ty.Tuple[int, int, int]], matches
-                )
-            ]
-            extended_matches.sort(key=lambda x: (-x[1], x[2] - x[1]), reverse=True)
-            for i, (label, _start, _end, _ratio) in enumerate(extended_matches):
-                on_match = self._callbacks.get(label)
-                if on_match:
-                    on_match(self, doc, i, extended_matches)
-            return extended_matches
-        return []
+                spaczz_matches = self._searcher.match(doc, pattern, **self.defaults)
+                if spaczz_matches:
+                    for spaczz_match in spaczz_matches:
+                        matcher = Matcher(self.vocab)
+                        matcher.add(label, [self._spacyfy(spaczz_match, pattern)])
+                        spacy_matches = matcher(doc)
+                        for match_id, start, end in spacy_matches:
+                            matches.add(
+                                (
+                                    self.vocab.strings[match_id],
+                                    start,
+                                    end,
+                                    round(
+                                        sum(
+                                            token_match[2]
+                                            / sum(
+                                                [len(token) for token in doc[start:end]]
+                                            )
+                                            * len(token)
+                                            for token, token_match in zip(  # noqa: B905
+                                                doc[start:end], spaczz_match
+                                            )
+                                        )
+                                    ),
+                                    srsly.json_dumps(pattern),
+                                )
+                            )
+        sorted_matches = sorted(
+            matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
+        )
+        for i, (label, _start, _end, _ratio, _pattern) in enumerate(sorted_matches):
+            on_match = self._callbacks.get(label)
+            if on_match:
+                on_match(self, doc, i, sorted_matches)
+        return sorted_matches
 
     def __contains__(self: "TokenMatcher", label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
@@ -266,25 +277,24 @@ class TokenMatcher:
                 f"The label: {label} does not exist within the matcher rules."
             )
 
-
-def _spacyfy(
-    matches: ty.List[ty.List[ty.Tuple[str, str, int]]],
-    pattern: ty.List[ty.Dict[str, ty.Any]],
-) -> ty.List[ty.List[ty.Dict[str, ty.Any]]]:
-    """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
-    new_patterns = []
-    for match in matches:
+    @staticmethod
+    def _spacyfy(
+        match: ty.List[ty.Tuple[str, str, int]],
+        pattern: ty.List[ty.Dict[str, ty.Any]],
+    ) -> ty.List[ty.Dict[str, ty.Any]]:
+        """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
         new_pattern = deepcopy(pattern)
         for i, token in enumerate(match):
             if token[0]:
                 del new_pattern[i][token[0]]
                 new_pattern[i]["TEXT"] = token[1]
-        new_patterns.append(new_pattern)
-    return new_patterns
+        return new_pattern
 
 
 TokenCallback = ty.Optional[
-    ty.Callable[[TokenMatcher, Doc, int, ty.List[ty.Tuple[str, int, int, None]]], None]
+    ty.Callable[
+        [TokenMatcher, Doc, int, ty.List[ty.Tuple[str, int, int, int, str]]], None
+    ]
 ]
 
 

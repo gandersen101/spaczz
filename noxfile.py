@@ -11,8 +11,8 @@ nox.options.sessions = "lint", "mypy", "tests"
 
 PACKAGE = "spaczz"
 LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
-PYTHON = "3.9"
-PYTHONS = ["3.10", "3.9", "3.8", "3.7"]
+PYTHON = "3.11"
+PYTHONS = ["3.11", "3.10", "3.9", "3.8", "3.7"]
 MYPY_EXTRAS = ["jinja2", "nox", "numpy", "pytest", "rapidfuzz", "spacy"]
 
 
@@ -129,48 +129,6 @@ def readme(session: Session) -> None:
         "notebooks/README.ipynb",
     )
     session.run("mv", "-f", "notebooks/README.md", "README.md", external=True)
-
-
-@nox.session(python=PYTHON)
-def safety(session: Session) -> None:
-    """Scan dependencies for insecure packages."""
-    if platform.system() == "Windows":
-        req_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
-        session.run(
-            "poetry",
-            "export",
-            "--dev",
-            "--format=requirements.txt",
-            "--without-hashes",
-            f"--output={req_path}",
-            external=True,
-        )
-        install_with_constraints(session, "safety")
-        session.run(
-            "safety",
-            "check",
-            f"--file={req_path}",
-            "--full-report",
-        )
-        os.unlink(req_path)
-    else:
-        with tempfile.NamedTemporaryFile() as requirements:
-            session.run(
-                "poetry",
-                "export",
-                "--dev",
-                "--format=requirements.txt",
-                "--without-hashes",
-                f"--output={requirements.name}",
-                external=True,
-            )
-            install_with_constraints(session, "safety")
-            session.run(
-                "safety",
-                "check",
-                f"--file={requirements.name}",
-                "--full-report",
-            )
 
 
 @nox.session(python=PYTHONS)

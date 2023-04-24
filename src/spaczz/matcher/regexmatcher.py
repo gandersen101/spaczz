@@ -80,7 +80,8 @@ class RegexMatcher:
                 matches_wo_label = self._searcher.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label for match_wo_label in matches_wo_label
+                        (label, *match_wo_label, str(pattern))
+                        for match_wo_label in matches_wo_label
                     ]
                     for match in matches_w_label:
                         matches.add(match)
@@ -226,6 +227,7 @@ class RegexMatcher:
                 """There are more patterns then there are kwargs.\n
                     Patterns not matched to a kwarg dict will have default settings.""",
                 KwargsWarning,
+                stacklevel=2,
             )
             kwargs.extend([{} for _ in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
@@ -233,6 +235,7 @@ class RegexMatcher:
                 """There are more kwargs dicts than patterns.\n
                     The extra kwargs will be ignored.""",
                 KwargsWarning,
+                stacklevel=2,
             )
         if isinstance(patterns, str):
             raise TypeError("Patterns must be a non-string iterable of strings.")

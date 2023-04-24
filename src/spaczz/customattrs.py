@@ -9,7 +9,6 @@ from spacy.tokens import Span
 from spacy.tokens import Token
 
 from .exceptions import AttrOverwriteWarning
-from .exceptions import SpaczzSpanDeprecation
 
 
 class SpaczzAttrs:
@@ -27,11 +26,11 @@ class SpaczzAttrs:
                 Token.set_extension("spaczz_ratio", default=None)
                 Token.set_extension("spaczz_pattern", default=None)
 
-                Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
                 Span.set_extension("spaczz_ent", getter=cls.get_spaczz_ent)
                 Span.set_extension("spaczz_type", getter=cls.get_span_type)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
+                Span.set_extension("spaczz_pattern", getter=cls.get_pattern)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types)
@@ -43,6 +42,7 @@ class SpaczzAttrs:
                     custom extensions prepended with "spaczz_".
                 """,
                     AttrOverwriteWarning,
+                    stacklevel=2,
                 )
                 Token.set_extension("spaczz_token", default=False, force=True)
                 Token.set_extension("spaczz_type", default=None, force=True)
@@ -56,19 +56,10 @@ class SpaczzAttrs:
                     "spaczz_types", getter=cls.get_span_types, force=True
                 )
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio, force=True)
+                Span.set_extension("spaczz_pattern", getter=cls.get_pattern, force=True)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc, force=True)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types, force=True)
-
-    @staticmethod
-    def get_spaczz_span(span: Span) -> bool:
-        """Getter for spaczz_span `Span` attribute."""
-        warnings.warn(
-            """spaczz_span is deprecated.
-        Use spaczz_ent instead.""",
-            SpaczzSpanDeprecation,
-        )
-        return all([token._.spaczz_token for token in span])
 
     @staticmethod
     def get_spaczz_ent(span: Span) -> bool:
@@ -94,6 +85,14 @@ class SpaczzAttrs:
         """Getter for spaczz_ratio `Span` attribute."""
         if cls._all_equal([token._.spaczz_ratio for token in span]):
             return span[0]._.spaczz_ratio
+        else:
+            return None
+
+    @classmethod
+    def get_pattern(cls: Type[SpaczzAttrs], span: Span) -> Optional[str]:
+        """Getter for spaczz_pattern `Span` attribute."""
+        if cls._all_equal([token._.spaczz_pattern for token in span]):
+            return span[0]._.spaczz_pattern
         else:
             return None
 

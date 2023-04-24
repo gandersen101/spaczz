@@ -1,8 +1,9 @@
 """Tests for tokensearcher module."""
+import typing as ty
+
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
-import srsly
 
 from spaczz.search import TokenSearcher
 
@@ -23,43 +24,37 @@ def example(nlp: Language) -> Doc:
 
 def test_match_lower(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text is working as intended."""
-    pattern = [
+    pattern: ty.List[ty.Dict[str, ty.Any]] = [
         {"TEXT": "SQL"},
         {"LOWER": {"FREGEX": r"^(database){e<=1}$"}},
         {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
     ]
-    assert searcher.match(example, pattern,) == [
-        (
-            [("", "", 100), ("LOWER", "databesE", 88), ("LOWER", "ACESS", 91)],
-            srsly.json_dumps(pattern),
-        )
+    assert searcher.match(example, pattern) == [
+        [("", "", 100), ("LOWER", "databesE", 88), ("LOWER", "ACESS", 91)]
     ]
 
 
 def test_match_text(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with verbatim text is working as intended."""
-    pattern = [
+    pattern: ty.List[ty.Dict[str, ty.Any]] = [
         {"TEXT": {"FUZZY": "access"}, "POS": "NOUN"},
         {},
         {"TEXT": {"REGEX": r"[Ss][Qq][Ll]"}},
         {"TEXT": {"FREGEX": r"^(database){e<=1}$"}},
     ]
-    assert searcher.match(example, pattern,) == [
-        (
-            [
-                ("TEXT", "acces", 91),
-                ("", "", 100),
-                ("", "", 100),
-                ("TEXT", "datAbase", 88),
-            ],
-            srsly.json_dumps(pattern),
-        )
+    assert searcher.match(example, pattern) == [
+        [
+            ("TEXT", "acces", 91),
+            ("", "", 100),
+            ("", "", 100),
+            ("TEXT", "datAbase", 88),
+        ]
     ]
 
 
 def test_match_w_extra_kwargs(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text is working as intended."""
-    pattern = [
+    pattern: ty.List[ty.Dict[str, ty.Any]] = [
         {"TEXT": "SQL"},
         {"LOWER": {"FREGEX": r"^(database){e<=1}$", "MIN_R": 90}},
         {"LOWER": {"FUZZY": "access"}, "POS": "NOUN"},
@@ -71,20 +66,22 @@ def test_match_multiple_matches(searcher: TokenSearcher, example: Doc) -> None:
     """The searcher with lower-cased text will return multiple matches if found."""
     pattern = [{"LOWER": {"FUZZY": "access"}}]
     assert searcher.match(example, pattern) == [
-        ([("LOWER", "ACESS", 91)], srsly.json_dumps(pattern)),
-        ([("LOWER", "acces", 91)], srsly.json_dumps(pattern)),
+        [("LOWER", "ACESS", 91)],
+        [("LOWER", "acces", 91)],
     ]
 
 
 def test_no_matches(searcher: TokenSearcher, example: Doc) -> None:
     """No matches returns empty list."""
-    assert searcher.match(example, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
+    pattern = [{"TEXT": {"FUZZY": "MongoDB"}}]
+    assert searcher.match(example, pattern) == []
 
 
 def test_empty_doc(searcher: TokenSearcher, nlp: Language) -> None:
     """Empty doc returns empty list."""
     doc = nlp("")
-    assert searcher.match(doc, [{"TEXT": {"FUZZY": "MongoDB"}}]) == []
+    pattern = [{"TEXT": {"FUZZY": "MongoDB"}}]
+    assert searcher.match(doc, pattern) == []
 
 
 def test_empty_pattern(searcher: TokenSearcher, example: Doc) -> None:

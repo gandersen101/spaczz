@@ -10,7 +10,6 @@ from spacy.tokens import Span
 from spaczz.customtypes import MatchResult
 from spaczz.exceptions import KwargsWarning
 from spaczz.matcher.regexmatcher import RegexMatcher
-from spaczz.registry.repatterns import re_patterns
 
 
 def add_gpe_ent(
@@ -139,8 +138,8 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: RegexMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
     assert matcher(doc) == [
-        ("STREET", 3, 6, 100, re_patterns.get("street_addresses").pattern),
-        ("ZIP", 10, 11, 100, re_patterns.get("zip_codes").pattern),
+        ("STREET", 3, 6, 100, "street_addresses"),
+        ("ZIP", 10, 11, 100, "zip_codes"),
         ("GPE", 13, 14, 100, r"(?i)[U](nited|\.?) ?[S](tates|\.?)"),
     ]
 
@@ -176,7 +175,7 @@ def test_unpickling_matcher(matcher: RegexMatcher, doc: Doc) -> None:
     bytestring = pickle.dumps(matcher)
     matcher = pickle.loads(bytestring)
     assert matcher(doc) == [
-        ("STREET", 3, 6, 100, re_patterns.get("street_addresses").pattern),
-        ("ZIP", 10, 11, 100, re_patterns.get("zip_codes").pattern),
+        ("STREET", 3, 6, 100, "street_addresses"),
+        ("ZIP", 10, 11, 100, "zip_codes"),
         ("GPE", 13, 14, 100, r"(?i)[U](nited|\.?) ?[S](tates|\.?)"),
     ]

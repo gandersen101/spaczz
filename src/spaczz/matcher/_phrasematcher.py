@@ -87,10 +87,12 @@ class _PhraseMatcher(abc.ABC):
                 matches_wo_label = self._searcher.match(doc, pattern, **kwargs)
                 if matches_wo_label:
                     matches_w_label = [
-                        (label,) + match_wo_label for match_wo_label in matches_wo_label
+                        (label, *match_wo_label, str(pattern))
+                        for match_wo_label in matches_wo_label
                     ]
                     for match in matches_w_label:
                         matches.add(match)
+
         sorted_matches = sorted(
             matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
         )
@@ -234,6 +236,7 @@ class _PhraseMatcher(abc.ABC):
                 """There are more patterns then there are kwargs.
                 Patterns not matched to a kwarg dict will have default settings.""",
                 KwargsWarning,
+                stacklevel=2,
             )
             kwargs.extend([{} for _ in range(len(patterns) - len(kwargs))])
         elif len(kwargs) > len(patterns):
@@ -241,6 +244,7 @@ class _PhraseMatcher(abc.ABC):
                 """There are more kwargs dicts than patterns.
                 The extra kwargs will be ignored.""",
                 KwargsWarning,
+                stacklevel=2,
             )
         for pattern, kwarg in zip(patterns, kwargs):  # noqa: B905
             if isinstance(pattern, Doc):

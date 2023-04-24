@@ -258,8 +258,8 @@ def test_match_finds_best_matches(searcher: FuzzySearcher, nlp: Language) -> Non
     doc = nlp("chiken from Popeyes is better than chken from Chick-fil-A")
     query = nlp("chicken")
     assert searcher.match(doc, query, ignore_case=False) == [
-        (0, 1, 92, "chicken"),
-        (6, 7, 83, "chicken"),
+        (0, 1, 92),
+        (6, 7, 83),
     ]
 
 
@@ -268,7 +268,7 @@ def test_match_finds_best_matches2(searcher: FuzzySearcher, nlp: Language) -> No
     doc = nlp("My favorite wine is white goldriesling.")
     query = nlp("gold riesling")
     assert searcher.match(doc, query) == [
-        (5, 6, 96, "gold riesling"),
+        (5, 6, 96),
     ]
 
 
@@ -277,7 +277,7 @@ def test_match_finds_best_matches3(searcher: FuzzySearcher, nlp: Language) -> No
     doc = nlp("My favorite wine is white gold riesling.")
     query = nlp("goldriesling")
     assert searcher.match(doc, query, flex="max") == [
-        (5, 7, 96, "goldriesling"),
+        (5, 7, 96),
     ]
 
 

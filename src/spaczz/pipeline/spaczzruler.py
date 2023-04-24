@@ -17,6 +17,7 @@ from spacy.util import SimpleFrozenDict
 from spacy.util import SimpleFrozenList
 import srsly
 
+from ..customtypes import MatchType
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher
 from ..matcher import RegexMatcher
@@ -29,16 +30,6 @@ from ..util import write_to_disk
 DEFAULT_ENT_ID_SEP = "||"
 SIMPLE_FROZEN_DICT = SimpleFrozenDict()
 SIMPLE_FROZEN_LIST = SimpleFrozenList()
-
-
-def dedup_matches(*matches):
-    matches_set = set()
-    output_matches = []
-    for match in matches:
-        if match[:3] not in matches_set:
-            matches_set.add(match[:3])
-            output_matches.append(match)
-    return output_matches
 
 
 @Language.factory(
@@ -160,7 +151,7 @@ class SpaczzRuler(Pipe):
         """
         self.nlp = nlp
         self.name = name
-        self.overwrite = overwrite_ents
+        self.overwrite = kwargs.get("spaczz_overwrite_ents", overwrite_ents)
         self.fuzzy_patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
         ] = nest_defaultdict(list)
@@ -178,6 +169,9 @@ class SpaczzRuler(Pipe):
             "regex_defaults",
             "token_defaults",
         )
+        fuzzy_defaults = kwargs.get("spaczz_fuzzy_defaults", fuzzy_defaults)
+        regex_defaults = kwargs.get("spaczz_regex_defaults", regex_defaults)
+        token_defaults = kwargs.get("spaczz_token_defaults", token_defaults)
         for default, name in zip(  # noqa: B905
             (fuzzy_defaults, regex_defaults, token_defaults), default_names
         ):
@@ -220,8 +214,8 @@ class SpaczzRuler(Pipe):
         """
         error_handler = self.get_error_handler()
         try:
-            matches, lookup = self.match(doc)
-            self.set_annotations(doc, matches, lookup)
+            matches = self.match(doc)
+            self.set_annotations(doc, matches)
             return doc
         except exception as e:  # type: ignore
             error_handler(self.name, self, [doc], e)
@@ -439,6 +433,7 @@ class SpaczzRuler(Pipe):
                                 or "token", not {entry["type"]}. Skipping this pattern.
                                 """,
                                 PatternTypeWarning,
+                                stacklevel=2,
                             )
                     else:
                         raise TypeError(
@@ -519,24 +514,14 @@ class SpaczzRuler(Pipe):
 
     def match(
         self: "SpaczzRuler", doc: Doc
-    ) -> ty.Tuple[
-        ty.List[ty.Tuple[str, int, int]],
-        ty.DefaultDict[str, ty.Dict[ty.Tuple[str, int, int], ty.Any]],
-    ]:
+    ) -> ty.List[ty.Tuple[str, int, int, int, str, MatchType]]:
         """Used in call to find matches in a doc."""
-        ratio_matches = [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)] + [
-            (*match, "regex") for match in self.regex_matcher(doc)
-        ]
-        sorted_ratio_matches = sorted(
-            ratio_matches, key=lambda x: (x[2] - x[1], -x[1], x[3]), reverse=True
+        matches = (
+            [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)]
+            + [(*match, "regex") for match in self.regex_matcher(doc)]
+            + [(*match, "token") for match in self.token_matcher(doc)]
         )
-        sorted_ratio_matches.extend(
-            [(*match, "token") for match in self.token_matcher(doc)]
-        )
-        unique_matches, lookup = self._filter_overlapping_matches(
-            dedup_matches(sorted_ratio_matches), lookup
-        )
-        return unique_matches, lookup
+        return sorted(matches, key=lambda x: (x[2] - x[1], -x[1], x[3]), reverse=True)
 
     def score(self: "SpaczzRuler", examples: ty.Any, **kwargs: ty.Any) -> ty.Any:
         """Pipeline scoring for spaCy compatibility."""
@@ -546,17 +531,13 @@ class SpaczzRuler(Pipe):
     def set_annotations(
         self: "SpaczzRuler",
         doc: Doc,
-        matches: ty.List[ty.Tuple[str, int, int]],
-        lookup: ty.DefaultDict[
-            str,
-            ty.Dict[ty.Tuple[str, int, int], ty.Union[int, ty.Tuple[int, int, int]]],
-        ],
+        matches: ty.List[ty.Tuple[str, int, int, int, str, MatchType]],
     ) -> None:
         """Modify the document in place."""
         entities = list(doc.ents)
         new_entities = []
         seen_tokens: ty.Set[int] = set()
-        for match_id, start, end in matches:
+        for match_id, start, end, ratio, pattern, match_type in matches:
             if any(t.ent_type for t in doc[start:end]) and not self.overwrite:
                 continue
             # check for end - 1 here because boundaries are inclusive
@@ -569,7 +550,13 @@ class SpaczzRuler(Pipe):
                             token.ent_id_ = ent_id
                 else:
                     span = Span(doc, start, end, label=match_id)
-                span = self._update_custom_attrs(span, match_id, lookup)
+                span = self._update_custom_attrs(
+                    span,
+                    match_id=match_id,
+                    ratio=ratio,
+                    pattern=pattern,
+                    match_type=match_type,
+                )
                 new_entities.append(span)
                 entities = [
                     e for e in entities if not (e.start < end and e.end > start)
@@ -883,17 +870,12 @@ class SpaczzRuler(Pipe):
 
     @staticmethod
     def _update_custom_attrs(
-        span: Span,
-        match_id: str,
-        lookup: ty.DefaultDict[str, ty.Dict[ty.Tuple[str, int, int], ty.Any]],
+        span: Span, match_id: str, ratio: int, pattern: str, match_type: MatchType
     ) -> Span:
         """Update custom attributes for matches."""
-        ratio = lookup["ratios"].get((match_id, span.start, span.end))
         for token in span:
             token._.spaczz_token = True
-            if ratio:
-                token._.spaczz_ratio = ratio
-                token._.spaczz_type = "fuzzy"  # need to split out fuzzy/regex
-            else:
-                token._.spaczz_type = "token"
+            token._.spaczz_ratio = ratio
+            token._.spaczz_pattern = pattern
+            token._.spaczz_type = match_type
         return span

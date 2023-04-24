@@ -102,7 +102,7 @@ class _PhraseSearcher(abc.ABC):
         match_map = self._scan(doc, query, min_r1=min_r1_, **kwargs)
 
         if match_map:
-            positions = [k for k in match_map.keys()]
+            positions = list(match_map.keys())
             matches_w_nones = [
                 self._optimize(
                     doc,
@@ -117,12 +117,16 @@ class _PhraseSearcher(abc.ABC):
                 for pos in positions
             ]
 
-            return filter_overlapping_matches(
-                sorted(
-                    [(*match, query.text) for match in matches_w_nones if match],
-                    key=lambda x: (-x[2], x[0]),
-                ),
-            )
+            matches = [match for match in matches_w_nones if match]
+            if matches:
+                return filter_overlapping_matches(
+                    sorted(
+                        [match for match in matches_w_nones if match],
+                        key=lambda x: (-x[2], x[0]),
+                    ),
+                )
+            else:
+                return []
 
         return []
 

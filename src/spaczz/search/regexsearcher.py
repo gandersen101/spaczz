@@ -121,7 +121,6 @@ class RegexSearcher:
                     fuzzy_counts=regex_match[1],
                     fuzzy_weights=fuzzy_weights,
                 ),
-                compiled_regex.pattern,
             )
             for regex_match in regex_matches
             if regex_match

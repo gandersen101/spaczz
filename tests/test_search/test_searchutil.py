@@ -10,8 +10,8 @@ from spaczz.search.searchutil import parse_regex
 
 def test_filter_overlapping_matches() -> None:
     """It only returns the first match if more than one encompass the same tokens."""
-    matches = [(1, 2, 80, "test"), (1, 3, 70, "test")]
-    assert filter_overlapping_matches(matches) == [(1, 2, 80, "test")]
+    matches = [(1, 2, 80), (1, 3, 70)]
+    assert filter_overlapping_matches(matches) == [(1, 2, 80)]
 
 
 def test_parse_regex_with_predef() -> None:
