@@ -4,14 +4,15 @@ import typing as ty
 
 import regex as re
 
+from ..customtypes import SearchResult
 from ..exceptions import RegexParseError
 from ..registry import re_patterns
 from ..registry import re_weights
 
 
 def filter_overlapping_matches(
-    matches: ty.Iterable[ty.Tuple[int, int, int, str]]
-) -> ty.List[ty.Tuple[int, int, int, str]]:
+    matches: ty.Iterable[SearchResult],
+) -> ty.List[SearchResult]:
     """Prevents multiple matches from overlapping.
 
     Expects matches to be pre-sorted by descending ratio
@@ -31,7 +32,7 @@ def filter_overlapping_matches(
         >>> filter_overlapping_matches(matches)
         [(1, 3, 80)]
     """
-    filtered_matches: ty.List[ty.Tuple[int, int, int, str]] = []
+    filtered_matches: ty.List[SearchResult] = []
     for match in matches:
         if not set(range(match[0], match[1])).intersection(
             itertools.chain(*[set(range(n[0], n[1])) for n in filtered_matches])

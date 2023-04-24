@@ -56,3 +56,13 @@ def write_to_disk(
         if key.split(".")[0] not in exclude:
             writer(path / key)
     return path
+
+
+def dedup_matches(*matches):
+    matches_set = set()
+    output_matches = []
+    for match in matches:
+        if match[:3] not in matches_set:
+            matches_set.add(match[:3])
+            output_matches.append(match)
+    return output_matches

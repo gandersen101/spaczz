@@ -21,7 +21,7 @@ numpy = [
     {version = ">=1.19.3", python = "~3.9"},
     {version = ">=1.21.2", python = "^3.10"}
 ]
-rapidfuzz = "^2.0"
+rapidfuzz = ">=1.0.0"
 regex = ">=2020.6.8"
 typing_extensions = "*"
 

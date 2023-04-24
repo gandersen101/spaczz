@@ -1,25 +1,26 @@
 """Tests for the regexmatcher module."""
 import pickle
-from typing import Any, cast, Iterator, List, Tuple
-import warnings
+import typing as ty
 
 import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 from spacy.tokens import Span
 
+from spaczz.customtypes import MatchResult
 from spaczz.exceptions import KwargsWarning
 from spaczz.matcher.regexmatcher import RegexMatcher
+from spaczz.registry.repatterns import re_patterns
 
 
 def add_gpe_ent(
     matcher: RegexMatcher,
     doc: Doc,
     i: int,
-    matches: List[Tuple[str, int, int, int]],
+    matches: ty.List[MatchResult],
 ) -> None:
     """Callback on match function for later testing. Adds "GPE" entities to doc."""
-    _match_id, start, end, _fuzzy_counts = matches[i]
+    _match_id, start, end, _ratio, _pattern = matches[i]
     entity = Span(doc, start, end, label="GPE")
     doc.ents += (entity,)  # type: ignore
 
@@ -34,7 +35,7 @@ def doc(nlp: Language) -> Doc:
 def matcher(nlp: Language) -> RegexMatcher:
     """Regex matcher with patterns added."""
     matcher = RegexMatcher(nlp.vocab)
-    matcher.add("GPE", ["(?i)[U](nited|\\.?) ?[S](tates|\\.?)"], on_match=add_gpe_ent)
+    matcher.add("GPE", [r"(?i)[U](nited|\.?) ?[S](tates|\.?)"], on_match=add_gpe_ent)
     matcher.add("STREET", ["street_addresses"], kwargs=[{"predef": True}])
     matcher.add("ZIP", ["zip_codes"], kwargs=[{"predef": True}])
     return matcher
@@ -138,9 +139,9 @@ def test_remove_label_raises_error_if_label_not_in_matcher(
 def test_matcher_returns_matches(matcher: RegexMatcher, doc: Doc) -> None:
     """Calling the matcher on a Doc object returns matches."""
     assert matcher(doc) == [
-        ("STREET", 3, 6, 100),
-        ("ZIP", 10, 11, 100),
-        ("GPE", 13, 14, 100),
+        ("STREET", 3, 6, 100, re_patterns.get("street_addresses").pattern),
+        ("ZIP", 10, 11, 100, re_patterns.get("zip_codes").pattern),
+        ("GPE", 13, 14, 100, r"(?i)[U](nited|\.?) ?[S](tates|\.?)"),
     ]
 
 
@@ -164,64 +165,6 @@ def test_matcher_uses_on_match_callback(matcher: RegexMatcher, doc: Doc) -> None
     assert "usa" in [ent.text for ent in doc.ents]
 
 
-def test_matcher_pipe(nlp: Language) -> None:
-    """It returns a stream of Doc objects."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp.make_doc("test doc 1: United States"),
-        nlp.make_doc("test doc 2: US"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects as tuples with context."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp.make_doc("test doc 1: United States"), "Country"),
-        (nlp.make_doc("test doc 2: US"), "Country"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream, as_tuples=True)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_matches(nlp: Language) -> None:
-    """It returns a stream of Doc objects and matches as tuples."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp.make_doc("test doc 1: United States"),
-        nlp.make_doc("test doc 2: US"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-    output = matcher.pipe(doc_stream, return_matches=True)
-    matches = [entry[1] for entry in output]
-    assert matches == [[("GPE", 4, 6, 100)], [("GPE", 4, 5, 100)]]
-
-
-def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects, matches, and context as a tuple."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp.make_doc("test doc 1: United States"), "Country"),
-        (nlp.make_doc("test doc 2: US"), "Country"),
-    )
-    matcher = RegexMatcher(nlp.vocab)
-    matcher.add("GPE", ["[Uu](nited|\\.?) ?[Ss](tates|\\.?)"])
-    output = cast(
-        Iterator[Tuple[Tuple[Doc, Any], Any]],
-        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
-    )
-    matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [
-        ([("GPE", 4, 6, 100)], "Country"),
-        ([("GPE", 4, 5, 100)], "Country"),
-    ]
-
-
 def test_pickling_matcher(matcher: RegexMatcher) -> None:
     """It pickles the matcher object."""
     bytestring = pickle.dumps(matcher)
@@ -233,7 +176,7 @@ def test_unpickling_matcher(matcher: RegexMatcher, doc: Doc) -> None:
     bytestring = pickle.dumps(matcher)
     matcher = pickle.loads(bytestring)
     assert matcher(doc) == [
-        ("STREET", 3, 6, 100),
-        ("ZIP", 10, 11, 100),
-        ("GPE", 13, 14, 100),
+        ("STREET", 3, 6, 100, re_patterns.get("street_addresses").pattern),
+        ("ZIP", 10, 11, 100, re_patterns.get("zip_codes").pattern),
+        ("GPE", 13, 14, 100, r"(?i)[U](nited|\.?) ?[S](tates|\.?)"),
     ]

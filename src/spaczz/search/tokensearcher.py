@@ -6,6 +6,7 @@ import regex
 from spacy.tokens import Doc
 from spacy.tokens import Token
 from spacy.vocab import Vocab
+import srsly
 
 from .searchutil import normalize_fuzzy_regex_counts
 from .searchutil import parse_regex
@@ -50,7 +51,7 @@ class TokenSearcher:
         doc: Doc,
         pattern: ty.List[ty.Dict[str, ty.Any]],
         min_r: int = 75,
-    ) -> ty.List[ty.List[ty.Tuple[str, str, int]]]:
+    ) -> ty.List[ty.Tuple[ty.List[ty.Tuple[str, str, int]], str]]:
         """Finds potential token pattern matches in a `Doc` object.
 
         Make sure to use uppercase dictionary keys in patterns.
@@ -89,7 +90,7 @@ class TokenSearcher:
         return [
             match
             for i, match in enumerate(matches)
-            if match and match not in matches[:i]
+            if match[0] and match not in matches[:i]
         ]
 
     @staticmethod
@@ -187,7 +188,7 @@ class TokenSearcher:
         seq: ty.Tuple[Token, ...],
         pattern: ty.List[ty.Dict[str, ty.Any]],
         min_r: int,
-    ) -> ty.List[ty.Tuple[str, str, int]]:
+    ) -> ty.Tuple[ty.List[ty.Tuple[str, str, int]], str]:
         """Evaluates each token in a pattern against a doc token sequence."""
         seq_matches: ty.List[ty.Tuple[str, str, int]] = []
         for i, token in enumerate(pattern):
@@ -205,7 +206,7 @@ class TokenSearcher:
                     if r:
                         seq_matches.append((case, seq[i].text, r))
                     else:
-                        return []
+                        return [], ""
                 elif pattern_text and pattern_type == "FREGEX":
                     r = self.regex_compare(
                         seq[i].text,
@@ -218,12 +219,12 @@ class TokenSearcher:
                     if r:
                         seq_matches.append((case, seq[i].text, r))
                     else:
-                        return []
+                        return [], ""
                 else:
                     seq_matches.append(("", "", 100))
             else:
                 seq_matches.append(("", "", 100))
-        return seq_matches
+        return seq_matches, srsly.json_dumps(pattern)
 
     @staticmethod
     def _parse_case(

@@ -1,7 +1,6 @@
 """Tests for tokenmatcher module."""
 import pickle
-from typing import Any, cast, Iterator, List, Tuple
-import warnings
+import typing as ty
 
 import pytest
 import spacy
@@ -14,10 +13,13 @@ from spaczz.matcher import TokenMatcher
 
 
 def add_name_ent(
-    matcher: TokenMatcher, doc: Doc, i: int, matches: List[Tuple[str, int, int, None]]
+    matcher: TokenMatcher,
+    doc: Doc,
+    i: int,
+    matches: ty.List[ty.Tuple[str, int, int, None]],
 ) -> None:
     """Callback on match function. Adds "NAME" entities to doc."""
-    _match_id, start, end, _details = matches[i]
+    _match_id, start, end, _ratio = matches[i]
     entity = Span(doc, start, end, label="NAME")
     doc.ents += (entity,)  # type: ignore
 
@@ -160,88 +162,11 @@ def test_matcher_returns_empty_list_if_no_matches(nlp: Language) -> None:
     assert matcher(doc) == []
 
 
-def test_matcher_warns_if_unknown_pattern_elements(nlp: Language) -> None:
-    """Calling the matcher on a `Doc` object with no matches returns empty list."""
-    matcher = TokenMatcher(nlp.vocab)
-    matcher.add("TEST", [[{"TEXT": {"fuzzy": "test"}}]])
-    doc = nlp("test")
-    if spacy.__version__ < "3.0.0":
-        with pytest.warns(UserWarning):
-            matcher(doc)
-    else:
-        with pytest.raises(MatchPatternError):
-            matcher(doc)
-
-
 def test_matcher_uses_on_match_callback(matcher: TokenMatcher, doc: Doc) -> None:
     """It utilizes callback on match functions passed when called on a Doc object."""
     matcher(doc)
     ent_text = [ent.text for ent in doc.ents]
     assert "Grfield" in ent_text
-
-
-def test_matcher_pipe(nlp: Language) -> None:
-    """It returns a stream of Doc objects."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp("test doc 1: Corvold"),
-        nlp("test doc 2: Prosh"),
-    )
-    matcher = TokenMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects as tuples with context."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp("test doc 1: Corvold"), "Jund"),
-        (nlp("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = TokenMatcher(nlp.vocab)
-    output = matcher.pipe(doc_stream, as_tuples=True)
-    assert list(output) == list(doc_stream)
-
-
-def test_matcher_pipe_with_matches(nlp: Language) -> None:
-    """It returns a stream of Doc objects and matches as tuples."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        nlp("test doc 1: Corvold"),
-        nlp("test doc 2: Prosh"),
-    )
-    matcher = TokenMatcher(nlp.vocab)
-    matcher.add(
-        "DRAGON",
-        [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
-    )
-    output = matcher.pipe(doc_stream, return_matches=True)
-    matches = [entry[1] for entry in output]
-    assert matches == [[("DRAGON", 4, 5, None)], [("DRAGON", 4, 5, None)]]
-
-
-def test_matcher_pipe_with_matches_and_context(nlp: Language) -> None:
-    """It returns a stream of Doc objects and matches and context as tuples."""
-    warnings.filterwarnings("ignore")
-    doc_stream = (
-        (nlp("test doc 1: Corvold"), "Jund"),
-        (nlp("test doc 2: Prosh"), "Jund"),
-    )
-    matcher = TokenMatcher(nlp.vocab)
-    matcher.add(
-        "DRAGON",
-        [[{"TEXT": {"FUZZY": "Korvold"}}], [{"TEXT": {"FUZZY": "Prossh"}}]],
-    )
-    output = cast(
-        Iterator[Tuple[Tuple[Doc, Any], Any]],
-        matcher.pipe(doc_stream, return_matches=True, as_tuples=True),
-    )
-    matches = [(entry[0][1], entry[1]) for entry in output]
-    assert matches == [
-        ([("DRAGON", 4, 5, None)], "Jund"),
-        ([("DRAGON", 4, 5, None)], "Jund"),
-    ]
 
 
 def test_pickling_matcher(nlp: Language) -> None:

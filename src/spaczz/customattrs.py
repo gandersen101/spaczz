@@ -25,6 +25,7 @@ class SpaczzAttrs:
                 Token.set_extension("spaczz_token", default=False)
                 Token.set_extension("spaczz_type", default=None)
                 Token.set_extension("spaczz_ratio", default=None)
+                Token.set_extension("spaczz_pattern", default=None)
 
                 Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
                 Span.set_extension("spaczz_ent", getter=cls.get_spaczz_ent)

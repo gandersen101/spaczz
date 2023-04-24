@@ -13,3 +13,6 @@ from spacy.tokens import Token
 DocLike = ty.Union[Doc, Span]
 FlexType = ty.Union[int, Literal["default", "min", "max"]]
 TextContainer = ty.Union[Doc, Span, Token]
+SearchResult = ty.Tuple[int, int, int, str]
+MatchResult = ty.Tuple[str, int, int, int, str]
+MatchType = ty.Literal["fuzzy", "regex", "token", "similarity"]

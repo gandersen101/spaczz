@@ -9,6 +9,7 @@ from spacy.vocab import Vocab
 from .searchutil import filter_overlapping_matches
 from ..customtypes import DocLike
 from ..customtypes import FlexType
+from ..customtypes import SearchResult
 from ..customtypes import TextContainer
 from ..exceptions import FlexWarning
 from ..exceptions import RatioWarning
@@ -56,7 +57,7 @@ class _PhraseSearcher(abc.ABC):
         min_r1: ty.Optional[int] = None,
         min_r2: ty.Optional[int] = None,
         **kwargs: ty.Any,
-    ) -> ty.List[ty.Tuple[int, int, int, str]]:
+    ) -> ty.List[SearchResult]:
         """Returns phrase matches in a `Doc` object.
 
         Finds matches in `doc` based on `query`, assuming the minimum match ratios
@@ -101,8 +102,8 @@ class _PhraseSearcher(abc.ABC):
         match_map = self._scan(doc, query, min_r1=min_r1_, **kwargs)
 
         if match_map:
-            positions = (k for k in match_map.keys())
-            matches_w_nones = (
+            positions = [k for k in match_map.keys()]
+            matches_w_nones = [
                 self._optimize(
                     doc,
                     query,
@@ -114,11 +115,11 @@ class _PhraseSearcher(abc.ABC):
                     **kwargs,
                 )
                 for pos in positions
-            )
+            ]
 
             return filter_overlapping_matches(
                 sorted(
-                    ((*match, query.text) for match in matches_w_nones if match),
+                    [(*match, query.text) for match in matches_w_nones if match],
                     key=lambda x: (-x[2], x[0]),
                 ),
             )

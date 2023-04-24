@@ -1,29 +1,12 @@
 """Module for TokenMatcher with an API semi-analogous to spaCy's Matcher."""
-from __future__ import annotations
-
 from collections import defaultdict
 from copy import deepcopy
-from typing import (
-    Any,
-    Callable,
-    cast,
-    DefaultDict,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
-import warnings
+import typing as ty
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
-from ..exceptions import PipeDeprecation
 from ..search import TokenSearcher
 
 
@@ -58,7 +41,7 @@ class TokenMatcher:
 
     name = "token_matcher"
 
-    def __init__(self: TokenMatcher, vocab: Vocab, **defaults: Any) -> None:
+    def __init__(self: "TokenMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
         """Initializes the base phrase matcher with the given defaults.
 
         Args:
@@ -75,11 +58,15 @@ class TokenMatcher:
         """
         self.defaults = defaults
         self.type = "token"
-        self._callbacks: Dict[str, TokenCallback] = {}
-        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = DefaultDict(list)
+        self._callbacks: ty.Dict[str, TokenCallback] = {}
+        self._patterns: ty.DefaultDict[
+            str, ty.List[ty.List[ty.Dict[str, ty.Any]]]
+        ] = ty.DefaultDict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self: TokenMatcher, doc: Doc) -> List[Tuple[str, int, int, None]]:
+    def __call__(
+        self: "TokenMatcher", doc: Doc
+    ) -> ty.List[ty.Tuple[str, int, int, int, str]]:
         """Find all sequences matching the supplied patterns in the doc.
 
         Args:
@@ -117,28 +104,30 @@ class TokenMatcher:
         matches = matcher(doc)
         if matches:
             extended_matches = [
-                (cast(str, self.vocab.strings[match_id]), start, end, None)
-                for match_id, start, end in cast(List[Tuple[int, int, int]], matches)
+                (ty.cast(str, self.vocab.strings[match_id]), start, end, None)
+                for match_id, start, end in ty.cast(
+                    ty.List[ty.Tuple[int, int, int]], matches
+                )
             ]
             extended_matches.sort(key=lambda x: (-x[1], x[2] - x[1]), reverse=True)
-            for i, (label, _start, _end, _details) in enumerate(extended_matches):
+            for i, (label, _start, _end, _ratio) in enumerate(extended_matches):
                 on_match = self._callbacks.get(label)
                 if on_match:
                     on_match(self, doc, i, extended_matches)
             return extended_matches
         return []
 
-    def __contains__(self: TokenMatcher, label: str) -> bool:
+    def __contains__(self: "TokenMatcher", label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self: TokenMatcher) -> int:
+    def __len__(self: "TokenMatcher") -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     def __reduce__(
-        self: TokenMatcher,
-    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
+        self: "TokenMatcher",
+    ) -> ty.Tuple[ty.Any, ty.Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -150,7 +139,7 @@ class TokenMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: TokenMatcher) -> Tuple[str, ...]:
+    def labels(self: "TokenMatcher") -> ty.Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
@@ -168,7 +157,7 @@ class TokenMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: TokenMatcher) -> List[Dict[str, Any]]:
+    def patterns(self: "TokenMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
         """Get all patterns that were added to the matcher.
 
         Returns:
@@ -197,15 +186,15 @@ class TokenMatcher:
         return all_patterns
 
     @property
-    def vocab(self: TokenMatcher) -> Vocab:
+    def vocab(self: "TokenMatcher") -> Vocab:
         """Returns the spaCy `Vocab` object utilized."""
         return self._searcher.vocab
 
     def add(
-        self: TokenMatcher,
+        self: "TokenMatcher",
         label: str,
-        patterns: List[List[Dict[str, Any]]],
-        on_match: TokenCallback = None,
+        patterns: ty.List[ty.List[ty.Dict[str, ty.Any]]],
+        on_match: "TokenCallback" = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
@@ -250,7 +239,7 @@ class TokenMatcher:
                 raise TypeError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
-    def remove(self: TokenMatcher, label: str) -> None:
+    def remove(self: "TokenMatcher", label: str) -> None:
         """Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -277,84 +266,35 @@ class TokenMatcher:
                 f"The label: {label} does not exist within the matcher rules."
             )
 
-    def pipe(
-        self: TokenMatcher,
-        docs: Union[Iterable[Doc], Iterable[Tuple[Doc, Any]]],
-        batch_size: int = 1000,
-        return_matches: bool = False,
-        as_tuples: bool = False,
-    ) -> Union[
-        Iterator[Tuple[Tuple[Doc, Any], Any]], Iterator[Tuple[Doc, Any]], Iterator[Doc]
-    ]:
-        """Match a stream of `Doc` objects, yielding them in turn.
-
-        Deprecated as of spaCy v3.0 and spaczz v0.5.
-
-        Args:
-            docs: A stream of `Doc` objects.
-            batch_size: Number of documents to accumulate into a working set.
-                Default is `1000`.
-            return_matches: Yield the match lists along with the docs,
-                making results (doc, matches) tuples. Default is `False`.
-            as_tuples: Interpret the input stream as (doc, context) tuples,
-                and yield (result, context) tuples out.
-                If both return_matches and as_tuples are `True`,
-                the output will be a sequence of ((doc, matches), context) tuples.
-                Default is `False`.
-
-        Yields:
-            `Doc` objects, in order.
-        """
-        warnings.warn(
-            """As of spaczz v0.5 and spaCy v3.0, the matcher.pipe method
-        is deprecated. If you need to match on a stream of documents,
-        you can use nlp.pipe and call the matcher on each Doc object.""",
-            PipeDeprecation,
-        )
-        if as_tuples:
-            for doc, context in cast(Iterable[Tuple[Doc, Any]], docs):
-                matches = self(doc)
-                if return_matches:
-                    yield ((doc, matches), context)
-                else:
-                    yield (doc, context)
-        else:
-            for doc in cast(Iterable[Doc], docs):
-                matches = self(doc)
-                if return_matches:
-                    yield (doc, matches)
-                else:
-                    yield doc
-
 
 def _spacyfy(
-    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
-) -> List[List[Dict[str, Any]]]:
+    matches: ty.List[ty.List[ty.Tuple[str, str, int]]],
+    pattern: ty.List[ty.Dict[str, ty.Any]],
+) -> ty.List[ty.List[ty.Dict[str, ty.Any]]]:
     """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
     new_patterns = []
-    if matches:
-        for match in matches:
-            new_pattern = deepcopy(pattern)
-            for i, token in enumerate(match):
-                if token:
-                    del new_pattern[i][token[0]]
-                    new_pattern[i]["TEXT"] = token[1]
-            new_patterns.append(new_pattern)
+    for match in matches:
+        new_pattern = deepcopy(pattern)
+        for i, token in enumerate(match):
+            if token[0]:
+                del new_pattern[i][token[0]]
+                new_pattern[i]["TEXT"] = token[1]
+        new_patterns.append(new_pattern)
     return new_patterns
 
 
-TokenCallback = Optional[
-    Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+TokenCallback = ty.Optional[
+    ty.Callable[[TokenMatcher, Doc, int, ty.List[ty.Tuple[str, int, int, None]]], None]
 ]
 
 
 def unpickle_matcher(
-    matcher: Type[TokenMatcher],
+    matcher: ty.Type[TokenMatcher],
     vocab: Vocab,
-    patterns: DefaultDict[str, List[List[Dict[str, Any]]]],
-    callbacks: Dict[str, TokenCallback],
-    defaults: Any,
-) -> Any:
+    patterns: ty.DefaultDict[str, ty.List[ty.List[ty.Dict[str, ty.Any]]]],
+    callbacks: ty.Dict[str, TokenCallback],
+    defaults: ty.Any,
+) -> TokenMatcher:
     """Will return a matcher from pickle protocol."""
     matcher_instance = matcher(vocab, **defaults)
     for key, specs in patterns.items():

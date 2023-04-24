@@ -9,6 +9,7 @@ from spacy.vocab import Vocab
 from .searchutil import filter_overlapping_matches
 from .searchutil import normalize_fuzzy_regex_counts
 from .searchutil import parse_regex
+from ..customtypes import SearchResult
 
 
 class RegexSearcher:
@@ -44,7 +45,7 @@ class RegexSearcher:
         predef: bool = False,
         min_r: int = 75,
         fuzzy_weights: str = "indel",
-    ) -> ty.List[ty.Tuple[int, int, int, str]]:
+    ) -> ty.List[SearchResult]:
         """Returns regex matches in a `Doc` object.
 
         Matches on the character level and then maps matches back
@@ -104,14 +105,14 @@ class RegexSearcher:
         compiled_regex = parse_regex(query, predef=predef)
         char_to_token_map = self._map_chars_to_tokens(doc)
 
-        regex_matches = (
+        regex_matches = [
             self._spans_from_regex(
                 doc, match=match, partial=partial, char_to_token_map=char_to_token_map
             )
             for match in compiled_regex.finditer(doc.text)
-        )
+        ]
 
-        formatted_matches = (
+        formatted_matches = [
             (
                 regex_match[0].start,
                 regex_match[0].end,
@@ -124,15 +125,15 @@ class RegexSearcher:
             )
             for regex_match in regex_matches
             if regex_match
-        )
+        ]
 
         return filter_overlapping_matches(
             sorted(
-                (
+                [
                     formatted_match
                     for formatted_match in formatted_matches
                     if formatted_match[2] >= min_r
-                ),
+                ],
                 key=lambda x: (-x[2], x[0]),
             )
         )

@@ -6,6 +6,7 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from ..customtypes import MatchResult
 from ..exceptions import KwargsWarning
 from ..search import _PhraseSearcher
 from ..util import nest_defaultdict
@@ -57,9 +58,7 @@ class _PhraseMatcher(abc.ABC):
         ] = nest_defaultdict(list)
         self._searcher = self._get_searcher(vocab)
 
-    def __call__(
-        self: "_PhraseMatcher", doc: Doc
-    ) -> ty.List[ty.Tuple[str, int, int, int, str]]:
+    def __call__(self: "_PhraseMatcher", doc: Doc) -> ty.List[MatchResult]:
         """Find all sequences matching the supplied patterns in `doc`.
 
         Args:
@@ -289,9 +288,7 @@ class _PhraseMatcher(abc.ABC):
 
 
 PMT = ty.TypeVar("PMT", bound=_PhraseMatcher)
-PhraseCallback = ty.Optional[
-    ty.Callable[[PMT, Doc, int, ty.List[ty.Tuple[str, int, int, int, str]]], None]
-]
+PhraseCallback = ty.Optional[ty.Callable[[PMT, Doc, int, ty.List[MatchResult]], None]]
 
 
 def unpickle_matcher(
@@ -300,7 +297,7 @@ def unpickle_matcher(
     patterns: ty.DefaultDict[str, ty.DefaultDict[str, ty.Any]],
     callbacks: ty.Dict[str, PhraseCallback],
     defaults: ty.Any,
-) -> ty.Any:
+) -> _PhraseMatcher:
     """Will return a matcher from pickle protocol."""
     matcher_instance = matcher(vocab, **defaults)
     for key, specs in patterns.items():
