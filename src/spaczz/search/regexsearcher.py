@@ -1,7 +1,11 @@
 """Module for RegexSearcher: multi-token regex matching in spaCy `Doc` objects."""
 import typing as ty
 
-import regex as re
+try:
+    from typing import Match
+except ImportError:  # pragma: no cover
+    from regex import Match  # type: ignore
+
 from spacy.tokens import Doc
 from spacy.tokens import Span
 from spacy.vocab import Vocab
@@ -149,7 +153,7 @@ class RegexSearcher:
     @staticmethod
     def _spans_from_regex(
         doc: Doc,
-        match: re.Match[str],
+        match: Match[str],
         partial: bool,
         char_to_token_map: ty.Dict[int, int],
     ) -> ty.Optional[ty.Tuple[Span, ty.Tuple[int, int, int]]]:

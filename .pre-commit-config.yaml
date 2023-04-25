@@ -1,3 +1,15 @@
+exclude: >
+      (?x)(
+          \.mypy_cache/
+          | \.pytest_cache/
+          | \.venv/
+          | build/
+          | dist/
+          | docs/_build/
+          | notebooks/
+          | \S+\.egg-info/
+      )
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -14,21 +26,21 @@ repos:
     hooks:
       - id: isort
         name: isort
-        entry: poetry run isort src tests ./noxfile.py docs/conf.py
+        entry: poetry run isort
+        types: [python]
         language: system
-        pass_filenames: false
       - id: black
         name: black
-        entry: poetry run black src tests ./noxfile.py docs/conf.py
+        entry: poetry run black
+        types: [python]
         language: system
-        pass_filenames: false
       - id: flake8
         name: flake8
-        entry: poetry run flake8 src tests ./noxfile.py docs/conf.py
+        entry: poetry run flake8
+        types: [python]
         language: system
-        pass_filenames: false
       - id: mypy
         name: mypy
-        entry: poetry run mypy src tests docs/conf.py
+        entry: poetry run mypy
+        types: [python]
         language: system
-        pass_filenames: false

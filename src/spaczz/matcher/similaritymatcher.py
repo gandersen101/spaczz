@@ -4,6 +4,7 @@ import typing as ty
 from spacy.vocab import Vocab
 
 from . import _PhraseMatcher
+from ..customtypes import MatchType
 from ..search import SimilaritySearcher
 
 
@@ -47,7 +48,7 @@ class SimilarityMatcher(_PhraseMatcher):
                 See `SimilaritySearcher` documentation for details.
         """
         super().__init__(vocab=vocab, **defaults)
-        self.type = "similarity"
+        self.type: MatchType = "similarity"
         self._searcher = self._get_searcher(vocab)
 
     @staticmethod

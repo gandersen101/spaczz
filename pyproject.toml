@@ -10,11 +10,16 @@ keywords = ["fuzzy matching", "spacy", "nlp"]
 authors = ["Grant Andersen <gandersen.codes@gmail.com>"]
 documentation = "https://spaczz.readthedocs.io"
 
+[tool.poetry.plugins."spacy_factories"]
+"spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
+
+# Dependencies
+
 [tool.poetry.dependencies]
 python = "^3.7"
 spacy = "^3.0"
 catalogue = "*"
-importlib_metadata = {version = "*", python = "<3.8"}
+srsly = "*"
 numpy = [
     {version = ">=1.15, <1.22", python = "~3.7"},
     {version = ">=1.17.3", python = "~3.8"},
@@ -23,31 +28,65 @@ numpy = [
 ]
 rapidfuzz = ">=1.0.0"
 regex = ">=2020.6.8"
-typing_extensions = "*"
+importlib_metadata = {version = "*", python = "<3.8"}
+typing_extensions = {version = "*", python = "<3.8"}
 
-[tool.poetry.dev-dependencies]
-flake8 = ">=5.0"
+## Formatting
+
+[tool.poetry.group.black.dependencies]
 black = ">=22.3"
-pytest = "*"
-coverage = {version = "*", extras = ["toml"]}
-pytest-cov = "*"
-flake8-black = ">=0.3"
-flake8-bugbear = ">=22.4"
-flake8-bandit = ">=4.0"
-flake8-import-order = ">=0.18"
-mypy = ">=0.9"
-flake8-annotations = ">=2.9"
-flake8-docstrings = ">=1.6"
-darglint = ">=1.8"
-xdoctest = ">=1.0"
-sphinx = ">=4.0.2, <5.0"
-sphinx-autodoc-typehints = "*"
-sphinx-autobuild = "*"
-ipykernel = "*"
+
+[tool.poetry.group.isort.dependencies]
 isort = ">=5.10"
 
-[tool.poetry.plugins."spacy_factories"]
-"spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
+## Linting
+
+[tool.poetry.group.lint.dependencies]
+darglint = ">=1.8"
+flake8 = ">=5.0"
+flake8-annotations = ">=2.9"
+flake8-bandit = ">=4.0"
+flake8-black = ">=0.3"
+flake8-bugbear = ">=22.4"
+flake8-docstrings = ">=1.6"
+flake8-import-order = ">=0.18"
+
+## Typechecking
+
+[tool.poetry.group.mypy.dependencies]
+mypy = ">=0.9"
+nox = "*"
+pytest = "*"
+
+## Testing
+
+[tool.poetry.group.test.dependencies]
+coverage = {version = "*", extras = ["toml"]}
+pytest = "*"
+pytest-cov = "*"
+
+## Docs
+
+[tool.poetry.group.xdoctest.dependencies]
+xdoctest = ">=1.0"
+
+[tool.poetry.group.readme.dependencies]
+ipykernel = "*"
+nbconvert = "*"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = ">=4.0.2, <5.0"
+sphinx-autobuild = "*"
+sphinx-autodoc-typehints = "*"
+
+# Other Tools
+
+[tool.black]
+extend-exclude = '''
+(
+  notebooks/
+)
+'''
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
@@ -82,6 +121,7 @@ reverse_relative = true
 module = [
     "catalogue",
     "regex",
+    "rich.*",
     "srsly",
 ]
 ignore_missing_imports = true

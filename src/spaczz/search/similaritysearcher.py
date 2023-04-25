@@ -55,6 +55,7 @@ class SimilaritySearcher(_PhraseSearcher):
                 """The spaCy Vocab object has no word vectors.
                 Similarity results may not be useful.""",
                 MissingVectorsWarning,
+                stacklevel=2,
             )
 
     def compare(

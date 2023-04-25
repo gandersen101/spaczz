@@ -7,6 +7,7 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 import srsly
 
+from ..customtypes import MatchType
 from ..search import TokenSearcher
 
 
@@ -57,7 +58,7 @@ class TokenMatcher:
                 See `TokenSearcher.match()` documentation for details.
         """
         self.defaults = defaults
-        self.type = "token"
+        self.type: MatchType = "token"
         self._callbacks: ty.Dict[str, TokenCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.List[ty.List[ty.Dict[str, ty.Any]]]

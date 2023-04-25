@@ -5,7 +5,6 @@ from spacy.tokens import Doc
 
 from spaczz.customattrs import SpaczzAttrs
 from spaczz.exceptions import AttrOverwriteWarning
-from spaczz.exceptions import SpaczzSpanDeprecation
 
 
 @pytest.fixture
@@ -18,15 +17,6 @@ def test_initialize_again_skips() -> None:
     """Subsequent `SpaczzAttrs` initializations do nothing."""
     SpaczzAttrs.initialize()
     assert SpaczzAttrs._initialized is True
-
-
-def test_get_spaczz_span(doc: Doc) -> None:
-    """Returns spaczz span boolean."""
-    for token in doc[:2]:
-        token._.spaczz_token = True
-    with pytest.warns(SpaczzSpanDeprecation):
-        value = doc[:2]._.spaczz_span
-    assert value is True
 
 
 def test_get_spaczz_ent(doc: Doc) -> None:

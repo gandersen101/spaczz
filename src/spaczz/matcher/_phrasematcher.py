@@ -7,6 +7,7 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..customtypes import MatchResult
+from ..customtypes import MatchType
 from ..exceptions import KwargsWarning
 from ..search import _PhraseSearcher
 from ..util import nest_defaultdict
@@ -51,7 +52,7 @@ class _PhraseMatcher(abc.ABC):
                 See `_PhraseSearcher` documentation for details.
         """
         self.defaults = defaults
-        self.type = "_phrase"
+        self.type: MatchType = "_phrase"
         self._callbacks: ty.Dict[str, PhraseCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]

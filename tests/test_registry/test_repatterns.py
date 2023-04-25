@@ -2,19 +2,19 @@
 from catalogue import RegistryError
 import pytest
 
-from spaczz.registry.repatterns import re_patterns
+from spaczz.registry.repatterns import get_re_pattern
 
 
 def test_unregistered_pattern() -> None:
     """Raises `RegistryError`."""
     with pytest.raises(RegistryError):
-        re_patterns.get("unregistered")
+        get_re_pattern("unregistered")
 
 
 def test_dates() -> None:
     """Matches dates."""
     matching = ["1-19-14", "01-19-14", "1.19.14", "01.19.14", "1/19/14", "01/19/14"]
-    pattern = re_patterns.get("dates")
+    pattern = get_re_pattern("dates")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -22,7 +22,7 @@ def test_dates() -> None:
 def test_verbose_dates() -> None:
     """Matches verbose dates."""
     matching = ["January 19th, 2014", "Jan. 19th, 2014", "Jan 19 2014", "19 Jan 2014"]
-    pattern = re_patterns.get("dates")
+    pattern = get_re_pattern("dates")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -30,7 +30,7 @@ def test_verbose_dates() -> None:
 def test_times() -> None:
     """Matches times."""
     matching = ["09:45", "9:45", "23:45", "9:00am", "9am", "9:00 A.M.", "9:00 pm"]
-    pattern = re_patterns.get("times")
+    pattern = get_re_pattern("times")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -51,7 +51,7 @@ def test_phones() -> None:
         "(+41) 22 730 5989",
         "+442345678900",
     ]
-    pattern = re_patterns.get("phones")
+    pattern = get_re_pattern("phones")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -68,7 +68,7 @@ def test_phones_with_extensions() -> None:
         "(523) 222-8888 x 623",
     ]
     non_matching = ["222-5555", "333-333-5555 dial 3"]
-    pattern = re_patterns.get("phones_with_exts")
+    pattern = get_re_pattern("phones_with_exts")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -86,7 +86,7 @@ def test_links() -> None:
         "google.com",
     ]
     non_matching = ["www.google.con"]
-    pattern = re_patterns.get("links")
+    pattern = get_re_pattern("links")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -97,7 +97,7 @@ def test_emails() -> None:
     """Matches emails."""
     matching = ["john.smith@gmail.com", "john_smith@gmail.com", "john@example.net"]
     non_matching = ["john.smith@gmail..com"]
-    pattern = re_patterns.get("emails")
+    pattern = get_re_pattern("emails")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -107,7 +107,7 @@ def test_emails() -> None:
 def test_ips() -> None:
     """Matches IP addresses."""
     matching = ["127.0.0.1", "192.168.1.1", "8.8.8.8"]
-    pattern = re_patterns.get("ips")
+    pattern = get_re_pattern("ips")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -123,7 +123,7 @@ def test_ipv6s() -> None:
         "fe80::204:61ff:254.157.241.86",
         "::1",
     ]
-    pattern = re_patterns.get("ipv6s")
+    pattern = get_re_pattern("ipv6s")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -132,7 +132,7 @@ def test_prices() -> None:
     """Matches prices."""
     matching = ["$1.23", "$1", "$1,000", "$10,000.00"]
     non_matching = ["$1,10,0", "$100.000"]
-    pattern = re_patterns.get("prices")
+    pattern = get_re_pattern("prices")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -142,7 +142,7 @@ def test_prices() -> None:
 def test_hex_colors() -> None:
     """Matches hex colors."""
     matching = ["#fff", "#123", "#4e32ff", "#12345678"]
-    pattern = re_patterns.get("hex_colors")
+    pattern = get_re_pattern("hex_colors")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -155,7 +155,7 @@ def test_credit_cards() -> None:
         "0000 0000 0000 0000",
         "012345678901234",
     ]
-    pattern = re_patterns.get("credit_cards")
+    pattern = get_re_pattern("credit_cards")
     for m in matching:
         assert pattern.findall(m) == [m]
 
@@ -174,7 +174,7 @@ def test_btc_addresses() -> None:
         "1bones8KbQge9euDn523z5wVhwkTP3uc12939",
         "1Bow5EMqtDGV5n5xZVgdpR",
     ]
-    pattern = re_patterns.get("btc_addresses")
+    pattern = get_re_pattern("btc_addresses")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -190,7 +190,7 @@ def test_street_addresses() -> None:
         "500 elm street ",
     ]
     non_matching = ["101 main straight"]
-    pattern = re_patterns.get("street_addresses")
+    pattern = get_re_pattern("street_addresses")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -201,7 +201,7 @@ def test_zip_codes() -> None:
     """Matches zip codes."""
     matching = ["02540", "02540-4119"]
     non_matching = ["101 main straight", "123456"]
-    pattern = re_patterns.get("zip_codes")
+    pattern = get_re_pattern("zip_codes")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -212,7 +212,7 @@ def test_po_boxes() -> None:
     """Matches PO boxes."""
     matching = ["PO Box 123456", "p.o. box 234234"]
     non_matching = ["101 main straight"]
-    pattern = re_patterns.get("po_boxes")
+    pattern = get_re_pattern("po_boxes")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:
@@ -223,7 +223,7 @@ def test_ssn_number() -> None:
     """Matches SSN numbers."""
     matching = ["523 23 4566", "523-04-1234"]
     non_matching = ["774 00 1245", "666-12-7856"]
-    pattern = re_patterns.get("ssn_numbers")
+    pattern = get_re_pattern("ssn_numbers")
     for m in matching:
         assert pattern.findall(m) == [m]
     for m in non_matching:

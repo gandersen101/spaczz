@@ -3,7 +3,7 @@ import pytest
 import regex as re
 
 from spaczz.exceptions import RegexParseError
-from spaczz.registry import re_patterns
+from spaczz.registry import get_re_pattern
 from spaczz.search.searchutil import filter_overlapping_matches
 from spaczz.search.searchutil import parse_regex
 
@@ -16,7 +16,7 @@ def test_filter_overlapping_matches() -> None:
 
 def test_parse_regex_with_predef() -> None:
     """It returns a predefined regex pattern."""
-    assert parse_regex("phones", predef=True) == re_patterns.get("phones")
+    assert parse_regex("phones", predef=True) == get_re_pattern("phones")
 
 
 def test_parse_regex_with_new_regex() -> None:

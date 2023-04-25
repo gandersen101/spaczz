@@ -2,10 +2,10 @@
 from catalogue import RegistryError
 import pytest
 
-from spaczz.registry.fuzzyfuncs import fuzzy_funcs
+from spaczz.registry.fuzzyfuncs import get_fuzzy_func
 
 
 def test_unregistered_func() -> None:
     """Raises `RegistryError`."""
     with pytest.raises(RegistryError):
-        fuzzy_funcs.get("unregistered")
+        get_fuzzy_func("unregistered")

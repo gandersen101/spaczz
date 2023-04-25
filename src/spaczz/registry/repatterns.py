@@ -1,4 +1,6 @@
 """Registry of commonly used regex patterns."""
+from functools import lru_cache
+
 import catalogue
 import regex as re
 
@@ -137,3 +139,5 @@ re_patterns.register(
         [- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}"""
     ),
 )
+
+get_re_pattern = lru_cache(1)(re_patterns.get)

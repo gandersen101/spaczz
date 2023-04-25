@@ -5,7 +5,7 @@ from spacy.vocab import Vocab
 
 from ._phrasesearcher import _PhraseSearcher
 from ..customtypes import TextContainer
-from ..registry import fuzzy_funcs
+from ..registry.fuzzyfuncs import get_fuzzy_func
 
 
 class FuzzySearcher(_PhraseSearcher):
@@ -94,4 +94,4 @@ class FuzzySearcher(_PhraseSearcher):
         else:
             s1_text = s1.text
             s2_text = s2.text
-        return round(fuzzy_funcs.get(fuzzy_func)(s1_text, s2_text, score_cutoff=min_r))
+        return round(get_fuzzy_func(fuzzy_func)(s1_text, s2_text, score_cutoff=min_r))

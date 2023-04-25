@@ -9,7 +9,7 @@ from spacy.vocab import Vocab
 
 from .searchutil import normalize_fuzzy_regex_counts
 from .searchutil import parse_regex
-from ..registry import fuzzy_funcs
+from ..registry import get_fuzzy_func
 
 
 class TokenSearcher:
@@ -135,7 +135,7 @@ class TokenSearcher:
             s1 = s1.lower()
             s2 = s2.lower()
 
-        return round(fuzzy_funcs.get(fuzzy_func)(s1, s2, score_cutoff=min_r))
+        return round(get_fuzzy_func(fuzzy_func)(s1, s2, score_cutoff=min_r))
 
     @staticmethod
     def regex_compare(

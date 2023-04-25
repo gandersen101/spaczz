@@ -349,6 +349,7 @@ class _PhraseSearcher(abc.ABC):
                     f"""`flex` of size `{flex}` is > `len(query)`, `{query_len}`.
                         Setting flex to `{query_len}` instead.""",
                     FlexWarning,
+                    stacklevel=2,
                 )
                 flex = query_len
             elif flex < 0:
@@ -356,6 +357,7 @@ class _PhraseSearcher(abc.ABC):
                     """`flex` values < `0` are not allowed.
                     Setting to the min, `0`, instead.""",
                     FlexWarning,
+                    stacklevel=2,
                 )
                 flex = 0
         else:
@@ -384,12 +386,16 @@ class _PhraseSearcher(abc.ABC):
         if flex:
             if min_r1 > min_r2:
                 warnings.warn(
-                    "`min_r1` > `min_r2`, setting `min_r1` = `min_r2`", RatioWarning
+                    "`min_r1` > `min_r2`, setting `min_r1` = `min_r2`",
+                    RatioWarning,
+                    stacklevel=2,
                 )
                 min_r1 = min_r2
             if thresh < min_r2:
                 warnings.warn(
-                    "`thresh` < `min_r2`, setting `thresh` = `min_r2`", RatioWarning
+                    "`thresh` < `min_r2`, setting `thresh` = `min_r2`",
+                    RatioWarning,
+                    stacklevel=2,
                 )
                 thresh = min_r2
         else:

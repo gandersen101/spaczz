@@ -1,7 +1,7 @@
 """spaczz library for fuzzy matching and extended regex functionality with spaCy."""
 try:
     from importlib.metadata import PackageNotFoundError  # type: ignore
-    from importlib.metadata import version
+    from importlib.metadata import version  # type: ignore
 except ImportError:  # pragma: no cover
     from importlib_metadata import version, PackageNotFoundError  # type: ignore
 

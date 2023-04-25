@@ -6,8 +6,8 @@ import regex as re
 
 from ..customtypes import SearchResult
 from ..exceptions import RegexParseError
-from ..registry import re_patterns
-from ..registry import re_weights
+from ..registry import get_re_pattern
+from ..registry import get_re_weights
 
 
 def filter_overlapping_matches(
@@ -67,7 +67,7 @@ def parse_regex(
         True
     """
     if predef:
-        return re_patterns.get(regex_str)
+        return get_re_pattern(regex_str)
     try:
         return re.compile(
             regex_str,
@@ -83,7 +83,7 @@ def normalize_fuzzy_regex_counts(
     if fuzzy_counts == (0, 0, 0):
         return 100
 
-    weights = re_weights.get(fuzzy_weights)
+    weights = get_re_weights(fuzzy_weights)
     s1_len = len(match) - fuzzy_counts[1] + fuzzy_counts[2]
     s2_len = len(match)
     fuzzy_counts_ = (

@@ -516,7 +516,7 @@ class SpaczzRuler(Pipe):
         self: "SpaczzRuler", doc: Doc
     ) -> ty.List[ty.Tuple[str, int, int, int, str, MatchType]]:
         """Used in call to find matches in a doc."""
-        matches = (
+        matches: ty.List[ty.Tuple[str, int, int, int, str, MatchType]] = (
             [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)]
             + [(*match, "regex") for match in self.regex_matcher(doc)]
             + [(*match, "token") for match in self.token_matcher(doc)]

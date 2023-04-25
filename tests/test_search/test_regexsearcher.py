@@ -2,7 +2,6 @@
 import pytest
 from spacy.language import Language
 
-from spaczz.registry import re_patterns
 from spaczz.search import RegexSearcher
 
 

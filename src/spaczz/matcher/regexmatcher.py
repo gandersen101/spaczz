@@ -6,6 +6,7 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
 from ..customtypes import MatchResult
+from ..customtypes import MatchType
 from ..exceptions import KwargsWarning
 from ..search import RegexSearcher
 from ..util import nest_defaultdict
@@ -43,7 +44,7 @@ class RegexMatcher:
                 See `RegexSearcher` documentation for details.
         """
         self.defaults = defaults
-        self.type = "regex"
+        self.type: MatchType = "regex"
         self._callbacks: ty.Dict[str, RegexCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
