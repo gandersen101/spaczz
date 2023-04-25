@@ -19,4 +19,4 @@ jobs:
     - name: Install Root Dependencies
       run: pip install nox poetry
     - name: Run Nox Sessions
-      run: nox --python ${{matrix.python}}
+      run: nox --python "${{ matrix.python }}"
