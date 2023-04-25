@@ -2,12 +2,12 @@ name: Lint, Typecheck and Test
 on: [push]
 jobs:
   tests:
-    runs-on: ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: ['3.11', '3.10', '3.9', '3.8', '3.7']
         os: [ubuntu-latest, macos-latest, windows-latest]
-    name: Lint/Check/Test - Python ${{ matrix.python-version }} - ${{matrix.os}}
+    name: Lint/Check/Test - Python ${{ matrix.python-version }} - ${{ matrix.os }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -19,4 +19,4 @@ jobs:
     - name: Install Root Dependencies
       run: pip install nox poetry
     - name: Run Nox Sessions
-      run: nox --python "${{ matrix.python }}"
+      run: nox --python ${{ matrix.python-version }}
