@@ -4,7 +4,7 @@ from itertools import product
 import nox
 from nox.sessions import Session
 
-nox.options.sessions = "lint", "mypy", "test"
+nox.options.sessions = "lint", "mypy", "tests"
 
 PACKAGE = "spaczz"
 LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
@@ -52,14 +52,15 @@ def lint(session: Session) -> None:
 
 
 @nox.session(python=PYTHONS)
-@nox.parametrize("spacy_version", list(SPACY_VERIONS.keys()))
-def mypy(session: Session, spacy_version: str) -> None:
+@nox.parametrize("spacy", list(SPACY_VERIONS.keys()))
+def mypy(session: Session, spacy: str) -> None:
     """Type-check using mypy."""
-    if session.python not in SPACY_VERIONS[spacy_version]:
+    if session.python not in SPACY_VERIONS[spacy]:
         return None
 
     args = session.posargs or LOCATIONS
     session.run("poetry", "install", "--only", "main,mypy", external=True)
+    session.run("python", "-m", "pip", "install", "--upgrade", f"spacy=={spacy}")
     session.run("mypy", *args)
 
 
@@ -68,14 +69,14 @@ def mypy(session: Session, spacy_version: str) -> None:
 
 @nox.session(python=PYTHONS)
 @nox.parametrize(
-    ["spacy_version", "rapidfuzz_version"],
+    ["spacy", "rapidfuzz"],
     list(product(SPACY_VERIONS.keys(), RAPIDFUZZ_VERSIONS.keys())),
 )
-def test(session: Session, spacy_version: str, rapidfuzz_version: str) -> None:
+def tests(session: Session, spacy: str, rapidfuzz: str) -> None:
     """Run the test suite."""
     if (
-        session.python not in SPACY_VERIONS[spacy_version]
-        or session.python not in RAPIDFUZZ_VERSIONS[rapidfuzz_version]
+        session.python not in SPACY_VERIONS[spacy]
+        or session.python not in RAPIDFUZZ_VERSIONS[rapidfuzz]
     ):
         return None
 
@@ -87,8 +88,8 @@ def test(session: Session, spacy_version: str, rapidfuzz_version: str) -> None:
         "pip",
         "install",
         "--upgrade",
-        f"spacy=={spacy_version}",
-        f"rapidfuzz=={rapidfuzz_version}",
+        f"spacy=={spacy}",
+        f"rapidfuzz=={rapidfuzz}",
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)

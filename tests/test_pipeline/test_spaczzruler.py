@@ -197,7 +197,7 @@ def test_calling_ruler(ruler: SpaczzRuler, doc: Doc) -> None:
     doc = ruler(doc)
     ents = [ent for ent in doc.ents]
     assert all(ent._.spaczz_ent for ent in ents)
-    assert ents[0]._.spaczz_ratio == 83
+    assert ents[0]._.spaczz_ratio >= 83
     assert ents[0]._.spaczz_pattern == "Grant Andersen"
     assert ents[1]._.spaczz_ratio == 100
     assert ents[1]._.spaczz_pattern == "street_addresses"

@@ -1,16 +1,21 @@
 name: Coverage
-on: push
+on: [push]
 jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup Python
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.10'
         architecture: x64
-    - run: pip install nox==2022.*
-    - run: pip install poetry==1.*
-    - run: nox --sessions tests-3.9 coverage
-      env:
-        CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+    - name: Install Root Dependencies
+      run: pip install nox poetry
+    - name: Generate Coverage Report
+      run: nox --session "tests-3.10(spacy='3.5.2', rapidfuzz='3.0.0')" -- --cov --cov-report=xml
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

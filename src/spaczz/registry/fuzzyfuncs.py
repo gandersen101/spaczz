@@ -7,7 +7,6 @@ from rapidfuzz import fuzz
 fuzzy_funcs = catalogue.create("spaczz", "fuzzy_funcs", entry_points=True)
 fuzzy_funcs.register("simple", func=fuzz.ratio)
 fuzzy_funcs.register("partial", func=fuzz.partial_ratio)
-fuzzy_funcs.register("partial_alignment", func=fuzz.partial_ratio_alignment)
 fuzzy_funcs.register("token", func=fuzz.token_ratio)
 fuzzy_funcs.register("token_set", func=fuzz.token_set_ratio)
 fuzzy_funcs.register("token_sort", func=fuzz.token_sort_ratio)

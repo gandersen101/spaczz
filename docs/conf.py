@@ -1,7 +1,7 @@
 """Sphinx configuration."""
 project = "spaczz"
 author = "Grant Andersen"
-copyright = f"2020, {author}"
+copyright = f"2023, {author}"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
