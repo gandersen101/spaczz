@@ -10,7 +10,7 @@ from .exceptions import AttrOverwriteWarning
 
 
 class SpaczzAttrs:
-    """Adds spaczz custom attributes to spacy."""
+    """Adds spaczz custom attributes to spaCy."""
 
     _initialized = False
 
@@ -37,7 +37,7 @@ class SpaczzAttrs:
                 warnings.warn(
                     """One or more spaczz custom extensions has already been registered.
                     These are being force overwritten. Please avoid defining personal,
-                    custom extensions prepended with "spaczz_".
+                    custom extensions prepended with `"spaczz_"`.
                 """,
                     AttrOverwriteWarning,
                     stacklevel=2,

@@ -10,7 +10,9 @@ PACKAGE = "spaczz"
 LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
 PYTHON = "3.11"
 PYTHONS = ["3.11", "3.10", "3.9", "3.8", "3.7"]
-SPACY_VERIONS = {"3.5.2": PYTHONS, "3.0.9": ["3.10", "3.9", "3.8", "3.7"]}
+SPACY_VERSION = "3.5.2"
+SPACY_MYPY_VERSIONS = {SPACY_VERSION: PYTHONS, "3.1.7": PYTHONS}
+SPACY_TEST_VERIONS = {SPACY_VERSION: PYTHONS, "3.0.9": ["3.10", "3.9", "3.8", "3.7"]}
 RAPIDFUZZ_VERSIONS = {
     "3.0.0": PYTHONS,
     "2.15.1": PYTHONS,
@@ -52,10 +54,10 @@ def lint(session: Session) -> None:
 
 
 @nox.session(python=PYTHONS)
-@nox.parametrize("spacy", list(SPACY_VERIONS.keys()))
+@nox.parametrize("spacy", list(SPACY_MYPY_VERSIONS.keys()))
 def mypy(session: Session, spacy: str) -> None:
     """Type-check using mypy."""
-    if session.python not in SPACY_VERIONS[spacy]:
+    if session.python not in SPACY_MYPY_VERSIONS[spacy]:
         return None
 
     args = session.posargs or LOCATIONS
@@ -70,12 +72,12 @@ def mypy(session: Session, spacy: str) -> None:
 @nox.session(python=PYTHONS)
 @nox.parametrize(
     ["spacy", "rapidfuzz"],
-    list(product(SPACY_VERIONS.keys(), RAPIDFUZZ_VERSIONS.keys())),
+    list(product(SPACY_TEST_VERIONS.keys(), RAPIDFUZZ_VERSIONS.keys())),
 )
 def tests(session: Session, spacy: str, rapidfuzz: str) -> None:
     """Run the test suite."""
     if (
-        session.python not in SPACY_VERIONS[spacy]
+        session.python not in SPACY_TEST_VERIONS[spacy]
         or session.python not in RAPIDFUZZ_VERSIONS[rapidfuzz]
     ):
         return None
@@ -93,13 +95,6 @@ def tests(session: Session, spacy: str, rapidfuzz: str) -> None:
     )
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
     session.run("pytest", *args)
-
-
-@nox.session(python=PYTHON)
-def coverage(session: Session) -> None:
-    """Upload coverage data."""
-    session.run("poetry", "install", "--only", "test", external=True)
-    session.run("coverage", "xml")
 
 
 # Docs

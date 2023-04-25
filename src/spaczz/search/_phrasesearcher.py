@@ -1,4 +1,4 @@
-"""Module for _PhraseSearcher: flexible phrase searching in spaCy `Doc` objects."""
+"""Module for `_PhraseSearcher`: flexible phrase searching in spaCy `Doc` objects."""
 import abc
 import typing as ty
 import warnings

@@ -90,7 +90,7 @@ class TokenMatcher:
             >>> matcher(doc)
             [('NAME', 0, 2, None)]
         """
-        matches = set()
+        matches: ty.Set[ty.Tuple[str, int, int, int, str]] = set()
         for label, patterns in self._patterns.items():
             for pattern in patterns:
                 spaczz_matches = self._searcher.match(doc, pattern, **self.defaults)
@@ -99,25 +99,15 @@ class TokenMatcher:
                         matcher = Matcher(self.vocab)
                         matcher.add(label, [self._spacyfy(spaczz_match, pattern)])
                         spacy_matches = matcher(doc)
-                        for match_id, start, end in spacy_matches:
+                        for spacy_match in spacy_matches:
                             matches.add(
-                                (
-                                    self.vocab.strings[match_id],
-                                    start,
-                                    end,
-                                    round(
-                                        sum(
-                                            token_match[2]
-                                            / sum(
-                                                [len(token) for token in doc[start:end]]
-                                            )
-                                            * len(token)
-                                            for token, token_match in zip(  # noqa: B905
-                                                doc[start:end], spaczz_match
-                                            )
-                                        )
+                                self._calc_ratio(
+                                    doc,
+                                    pattern=pattern,
+                                    spaczz_match=spaczz_match,
+                                    spacy_match=ty.cast(
+                                        ty.Tuple[int, int, int], spacy_match
                                     ),
-                                    srsly.json_dumps(pattern),
                                 )
                             )
         sorted_matches = sorted(
@@ -277,6 +267,36 @@ class TokenMatcher:
             raise ValueError(
                 f"The label: {label} does not exist within the matcher rules."
             )
+
+    def _calc_ratio(
+        self: "TokenMatcher",
+        doc: Doc,
+        pattern: ty.List[ty.Dict[str, ty.Any]],
+        spaczz_match: ty.List[ty.Tuple[str, str, int]],
+        spacy_match: ty.Tuple[int, int, int],
+    ) -> ty.Tuple[str, int, int, int, str]:
+        ratio = round(
+            sum(
+                [
+                    token_match[2]
+                    / sum(
+                        [len(token) for token in doc[spacy_match[1] : spacy_match[2]]]
+                    )
+                    * len(token)
+                    for token, token_match in zip(  # noqa: B905
+                        doc[spacy_match[1] : spacy_match[2]], spaczz_match
+                    )
+                ]
+            )
+        )
+
+        return (
+            ty.cast(str, self.vocab.strings[spacy_match[0]]),
+            spacy_match[1],
+            spacy_match[2],
+            ratio,
+            ty.cast(str, srsly.json_dumps(pattern)),
+        )
 
     @staticmethod
     def _spacyfy(
