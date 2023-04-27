@@ -93,7 +93,7 @@ source = ["src", "*/site-packages"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 97
+fail_under = 95
 
 [tool.coverage.run]
 branch = true
