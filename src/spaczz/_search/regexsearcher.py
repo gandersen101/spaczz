@@ -1,4 +1,4 @@
-"""Module for RegexSearcher: multi-token regex matching in spaCy `Doc` objects."""
+"""`RegexSearcher` searches for phrase-based regex matches in spaCy `Doc` objects."""
 import typing as ty
 
 try:
@@ -17,40 +17,27 @@ from ..customtypes import SearchResult
 
 
 class RegexSearcher:
-    """Class for multi-token regex matching in spacy `Doc` objects.
-
-    Regex matching is done on the character level and then
-    mapped back to tokens.
-
-    Attributes:
-        vocab: The shared vocabulary.
-            Included for consistency and potential future-state.
-    """
+    """Class for phrase-based regex match searching in spaCy `Doc` objects."""
 
     def __init__(
         self: "RegexSearcher",
         vocab: Vocab,
     ) -> None:
-        """Initializes a regex searcher.
-
-        Args:
-            vocab: A spaCy Vocab.
-                Purely for consistency between spaCy and spaczz matcher APIs for now.
-                spaczz matchers are currently pure-Python and do not share vocabulary
-                with spaCy pipelines.
-        """
+        """Initializes the searcher."""
         self.vocab = vocab
 
     def match(
         self: "RegexSearcher",
         doc: Doc,
         query: str,
+        *,
+        ignore_case: bool = True,
+        min_r: int = 75,
         partial: bool = True,
         predef: bool = False,
-        min_r: int = 75,
         fuzzy_weights: str = "indel",
     ) -> ty.List[SearchResult]:
-        """Returns regex matches in a `Doc` object.
+        """Performs regex matching on a `Doc` object.
 
         Matches on the character level and then maps matches back
         to tokens. If a character cannot be mapped back to a token it means
@@ -61,45 +48,28 @@ class RegexSearcher:
         To utilize regex flags, use inline flags.
 
         Args:
-            doc: Doc to search over.
-            query: A string to be compiled to regex,
-                or the key name of a predefined regex pattern.
-            partial: Whether partial matches should be extended
-                to existing span boundaries in doc or not, e.x.
-                the regex only matches part of a token or span.
+            doc: `Doc` to search for matches.
+            query: A string to be compiled to regex, or the key name of a predefined
+                regex pattern.
+            ignore_case: Whether to lower-case text before matching.
                 Default is `True`.
+            min_r: Minimum match ratio required for fuzzy regex matching.
+                Default is `75`.
+            fuzzy_weights: Name of weighting method for regex insertion, deletion, and
+                substituion counts. Default is `"indel"`.
+            partial: Whether partial matches should be extended
+                to existing span boundaries in doc or not, e.x. the regex only matches
+                part of a `Token` or `Span`. Default is `True`.
             predef: Whether regex should be interpreted as a key to
                 a predefined regex pattern or not. Default is `False`.
-                The included regexes are:
-                `"dates"`
-                `"times"`
-                `"phones"`
-                `"phones_with_exts"`
-                `"links"`
-                `"emails"`
-                `"ips"`
-                `"ipv6s"`
-                `"prices"`
-                `"hex_colors"`
-                `"credit_cards"`
-                `"btc_addresses"`
-                `"street_addresses"`
-                `"zip_codes"`
-                `"po_boxes"`
-                `"ssn_number"`.
-            min_r: Minimum match ratio required for fuzzy matching.
-                Can be overwritten with regex pattern options. Fuzzy regex patterns
-                allow more fined-grained control so by default no min_r is set.
-                Ratio results are more for informational, and `SpaczzRuler` sorting
-                purposes. Default is `0`.
-            fuzzy_weights: Placeholder.
 
         Returns:
-            A list of tuples of match start indices, end indices, and match ratios.
+            List of match tuples each containing a start index, end index,
+            and match ratio.
 
         Example:
             >>> import spacy
-            >>> from spaczz.search import RegexSearcher
+            >>> from spaczz._search import RegexSearcher
             >>> nlp = spacy.blank("en")
             >>> searcher = RegexSearcher(nlp.vocab)
             >>> doc = nlp("My phone number is (555) 555-5555.")
@@ -113,7 +83,9 @@ class RegexSearcher:
             self._spans_from_regex(
                 doc, match=match, partial=partial, char_to_token_map=char_to_token_map
             )
-            for match in compiled_regex.finditer(doc.text)
+            for match in compiled_regex.finditer(
+                doc.text.lower() if ignore_case else doc.text
+            )
         ]
 
         formatted_matches = [
@@ -143,7 +115,7 @@ class RegexSearcher:
 
     @staticmethod
     def _map_chars_to_tokens(doc: Doc) -> ty.Dict[int, int]:
-        """Maps characters in a `Doc` object to tokens."""
+        """Maps characters to tokens."""
         chars_to_tokens = {}
         for token in doc:
             for i in range(token.idx, token.idx + len(token.text)):
@@ -157,6 +129,7 @@ class RegexSearcher:
         partial: bool,
         char_to_token_map: ty.Dict[int, int],
     ) -> ty.Optional[ty.Tuple[Span, ty.Tuple[int, int, int]]]:
+        """Creates `Span` objects from regex matches."""
         start, end = match.span()
         counts = getattr(match, "fuzzy_counts", (0, 0, 0))
         span = doc.char_span(start, end)

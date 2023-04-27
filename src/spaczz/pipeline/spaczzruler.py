@@ -17,7 +17,7 @@ from spacy.util import SimpleFrozenDict
 from spacy.util import SimpleFrozenList
 import srsly
 
-from ..customtypes import MatchType
+from ..customtypes import SpaczzType
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher
 from ..matcher import RegexMatcher
@@ -514,9 +514,9 @@ class SpaczzRuler(Pipe):
 
     def match(
         self: "SpaczzRuler", doc: Doc
-    ) -> ty.List[ty.Tuple[str, int, int, int, str, MatchType]]:
+    ) -> ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]]:
         """Used in call to find matches in a doc."""
-        matches: ty.List[ty.Tuple[str, int, int, int, str, MatchType]] = (
+        matches: ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]] = (
             [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)]
             + [(*match, "regex") for match in self.regex_matcher(doc)]
             + [(*match, "token") for match in self.token_matcher(doc)]
@@ -531,7 +531,7 @@ class SpaczzRuler(Pipe):
     def set_annotations(
         self: "SpaczzRuler",
         doc: Doc,
-        matches: ty.List[ty.Tuple[str, int, int, int, str, MatchType]],
+        matches: ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]],
     ) -> None:
         """Modify the document in place."""
         entities = list(doc.ents)
@@ -870,7 +870,7 @@ class SpaczzRuler(Pipe):
 
     @staticmethod
     def _update_custom_attrs(
-        span: Span, match_id: str, ratio: int, pattern: str, match_type: MatchType
+        span: Span, match_id: str, ratio: int, pattern: str, match_type: SpaczzType
     ) -> Span:
         """Update custom attributes for matches."""
         for token in span:

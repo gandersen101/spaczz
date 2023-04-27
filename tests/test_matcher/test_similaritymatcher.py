@@ -4,7 +4,7 @@ from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.exceptions import MissingVectorsWarning
-from spaczz.matcher.similaritymatcher import SimilarityMatcher
+from spaczz.matcher import SimilarityMatcher
 
 
 @pytest.fixture

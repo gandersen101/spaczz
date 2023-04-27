@@ -2,8 +2,8 @@
 import pytest
 from spacy.language import Language
 
+from spaczz._search import SimilaritySearcher
 from spaczz.exceptions import MissingVectorsWarning
-from spaczz.search import SimilaritySearcher
 
 
 @pytest.fixture

@@ -12,7 +12,7 @@ from spacy.tokens import Span
 import srsly
 
 from spaczz.exceptions import PatternTypeWarning
-from spaczz.pipeline.spaczzruler import SpaczzRuler
+from spaczz.pipeline import SpaczzRuler
 
 
 @pytest.fixture

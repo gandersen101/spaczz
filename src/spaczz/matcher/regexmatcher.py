@@ -1,28 +1,71 @@
-"""Module for RegexMatcher with an API semi-analogous to spaCy's PhraseMatcher."""
+"""Module for RegexMatcher with an API semi-analogous to spaCy's `PhraseMatcher`."""
 import typing as ty
 import warnings
 
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from .._search import RegexSearcher
 from ..customtypes import MatchResult
-from ..customtypes import MatchType
+from ..customtypes import SpaczzType
 from ..exceptions import KwargsWarning
-from ..search import RegexSearcher
 from ..util import nest_defaultdict
 
 
 class RegexMatcher:
-    """spaCy-like matcher for finding multi-token regex matches in `Doc` objects.
+    """spaCy-like matcher for finding regex phrase matches in `Doc` objects.
 
-    Matches added patterns against the `Doc` object it is called on.
-    Accepts labeled regex patterns in the form of strings.
+    Regex matches patterns against the `Doc` it is called on.
+    Accepts labeled patterns in the form of strings with optional,
+    per-pattern match settings.
+
+    To utilize regex flags, use inline flags.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings.
-            See `RegexSearcher` documentation for details.
-        name: Class attribute - the name of the matcher.
-        type: The kind of matcher object.
+        name (str): Class attribute - the name of the matcher.
+        defaults (dict[str, bool|int|str]):
+            Keyword arguments to be used as default match settings.
+            Per-pattern match settings take precedence over defaults.
+
+    Match Settings:
+        ignore_case (bool): Whether to lower-case text before matching.
+            Default is `True`.
+        min_r (int): Minimum match ratio required.
+        fuzzy_weights (str): Name of weighting method for regex insertion, deletion, and
+            substituion counts. Additional weighting methods can be registered
+            by users. Included weighting methods are:
+
+            * `"indel"` = `(1, 1, 2)`
+            * `"lev"` = `(1, 1, 1)`
+
+
+            Default is `"indel"`.
+        partial: (bool): Whether partial matches should be extended
+                to `Token` or `Span` boundaries in `doc` or not.
+                For example, the regex only matches part of a `Token` or `Span` in
+                `doc`. Default is `True`.
+        predef (string): Whether the regex string should be interpreted as a key to
+                a predefined regex pattern or not. Additional predefined regex patterns
+                can be registered by users. The included predefined regex patterns are:
+
+                * `"dates"`
+                * `"times"`
+                * `"phones"`
+                * `"phones_with_exts"`
+                * `"links"`
+                * `"emails"`
+                * `"ips"`
+                * `"ipv6s"`
+                * `"prices"`
+                * `"hex_colors"`
+                * `"credit_cards"`
+                * `"btc_addresses"`
+                * `"street_addresses"`
+                * `"zip_codes"`
+                * `"po_boxes"`
+                * `"ssn_numbers"`
+
+                Default is `False`.
     """
 
     name = "regex_matcher"
@@ -32,19 +75,17 @@ class RegexMatcher:
         vocab: Vocab,
         **defaults: ty.Any,
     ) -> None:
-        """Initializes the regex matcher with the given config and defaults.
+        """Initializes the matcher with the given defaults.
 
         Args:
-            vocab: A spacy Vocab.
-                Purely for consistency between spaCy and spaczz matcher APIs for now.
-                spaczz matchers are currently pure-Python and do not share vocabulary
-                with spacy pipelines.
+            vocab: A spacy `Vocab` object. Purely for consistency between spaCy
+                and spaczz matcher APIs for now. spaczz matchers are currently pure
+                Python and do not share vocabulary with spacy pipelines.
             **defaults: Keyword arguments that will
-                be used as default matching settings.
-                See `RegexSearcher` documentation for details.
+                be used as default matching settings for the class instance.
         """
         self.defaults = defaults
-        self.type: MatchType = "regex"
+        self._type: SpaczzType = "regex"
         self._callbacks: ty.Dict[str, RegexCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
@@ -52,14 +93,14 @@ class RegexMatcher:
         self._searcher = RegexSearcher(vocab=vocab)
 
     def __call__(self: "RegexMatcher", doc: Doc) -> ty.List[MatchResult]:
-        r"""Find all sequences matching the supplied patterns in the doc.
+        r"""Finds matches in `doc` given the matchers patterns.
 
         Args:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end, fuzzy change count) tuples,
-            describing the matches.
+            A list of `MatchResult` tuples,
+            (label, start index, end index, match ratio, pattern).
 
         Example:
             >>> import spacy
@@ -121,7 +162,7 @@ class RegexMatcher:
         """All labels present in the matcher.
 
         Returns:
-            The unique string labels as a tuple.
+            The unique labels as a tuple of strings.
 
         Example:
             >>> import spacy
@@ -136,11 +177,10 @@ class RegexMatcher:
 
     @property
     def patterns(self: "RegexMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
-        """Get all patterns and kwargs that were added to the matcher.
+        """Get all patterns and match settings that were added to the matcher.
 
         Returns:
-            The original patterns and kwargs,
-            one dictionary for each combination.
+            The patterns and their respective match settings as a list of dicts.
 
         Example:
             >>> import spacy
@@ -170,8 +210,13 @@ class RegexMatcher:
         return all_patterns
 
     @property
+    def type(self: "RegexMatcher") -> SpaczzType:
+        """Getter for the matchers `SpaczzType`."""
+        return self._type
+
+    @property
     def vocab(self: "RegexMatcher") -> Vocab:
-        """Returns the spaCy `Vocab` object utilized."""
+        """Getter for the matchers `Vocab`."""
         return self._searcher.vocab
 
     def add(
@@ -183,34 +228,32 @@ class RegexMatcher:
     ) -> None:
         r"""Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of strings and if kwargs is not `None`,
-        kwargs must be a list of dictionaries.
-
-        To utilize regex flags, use inline flags.
+        Patterns must be a list of `Doc` objects and if `kwargs` is not `None`,
+        `kwargs` must be a list of dicts.
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: Strings that will be matched against
-                the Doc object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior of the regex matching.
-                Apply to inherited multi_match method.
+            patterns: `Doc` objects that will be matched
+                against the `Doc` object the matcher is called on.
+            kwargs: Optional settings to modify the matching behavior.
+                If supplying `kwargs`, one per pattern should be included.
+                Empty dicts will use the matcher instances default settings.
                 Default is `None`.
             on_match: Optional callback function to modify the
                 `Doc` object the matcher is called on after matching.
                 Default is `None`.
 
         Raises:
-            TypeError: If patterns is not a non-string iterable of strings.
-            TypeError: If kwargs is not a iterable of dictionaries.
+            ValueError: If `patterns` is not a list of strings.
+            ValueError: If `kwargs` is not a list of dictionaries.
 
         Warnings:
             KwargsWarning:
-                If there are more patterns than kwargs
-                default regex matching settings will be used
-                for extra patterns.
-            KwargsWarning:
-                If there are more kwargs dictionaries than patterns,
-                the extra kwargs will be ignored.
+                * If there are more patterns than kwargs
+                  default matching settings will be used
+                  for extra patterns.
+                * If there are more kwargs dicts than patterns,
+                  the extra kwargs will be ignored.
 
         Example:
             >>> import spacy
@@ -238,17 +281,17 @@ class RegexMatcher:
                 KwargsWarning,
                 stacklevel=2,
             )
-        if isinstance(patterns, str):
-            raise TypeError("Patterns must be a non-string iterable of strings.")
+        if not isinstance(patterns, list):
+            raise ValueError("Patterns must be a list of Doc objects.")
         for pattern, kwarg in zip(patterns, kwargs):  # noqa: B905
             if isinstance(pattern, str):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise TypeError("Patterns must be a non-string iterable of strings.")
+                raise ValueError("Patterns must be a list of Doc objects.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise TypeError("Kwargs must be an iterable of dictionaries.")
+                raise ValueError("Kwargs must be a list of dicts.")
         self._callbacks[label] = on_match
 
     def remove(self: "RegexMatcher", label: str) -> None:
@@ -258,7 +301,7 @@ class RegexMatcher:
             label: Name of the rule added to the matcher.
 
         Raises:
-            ValueError: If label does not exist in the matcher.
+            ValueError: If `label` does not exist in the matcher.
 
         Example:
             >>> import spacy

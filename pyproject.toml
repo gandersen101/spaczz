@@ -75,7 +75,7 @@ ipykernel = "*"
 nbconvert = "*"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = ">=4.0.2, <5.0"
+sphinx = ">=4.0.2"
 sphinx-autobuild = "*"
 sphinx-autodoc-typehints = "*"
 

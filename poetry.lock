@@ -1459,14 +1459,14 @@ files = [
 
 [[package]]
 name = "nbclient"
-version = "0.7.3"
+version = "0.7.4"
 description = "A client library for executing notebooks. Formerly nbconvert's ExecutePreprocessor."
 category = "dev"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "nbclient-0.7.3-py3-none-any.whl", hash = "sha256:8fa96f7e36693d5e83408f5e840f113c14a45c279befe609904dbe05dad646d1"},
-    {file = "nbclient-0.7.3.tar.gz", hash = "sha256:26e41c6dca4d76701988bc34f64e1bfc2413ae6d368f13d7b5ac407efb08c755"},
+    {file = "nbclient-0.7.4-py3-none-any.whl", hash = "sha256:c817c0768c5ff0d60e468e017613e6eae27b6fa31e43f905addd2d24df60c125"},
+    {file = "nbclient-0.7.4.tar.gz", hash = "sha256:d447f0e5a4cfe79d462459aec1b3dc5c2e9152597262be8ee27f7d4c02566a0d"},
 ]
 
 [package.dependencies]
@@ -3341,4 +3341,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "79a800a76550dee95b8f0d612ac907b57c8bed4cb672f79ec1f3ce1369039095"
+content-hash = "617a9fa4720630604f6a9926859d4b6d7685f4cbadd463a176902a0d5cee01bb"

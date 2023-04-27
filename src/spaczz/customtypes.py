@@ -16,4 +16,4 @@ FlexType = ty.Union[int, FlexLiteral]  # type: ignore
 TextContainer = ty.Union[Doc, Span, Token]
 SearchResult = ty.Tuple[int, int, int]
 MatchResult = ty.Tuple[str, int, int, int, str]
-MatchType = Literal["fuzzy", "regex", "token", "similarity", "_phrase"]
+SpaczzType = Literal["fuzzy", "regex", "token", "similarity", "phrase"]

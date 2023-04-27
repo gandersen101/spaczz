@@ -13,36 +13,10 @@ from ..registry import get_fuzzy_func
 
 
 class TokenSearcher:
-    """Class for flexbile token searching in spaCy `Doc` objects.
-
-    Uses extended spaCy token matching patterns to find
-    match candidates. Candidates are used to generate new patterns to add
-    to a spaCy `Matcher`.
-
-    "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
-
-    For example:
-        {"TEXT": {"FREGEX": "(database){e<=1}"}},
-        {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
-
-    Make sure to use uppercase dictionary keys in patterns.
-
-    Attributes:
-        vocab (Vocab): The shared vocabulary.
-            Included for consistency and potential future-state.
-    """
+    """Class for token-based fuzzy match searching in spaCy `Doc` objects."""
 
     def __init__(self: "TokenSearcher", vocab: Vocab) -> None:
-        """Initializes a token searcher.
-
-        Args:
-            vocab: A spaCy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are mostly pure-Python
-                currently and do not share vocabulary
-                with spaCy pipelines.
-        """
+        """Initializes the searcher."""
         self.vocab = vocab
 
     def match(
@@ -56,20 +30,21 @@ class TokenSearcher:
         Make sure to use uppercase dictionary keys in patterns.
 
         Args:
-            doc: `Doc` object to search over.
+            doc: `Doc` object to search for matches.
             pattern: Individual spaCy token pattern.
             min_r: Minimum match ratio required for fuzzy matching.
-                Can be overwritten with token pattern options.
+                Can be overwritten with pattern-level match settings.
                 Default is `75`.
 
         Returns:
             A list of lists with each inner list representing a potential match.
-            The inner lists will be populated with key, value tuples of token matches
-            and `None` for placeholder tokens representing non-fuzzy tokens.
+            The inner lists will be populated with key, value, match ratio tuples for
+            matched fuzzy token patterns. Non-fuzzy token patterns will have an empty
+            string key and value, and a match ratio of `100`.
 
         Example:
             >>> import spacy
-            >>> from spaczz.search import TokenSearcher
+            >>> from spaczz._search import TokenSearcher
             >>> nlp = spacy.blank("en")
             >>> searcher = TokenSearcher(nlp)
             >>> doc = nlp("I was prescribed zithramax and advar")
@@ -79,7 +54,7 @@ class TokenSearcher:
                 {"TEXT": {"FREGEX": "(advair){e<=1}"}}
                 ]
             >>> searcher.match(doc, pattern)
-            [[('TEXT', 'zithramax'), (,), ('TEXT', 'advar')]]
+            [[('TEXT', 'zithramax'), ("", "", 100), ('TEXT', 'advar')]]
         """
         matches = []
         matches = [
@@ -96,36 +71,32 @@ class TokenSearcher:
     def fuzzy_compare(
         s1: str,
         s2: str,
+        *,
         ignore_case: bool = True,
         min_r: int = 0,
         fuzzy_func: str = "simple",
     ) -> int:
         """Peforms fuzzy matching between two strings.
 
-        Applies the given fuzzy matching algorithm (fuzzy_func)
+        Applies the given fuzzy matching algorithm (`fuzzy_func`)
         to two strings and returns the resulting fuzzy ratio.
 
         Args:
             s1: First string for comparison.
             s2: Second string for comparison.
-            ignore_case: Whether to lower-case a and b
+            ignore_case: Whether to lower-case `s1` and `s2`
                 before comparison or not. Default is `True`.
             min_r: Minimum ratio needed to match as a value between `0` and `100`.
                 For ratio < min_r, `0` is returned instead.
                 Default is `0`, which deactivates this behaviour.
             fuzzy_func: Key name of fuzzy matching function to use.
-                The following rapidfuzz matching functions with default
-                settings are available:
-                "simple" = `ratio`
-                "quick" = `QRatio`
-                Default is `"simple"`.
 
         Returns:
-            The fuzzy ratio between a and b.
+            The fuzzy ratio between `s1` and `s2`.
 
         Example:
             >>> import spacy
-            >>> from spaczz.search import TokenSearcher
+            >>> from spaczz._search import TokenSearcher
             >>> nlp = spacy.blank("en")
             >>> searcher = TokenSearcher(nlp.vocab)
             >>> searcher.fuzzy_compare("spaczz", "spacy")
@@ -141,28 +112,33 @@ class TokenSearcher:
     def regex_compare(
         text: str,
         pattern: str,
-        predef: bool = False,
+        *,
         ignore_case: bool = False,
         min_r: int = 0,
-        fuzzy_weights: str = "index",
+        fuzzy_weights: str = "indel",
+        predef: bool = False,
     ) -> int:
         """Performs fuzzy-regex supporting regex matching between two strings.
 
         Args:
             text: The string to match against.
             pattern: The regex pattern string.
-            predef: Placeholder.
-            ignore_case: Whether to lower-case text
-                before comparison or not. Default is `False`.
-            min_r: Placeholder.
-            fuzzy_weights: Placeholder.
+            ignore_case: Whether to lower-case text before matching.
+                Default is `True`.
+            min_r: Minimum match ratio required for fuzzy regex matching.
+                Default is `75`.
+            fuzzy_weights: Name of weighting method for regex insertion, deletion, and
+                substituion counts.
+            predef: Whether regex should be interpreted as a key to
+                a predefined regex pattern or not. Default is `False`.
 
         Returns:
-            `True` if match, `False` if not.
+            The fuzzy ratio of the pattern to the text based on insertions,
+            substitutions, and deletions.
 
         Example:
             >>> import spacy
-            >>> from spaczz.search import TokenSearcher
+            >>> from spaczz._search import TokenSearcher
             >>> nlp = spacy.blank("en")
             >>> searcher = TokenSearcher(nlp)
             >>> searcher.regex_compare("sequel", "(sql){i<=3}")

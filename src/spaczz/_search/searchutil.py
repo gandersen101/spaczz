@@ -21,10 +21,10 @@ def filter_overlapping_matches(
     the first of these matches is kept.
 
     Args:
-        matches: `Iterable` of match `Tuple`s (start index, end index, ratio).
+        matches: Iterable of matches (start index, end index, ratio tuples).
 
     Returns:
-        The filtered `List` of match `Tuple`s.
+        The filtered list of matches.
 
     Example:
         >>> from spaczz.search.searchutil import filter_overlapping_matches

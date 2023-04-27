@@ -2,10 +2,10 @@
 import pytest
 import regex as re
 
+from spaczz._search.searchutil import filter_overlapping_matches
+from spaczz._search.searchutil import parse_regex
 from spaczz.exceptions import RegexParseError
 from spaczz.registry import get_re_pattern
-from spaczz.search.searchutil import filter_overlapping_matches
-from spaczz.search.searchutil import parse_regex
 
 
 def test_filter_overlapping_matches() -> None:

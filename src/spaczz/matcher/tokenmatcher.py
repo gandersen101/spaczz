@@ -7,14 +7,14 @@ from spacy.tokens import Doc
 from spacy.vocab import Vocab
 import srsly
 
-from ..customtypes import MatchType
-from ..search import TokenSearcher
+from .._search import TokenSearcher
+from ..customtypes import SpaczzType
 
 
 class TokenMatcher:
-    """spaCy-like token matcher for finding flexible matches in `Doc` objects.
+    """spaCy-like matcher for finding fuzzy token matches in `Doc` objects.
 
-    Matches added patterns against the `Doc` object it is called on.
+    Fuzzy matches added patterns against the `Doc` object it is called on.
     Accepts labeled patterns in the form of lists of dictionaries
     where each list describes an individual pattern and each
     dictionary describes an individual token.
@@ -22,43 +22,62 @@ class TokenMatcher:
     Uses extended spaCy token matching patterns.
     "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
 
-    For example:
-        {"TEXT": {"FREGEX": "(database){e<=1}"}},
-        {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
+    For example::
+
+        [
+            {"TEXT": {"FREGEX": "(database){e<=1}"}},
+            {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "partial"}},
+        ]
 
     Make sure to use uppercase dictionary keys in patterns.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings.
-            See `TokenSearcher.match()` documentation for details.
-        name: Class attribute - the name of the matcher.
-        type: The kind of matcher object.
-        _callbacks:
-            On match functions to modify `Doc` objects passed to the matcher.
-            Can make use of the matches identified.
-        _patterns:
-            Patterns added to the matcher.
+        name (str): Class attribute - the name of the matcher.
+        defaults (dict[str, bool|int|str]):
+            Keyword arguments to be used as default match settings.
+            Per-pattern match settings take precedence over defaults.
+
+    Match Settings:
+        ignore_case (bool): Whether to lower-case text before matching.
+            Can only be set at the pattern level. For "FUZZY" and "FREGEX" patterns.
+            Default is `True`.
+        min_r (int): Minimum match ratio required. For "FUZZY" and "FREGEX" patterns.
+        fuzzy_func (str): Key name of fuzzy matching function to use.
+            Can only be set at the pattern level. For "FUZZY" patterns only.
+            All rapidfuzz matching functions with default settings are available,
+            however any token-based functions provide no utility at the individual
+            token level. Additional fuzzy matching functions can be registered by users.
+            Included, and useful, functions are:
+
+            * `"simple"` = `ratio`
+            * `"partial"` = `partial_ratio`
+            * `"quick"` = `QRatio`
+            * `"partial_alignment"` = `partial_ratio_alignment`
+                (Requires `rapidfuzz>=2.0.3`)
+
+            Default is `"simple`".
+        fuzzy_weights: Name of weighting method for regex insertion, deletion, and
+            substituion counts. Can only be set at the pattern level. For "FREGEX"
+            patterns only. Default is `"indel"`.
+        predef: Whether regex should be interpreted as a key to
+            a predefined regex pattern or not. Can only be set at the pattern level.
+            For "FREGEX" patterns only. Default is `False`.
     """
 
     name = "token_matcher"
 
     def __init__(self: "TokenMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
-        """Initializes the base phrase matcher with the given defaults.
+        """Initializes the matcher with the given defaults.
 
         Args:
-            vocab: A spacy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are currently pure
-                Python and do not share vocabulary
-                with spaCy pipelines.
+            vocab: A spacy `Vocab` object. Purely for consistency between spaCy
+                and spaczz matcher APIs for now. spaczz matchers are currently pure
+                Python and do not share vocabulary with spacy pipelines.
             **defaults: Keyword arguments that will
-                be used as default matching settings.
-                These arguments will become the new defaults for matching.
-                See `TokenSearcher.match()` documentation for details.
+                be used as default matching settings for the class instance.
         """
         self.defaults = defaults
-        self.type: MatchType = "token"
+        self._type: SpaczzType = "token"
         self._callbacks: ty.Dict[str, TokenCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.List[ty.List[ty.Dict[str, ty.Any]]]
@@ -68,14 +87,14 @@ class TokenMatcher:
     def __call__(
         self: "TokenMatcher", doc: Doc
     ) -> ty.List[ty.Tuple[str, int, int, int, str]]:
-        """Find all sequences matching the supplied patterns in the doc.
+        """Finds matches in `doc` given the matchers patterns.
 
         Args:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end, ratio, pattern) tuples, describing the matches.
-            The final None is a placeholder for future match details.
+            A list of `MatchResult` tuples,
+            (label, start index, end index, match ratio, pattern).
 
         Example:
             >>> import spacy
@@ -145,7 +164,7 @@ class TokenMatcher:
         """All labels present in the matcher.
 
         Returns:
-            The unique string labels as a tuple.
+            The unique labels as a tuple of strings.
 
         Example:
             >>> import spacy
@@ -160,10 +179,10 @@ class TokenMatcher:
 
     @property
     def patterns(self: "TokenMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
-        """Get all patterns that were added to the matcher.
+        """Get all patterns and match settings that were added to the matcher.
 
         Returns:
-            The original patterns, one dictionary for each combination.
+            The patterns and their respective match settings as a list of dicts.
 
         Example:
             >>> import spacy
@@ -188,8 +207,13 @@ class TokenMatcher:
         return all_patterns
 
     @property
+    def type(self: "TokenMatcher") -> SpaczzType:
+        """Getter for the matchers `SpaczzType`."""
+        return self._type
+
+    @property
     def vocab(self: "TokenMatcher") -> Vocab:
-        """Returns the spaCy `Vocab` object utilized."""
+        """Getter for the matchers `Vocab`."""
         return self._searcher.vocab
 
     def add(
@@ -200,28 +224,32 @@ class TokenMatcher:
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of dictionary lists where each dictionary
-        list represent an individual pattern and each dictionary represents
-        an individual token.
+        Patterns must be a list of lists of dicts where each list of dicts represent an
+        individual pattern and each dictionary represents an individual token.
 
         Uses extended spaCy token matching patterns.
         "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
 
-        For example:
-            {"TEXT": {"FREGEX": "(database){e<=1}"}},
-            {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
+        For example::
+
+            [
+                {"TEXT": {"FREGEX": "(database){e<=1}"}},
+                {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "partial"}},
+            ]
+
+        Make sure to use uppercase dictionary keys in patterns.
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: List of dictionary lists that will be matched
+            patterns: List of lists of dicts that will be matched
                 against the `Doc` object the matcher is called on.
             on_match: Optional callback function to modify the
                 `Doc` object the matcher is called on after matching.
                 Default is `None`.
 
         Raises:
-            TypeError: If patterns is not an iterable of `Doc` objects.
-            ValueError: pattern cannot have zero tokens.
+            ValueError: If patterns is not a list of `Doc` objects.
+            ValueError: Patterns cannot have zero tokens.
 
         Example:
             >>> import spacy
@@ -234,11 +262,11 @@ class TokenMatcher:
         """
         for pattern in patterns:
             if len(pattern) == 0:
-                raise ValueError("pattern cannot have zero tokens.")
+                raise ValueError("Pattern cannot have zero tokens.")
             if isinstance(pattern, list):
                 self._patterns[label].append(list(pattern))
             else:
-                raise TypeError("Patterns must be lists of dictionaries.")
+                raise ValueError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
     def remove(self: "TokenMatcher", label: str) -> None:
@@ -275,6 +303,7 @@ class TokenMatcher:
         spaczz_match: ty.List[ty.Tuple[str, str, int]],
         spacy_match: ty.Tuple[int, int, int],
     ) -> ty.Tuple[str, int, int, int, str]:
+        """Calculates the fuzzy ratio for the entire token match."""
         ratio = round(
             sum(
                 [

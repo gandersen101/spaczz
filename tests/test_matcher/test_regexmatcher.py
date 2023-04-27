@@ -9,7 +9,7 @@ from spacy.tokens import Span
 
 from spaczz.customtypes import MatchResult
 from spaczz.exceptions import KwargsWarning
-from spaczz.matcher.regexmatcher import RegexMatcher
+from spaczz.matcher import RegexMatcher
 
 
 def add_gpe_ent(
@@ -82,20 +82,20 @@ def test_add_with_more_explicit_kwargs_than_patterns_warns(
 def test_add_without_string_pattern_raises_error(
     matcher: RegexMatcher, nlp: Language
 ) -> None:
-    """Trying to add non strings as patterns raises a TypeError."""
-    with pytest.raises(TypeError):
+    """Trying to add non strings as patterns raises a ValueError."""
+    with pytest.raises(ValueError):
         matcher.add("TEST", [nlp.make_doc("Test1")])  # type: ignore
 
 
 def test_add_str_pattern_outside_list_raises_error(matcher: RegexMatcher) -> None:
-    """Trying to add string as patterns, not iterable of strings, raises a TypeError."""
-    with pytest.raises(TypeError):
+    """Trying to add string as patterns, not a list of strings, raises a ValueError."""
+    with pytest.raises(ValueError):
         matcher.add("TEST", "Test1")  # type: ignore
 
 
 def test_add_where_kwargs_are_not_dicts_raises_error(matcher: RegexMatcher) -> None:
-    """Trying to add non Dict objects as kwargs raises a TypeError."""
-    with pytest.raises(TypeError):
+    """Trying to add non Dict objects as kwargs raises a ValueError."""
+    with pytest.raises(ValueError):
         matcher.add("TEST", ["Test1"], ["ignore_case"])  # type: ignore
 
 

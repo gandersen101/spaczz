@@ -2,7 +2,7 @@
 import pytest
 from spacy.language import Language
 
-from spaczz.search import RegexSearcher
+from spaczz._search import RegexSearcher
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def test_match_w_fuzzy_regex(searcher: RegexSearcher, nlp: Language) -> None:
     """It produces a fuzzy match."""
     doc = nlp("I live in the US.")
     re_pattern = r"(USA){d<=1}"
-    matches = searcher.match(doc, re_pattern)
+    matches = searcher.match(doc, re_pattern, ignore_case=False)
     assert matches == [(4, 5, 80)]
 
 

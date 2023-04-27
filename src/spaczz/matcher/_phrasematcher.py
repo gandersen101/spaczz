@@ -1,4 +1,4 @@
-"""Module for _PhraseMatcher: base class for other phrase based spaczz matchers."""
+"""`PhraseMatcher` ABC for other phrase-based spaczz matchers."""
 import abc
 import typing as ty
 import warnings
@@ -6,78 +6,30 @@ import warnings
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
 
+from .._search import PhraseSearcher
 from ..customtypes import MatchResult
-from ..customtypes import MatchType
+from ..customtypes import SpaczzType
 from ..exceptions import KwargsWarning
-from ..search import _PhraseSearcher
 from ..util import nest_defaultdict
 
 
-class _PhraseMatcher(abc.ABC):
-    """spaCy-like matcher for finding flexible matches in `Doc` objects.
+class PhraseMatcher(abc.ABC):
+    """Abstract base class for phrase-based matching in spaCy `Doc` objects."""
 
-    Matches added patterns against the `Doc` object it is called on.
-    Accepts labeled patterns in the form of `Doc` objects.
+    name = "phrase_matcher"
 
-    Attributes:
-        defaults (dict[str, Any]): Keyword arguments to be used as
-            default matching settings.
-            See `_PhraseSearcher` documentation for details.
-        name (str): Class attribute - the name of the matcher.
-        type (str): The kind of matcher object.
-        _callbacks (dict[str, PhraseCallback]):
-            On match functions to modify `Doc` objects passed to the matcher.
-            Can make use of the matches identified.
-        _patterns (DefaultDict[str, DefaultDict[str, Any]]):
-            Patterns added to the matcher. Contains patterns
-            and kwargs that should be used during matching
-            for each labels added.
-    """
-
-    name = "_phrase_matcher"
-
-    def __init__(self: "_PhraseMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
-        """Initializes the base phrase matcher with the given defaults.
-
-        Args:
-            vocab: A spacy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are currently pure
-                Python and do not share vocabulary
-                with spaCy pipelines.
-            **defaults: Keyword arguments that will
-                be used as default matching settings.
-                These arguments will become the new defaults for matching.
-                See `_PhraseSearcher` documentation for details.
-        """
+    def __init__(self: "PhraseMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
+        """Initializes the matcher with the given defaults."""
         self.defaults = defaults
-        self.type: MatchType = "_phrase"
+        self._type: SpaczzType = "phrase"
         self._callbacks: ty.Dict[str, PhraseCallback] = {}
         self._patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
         ] = nest_defaultdict(list)
         self._searcher = self._get_searcher(vocab)
 
-    def __call__(self: "_PhraseMatcher", doc: Doc) -> ty.List[MatchResult]:
-        """Find all sequences matching the supplied patterns in `doc`.
-
-        Args:
-            doc: The `Doc` object to match over.
-
-        Returns:
-            A `list` of (key, start, end, ratio) tuples, describing the matches.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> doc = nlp("Ridley Scott was the director of Alien.")
-            >>> matcher.add("NAME", [nlp("Ridley Scott")])
-            >>> matcher(doc)
-            [('NAME', 0, 2, 100)]
-        """
+    def __call__(self: "PhraseMatcher", doc: Doc) -> ty.List[MatchResult]:
+        """Finds matches in `doc` given the matchers patterns."""
         matches = set()
         for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(  # noqa: B905
@@ -103,16 +55,16 @@ class _PhraseMatcher(abc.ABC):
                 on_match(self, doc, i, sorted_matches)
         return sorted_matches
 
-    def __contains__(self: "_PhraseMatcher", label: str) -> bool:
+    def __contains__(self: "PhraseMatcher", label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self: "_PhraseMatcher") -> int:
+    def __len__(self: "PhraseMatcher") -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     def __reduce__(
-        self: "_PhraseMatcher",
+        self: "PhraseMatcher",
     ) -> ty.Tuple[ty.Any, ty.Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
@@ -125,47 +77,13 @@ class _PhraseMatcher(abc.ABC):
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: "_PhraseMatcher") -> ty.Tuple[str, ...]:
-        """All labels present in the matcher.
-
-        Returns:
-            The unique labels as a `tuple` of strings.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp("Kerouac")])
-            >>> matcher.labels
-            ('AUTHOR',)
-        """
+    def labels(self: "PhraseMatcher") -> ty.Tuple[str, ...]:
+        """All labels present in the matcher."""
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: "_PhraseMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
-        """Get all patterns and kwargs that were added to the matcher.
-
-        Returns:
-            The patterns and their kwargs as a `list` of dicts.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("AUTHOR", [nlp("Kerouac")],
-                [{"ignore_case": False}])
-            >>> matcher.patterns == [
-                {
-                    "label": "AUTHOR",
-                    "pattern": "Kerouac",
-                    "type": "_phrase",
-                    "kwargs": {"ignore_case": False}
-                    },
-                    ]
-            True
-        """
+    def patterns(self: "PhraseMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
+        """Get all patterns and kwargs that were added to the matcher."""
         all_patterns = []
         for label, patterns in self._patterns.items():
             for pattern, kwargs in zip(  # noqa: B905
@@ -178,58 +96,25 @@ class _PhraseMatcher(abc.ABC):
         return all_patterns
 
     @property
-    def vocab(self: "_PhraseMatcher") -> Vocab:
-        """Returns the spaCy `Vocab` object utilized."""
+    def type(self: "PhraseMatcher") -> SpaczzType:
+        """Getter for the matchers `SpaczzType`."""
+        return self._type
+
+    @property
+    def vocab(self: "PhraseMatcher") -> Vocab:
+        """Getter for the matchers `Vocab`."""
         return self._searcher.vocab
 
     def add(
-        self: "_PhraseMatcher",
+        self: "PhraseMatcher",
         label: str,
         patterns: ty.List[Doc],
         kwargs: ty.Optional[ty.List[ty.Dict[str, ty.Any]]] = None,
         on_match: "PhraseCallback" = None,
     ) -> None:
-        """Add a rule to the matcher, consisting of a label and one or more patterns.
-
-        Patterns must be a `list` of `Doc` objects and if kwargs is not `None`,
-        kwargs must be a `list` of dicts.
-
-        Args:
-            label: Name of the rule added to the matcher.
-            patterns: `Doc` objects that will be matched
-                against the `Doc` object the matcher is called on.
-            kwargs: Optional arguments to modify the behavior of the matching.
-                Apply to inherited multi_match method.
-                See `_PhraseSearcher` documentation for kwarg details.
-                Default is `None`.
-            on_match: Optional callback function to modify the
-                `Doc` object the matcher is called on after matching.
-                Default is `None`.
-
-        Raises:
-            TypeError: Patterns must be a `list` of `Doc` objects.
-            TypeError: If kwargs is not an `list` of dicts.
-
-        Warnings:
-            KwargsWarning:
-                If there are more patterns than kwargs
-                default matching settings will be used
-                for extra patterns.
-            KwargsWarning:
-                If there are more kwargs dicts than patterns,
-                the extra kwargs will be ignored.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp("mooo")])
-            >>> "SOUND" in matcher
-            True
-        """
+        """Add a rule to the matcher."""
         if not isinstance(patterns, list):
-            raise TypeError("Patterns must be a list of Doc objects.")
+            raise ValueError("Patterns must be a list of Doc objects.")
         if kwargs is None:
             kwargs = [{} for _ in patterns]
         elif len(kwargs) < len(patterns):
@@ -251,32 +136,15 @@ class _PhraseMatcher(abc.ABC):
             if isinstance(pattern, Doc):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise TypeError("Patterns must be a list of Doc objects.")
+                raise ValueError("Patterns must be a list of Doc objects.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise TypeError("Kwargs must be a list of dicts.")
+                raise ValueError("Kwargs must be a list of dicts.")
         self._callbacks[label] = on_match
 
-    def remove(self: "_PhraseMatcher", label: str) -> None:
-        """Remove a label and its respective patterns from the matcher.
-
-        Args:
-            label: Name of the rule added to the matcher.
-
-        Raises:
-            ValueError: If label does not exist in the matcher.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz.matcher import _PhraseMatcher
-            >>> nlp = spacy.blank("en")
-            >>> matcher = _PhraseMatcher(nlp.vocab)
-            >>> matcher.add("SOUND", [nlp("mooo")])
-            >>> matcher.remove("SOUND")
-            >>> "SOUND" in matcher
-            False
-        """
+    def remove(self: "PhraseMatcher", label: str) -> None:
+        """Remove a label and its respective patterns from the matcher."""
         try:
             del self._patterns[label]
             del self._callbacks[label]
@@ -287,22 +155,22 @@ class _PhraseMatcher(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def _get_searcher(vocab: Vocab) -> _PhraseSearcher:
-        """Placeholder."""
+    def _get_searcher(vocab: Vocab) -> PhraseSearcher:
+        """Initializes the searcher for this matcher."""
         pass  # pragma: no cover
 
 
-PMT = ty.TypeVar("PMT", bound=_PhraseMatcher)
+PMT = ty.TypeVar("PMT", bound=PhraseMatcher)
 PhraseCallback = ty.Optional[ty.Callable[[PMT, Doc, int, ty.List[MatchResult]], None]]
 
 
 def unpickle_matcher(
-    matcher: ty.Type[_PhraseMatcher],
+    matcher: ty.Type[PhraseMatcher],
     vocab: Vocab,
     patterns: ty.DefaultDict[str, ty.DefaultDict[str, ty.Any]],
     callbacks: ty.Dict[str, PhraseCallback],
     defaults: ty.Any,
-) -> _PhraseMatcher:
+) -> PhraseMatcher:
     """Will return a matcher from pickle protocol."""
     matcher_instance = matcher(vocab, **defaults)
     for key, specs in patterns.items():

@@ -6,6 +6,7 @@ from spacy.tokens import Doc
 from spacy.tokens import Span
 from spacy.tokens import Token
 
+from .customtypes import SpaczzType
 from .exceptions import AttrOverwriteWarning
 
 
@@ -62,7 +63,9 @@ class SpaczzAttrs:
         return all([token._.spaczz_token for token in span])
 
     @classmethod
-    def get_span_type(cls: ty.Type["SpaczzAttrs"], span: Span) -> ty.Optional[str]:
+    def get_span_type(
+        cls: ty.Type["SpaczzAttrs"], span: Span
+    ) -> ty.Optional[SpaczzType]:
         """Getter for spaczz_type `Span` attribute."""
         if cls._all_equal([token._.spaczz_type for token in span]):
             return span[0]._.spaczz_type
@@ -70,7 +73,7 @@ class SpaczzAttrs:
             return None
 
     @staticmethod
-    def get_span_types(span: Span) -> ty.Set[str]:
+    def get_span_types(span: Span) -> ty.Set[SpaczzType]:
         """Getter for spaczz_types `Span` attribute."""
         types = [token._.spaczz_type for token in span if token._.spaczz_type]
         return set(types)
@@ -97,7 +100,7 @@ class SpaczzAttrs:
         return any([token._.spaczz_token for token in doc])
 
     @staticmethod
-    def get_doc_types(doc: Doc) -> ty.Set[str]:
+    def get_doc_types(doc: Doc) -> ty.Set[SpaczzType]:
         """Getter for spaczz_types `Doc` attribute."""
         types = [token._.spaczz_type for token in doc if token._.spaczz_type]
         return set(types)

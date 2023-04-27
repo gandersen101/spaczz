@@ -5,7 +5,7 @@ import pytest
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from spaczz.search import TokenSearcher
+from spaczz._search import TokenSearcher
 
 
 @pytest.fixture
