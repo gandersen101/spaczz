@@ -1,4 +1,4 @@
-[![Tests](https://github.com/gandersen101/spaczz/workflows/Tests/badge.svg)](https://github.com/gandersen101/spaczz/actions?workflow=Tests)
+[![Tests](https://github.com/gandersen101/spaczz/workflows/Lint,%20Typecheck%20and%20Test/badge.svg)](https://github.com/gandersen101/spaczz/actions?workflow=Lint,%20Typecheck%20and%20Test)
 [![Codecov](https://codecov.io/gh/gandersen101/spaczz/branch/master/graph/badge.svg)](https://codecov.io/gh/gandersen101/spaczz)
 [![PyPI](https://img.shields.io/pypi/v/spaczz.svg)](https://pypi.org/project/spaczz/)
 [![Read the Docs](https://readthedocs.org/projects/spaczz/badge/)](https://spaczz.readthedocs.io/)
