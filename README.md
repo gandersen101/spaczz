@@ -17,7 +17,7 @@ spaczz has been tested on Ubuntu, MacOS, and Windows Server.
 *v0.6.0 Release Notes:*
 - *Returning the matching pattern for all matchers, this is a breaking change as matches are now tuples of length 5 instead of 4.*
 - *Regex and token matches now return match ratios.*
-- *Support for `python<=3.11,>=3.7`, along with `rapidfuzz>=1.0.0`.
+- *Support for `python<=3.11,>=3.7`, along with `rapidfuzz>=1.0.0`.*
 - *Dropped support for spaCy v2. Sorry to do this without a deprecation cycle, but I stepped away from this project for a long time.*
 - *Removed support of `"spaczz_"` preprended optional `SpaczzRuler` init arguments. Also, sorry to do this without a deprecation cycle.*
 - *`Matcher.pipe` methods, which were deprecated, are now removed.*
