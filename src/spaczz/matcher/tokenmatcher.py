@@ -1,34 +1,20 @@
 """Module for TokenMatcher with an API semi-analogous to spaCy's Matcher."""
-from __future__ import annotations
-
-from collections import defaultdict
 from copy import deepcopy
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
-import warnings
+import typing as ty
 
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
 from spacy.vocab import Vocab
+import srsly
 
-from ..exceptions import PipeDeprecation
-from ..search import TokenSearcher
+from .._search import TokenSearcher
+from ..customtypes import SpaczzType
 
 
 class TokenMatcher:
-    """spaCy-like token matcher for finding flexible matches in `Doc` objects.
+    """spaCy-like matcher for finding fuzzy token matches in `Doc` objects.
 
-    Matches added patterns against the `Doc` object it is called on.
+    Fuzzy matches added patterns against the `Doc` object it is called on.
     Accepts labeled patterns in the form of lists of dictionaries
     where each list describes an individual pattern and each
     dictionary describes an individual token.
@@ -36,56 +22,84 @@ class TokenMatcher:
     Uses extended spaCy token matching patterns.
     "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
 
-    For example:
-        {"TEXT": {"FREGEX": "(database){e<=1}"}},
-        {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
+    For example::
+
+        [
+            {"TEXT": {"FREGEX": "(database){e<=1}"}},
+            {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "partial"}},
+        ]
 
     Make sure to use uppercase dictionary keys in patterns.
 
     Attributes:
-        defaults: Keyword arguments to be used as default matching settings.
-            See `TokenSearcher.match()` documentation for details.
-        name: Class attribute - the name of the matcher.
-        type: The kind of matcher object.
-        _callbacks:
-            On match functions to modify `Doc` objects passed to the matcher.
-            Can make use of the matches identified.
-        _patterns:
-            Patterns added to the matcher.
+        name (str): Class attribute - the name of the matcher.
+        defaults (dict[str, bool|int|str]):
+            Keyword arguments to be used as default match settings.
+            Per-pattern match settings take precedence over defaults.
+
+    Match Settings:
+        ignore_case (bool): Whether to lower-case text before matching.
+            Can only be set at the pattern level. For "FUZZY" and "FREGEX" patterns.
+            Default is `True`.
+        min_r (int): Minimum match ratio required. For "FUZZY" and "FREGEX" patterns.
+        fuzzy_func (str): Key name of fuzzy matching function to use.
+            Can only be set at the pattern level. For "FUZZY" patterns only.
+            All rapidfuzz matching functions with default settings are available,
+            however any token-based functions provide no utility at the individual
+            token level. Additional fuzzy matching functions can be registered by users.
+            Included, and useful, functions are:
+
+            * `"simple"` = `ratio`
+            * `"partial"` = `partial_ratio`
+            * `"quick"` = `QRatio`
+            * `"partial_alignment"` = `partial_ratio_alignment`
+                (Requires `rapidfuzz>=2.0.3`)
+
+            Default is `"simple`".
+        fuzzy_weights: Name of weighting method for regex insertion, deletion, and
+            substituion counts. Can only be set at the pattern level. For "FREGEX"
+            patterns only. Included weighting methods are:
+
+            * `"indel"` = `(1, 1, 2)`
+            * `"lev"` = `(1, 1, 1)`
+
+            Default is `"indel"`.
+        predef: Whether regex should be interpreted as a key to
+            a predefined regex pattern or not. Can only be set at the pattern level.
+            For "FREGEX" patterns only. Default is `False`.
     """
 
     name = "token_matcher"
 
-    def __init__(self: TokenMatcher, vocab: Vocab, **defaults: Any) -> None:
-        """Initializes the base phrase matcher with the given defaults.
+    def __init__(self: "TokenMatcher", vocab: Vocab, **defaults: ty.Any) -> None:
+        """Initializes the matcher with the given defaults.
 
         Args:
-            vocab: A spacy `Vocab` object.
-                Purely for consistency between spaCy
-                and spaczz matcher APIs for now.
-                spaczz matchers are currently pure
-                Python and do not share vocabulary
-                with spaCy pipelines.
+            vocab: A spacy `Vocab` object. Purely for consistency between spaCy
+                and spaczz matcher APIs for now. spaczz matchers are currently pure
+                Python and do not share vocabulary with spacy pipelines.
             **defaults: Keyword arguments that will
-                be used as default matching settings.
-                These arguments will become the new defaults for matching.
-                See `TokenSearcher.match()` documentation for details.
+                be used as default matching settings for the class instance.
         """
         self.defaults = defaults
-        self.type = "token"
-        self._callbacks: Dict[str, TokenCallback] = {}
-        self._patterns: DefaultDict[str, List[List[Dict[str, Any]]]] = DefaultDict(list)
+        self._type: SpaczzType = "token"
+        self._callbacks: ty.Dict[str, TokenCallback] = {}
+        self._patterns: ty.DefaultDict[
+            str, ty.List[ty.List[ty.Dict[str, ty.Any]]]
+        ] = ty.DefaultDict(list)
         self._searcher = TokenSearcher(vocab=vocab)
 
-    def __call__(self: TokenMatcher, doc: Doc) -> List[Tuple[str, int, int, None]]:
-        """Find all sequences matching the supplied patterns in the doc.
+    def __call__(
+        self: "TokenMatcher", doc: Doc
+    ) -> ty.List[ty.Tuple[str, int, int, int, str]]:
+        """Finds matches in `doc` given the matchers patterns.
 
         Args:
             doc: The `Doc` object to match over.
 
         Returns:
-            A list of (key, start, end, None) tuples, describing the matches.
-            The final None is a placeholder for future match details.
+            A list of `MatchResult` tuples,
+            (label, start index, end index, match ratio, pattern).
 
         Example:
             >>> import spacy
@@ -97,47 +111,49 @@ class TokenMatcher:
                 [{"TEXT": {"FUZZY": "Ridley"}},
                 {"TEXT": {"FUZZY": "Scott"}}]
                 ])
-            >>> matcher(doc)
-            [('NAME', 0, 2, None)]
+            >>> matcher(doc)[0][:4]
+            ('NAME', 0, 2, 90)
         """
-        mapped_patterns = defaultdict(list)
-        matcher = Matcher(self.vocab)
+        matches: ty.Set[ty.Tuple[str, int, int, int, str]] = set()
         for label, patterns in self._patterns.items():
             for pattern in patterns:
-                mapped_patterns[label].extend(
-                    _spacyfy(
-                        self._searcher.match(doc, pattern, **self.defaults),
-                        pattern,
-                    )
-                )
-        for label in mapped_patterns.keys():
-            matcher.add(label, mapped_patterns[label])
-        matches = matcher(doc)
-        if matches:
-            extended_matches = [
-                (self.vocab.strings[match_id], start, end, None)
-                for match_id, start, end in matches
-            ]
-            extended_matches.sort(key=lambda x: (x[1], -x[2] - x[1]))
-            for i, (label, _start, _end, _details) in enumerate(extended_matches):
-                on_match = self._callbacks.get(label)
-                if on_match:
-                    on_match(self, doc, i, extended_matches)
-            return extended_matches
-        else:
-            return []
+                spaczz_matches = self._searcher.match(doc, pattern, **self.defaults)
+                if spaczz_matches:
+                    for spaczz_match in spaczz_matches:
+                        matcher = Matcher(self.vocab)
+                        matcher.add(label, [self._spacyfy(spaczz_match, pattern)])
+                        spacy_matches = matcher(doc)
+                        for spacy_match in spacy_matches:
+                            matches.add(
+                                self._calc_ratio(
+                                    doc,
+                                    pattern=pattern,
+                                    spaczz_match=spaczz_match,
+                                    spacy_match=ty.cast(
+                                        ty.Tuple[int, int, int], spacy_match
+                                    ),
+                                )
+                            )
+        sorted_matches = sorted(
+            matches, key=lambda x: (-x[1], x[2] - x[1], x[3]), reverse=True
+        )
+        for i, (label, _start, _end, _ratio, _pattern) in enumerate(sorted_matches):
+            on_match = self._callbacks.get(label)
+            if on_match:
+                on_match(self, doc, i, sorted_matches)
+        return sorted_matches
 
-    def __contains__(self: TokenMatcher, label: str) -> bool:
+    def __contains__(self: "TokenMatcher", label: str) -> bool:
         """Whether the matcher contains patterns for a label."""
         return label in self._patterns
 
-    def __len__(self: TokenMatcher) -> int:
+    def __len__(self: "TokenMatcher") -> int:
         """The number of labels added to the matcher."""
         return len(self._patterns)
 
     def __reduce__(
-        self: TokenMatcher,
-    ) -> Tuple[Any, Any]:  # Precisely typing this would be really long.
+        self: "TokenMatcher",
+    ) -> ty.Tuple[ty.Any, ty.Any]:  # Precisely typing this would be really long.
         """Interface for pickling the matcher."""
         data = (
             self.__class__,
@@ -149,11 +165,11 @@ class TokenMatcher:
         return (unpickle_matcher, data)
 
     @property
-    def labels(self: TokenMatcher) -> Tuple[str, ...]:
+    def labels(self: "TokenMatcher") -> ty.Tuple[str, ...]:
         """All labels present in the matcher.
 
         Returns:
-            The unique string labels as a tuple.
+            The unique labels as a tuple of strings.
 
         Example:
             >>> import spacy
@@ -167,11 +183,11 @@ class TokenMatcher:
         return tuple(self._patterns.keys())
 
     @property
-    def patterns(self: TokenMatcher) -> List[Dict[str, Any]]:
-        """Get all patterns that were added to the matcher.
+    def patterns(self: "TokenMatcher") -> ty.List[ty.Dict[str, ty.Any]]:
+        """Get all patterns and match settings that were added to the matcher.
 
         Returns:
-            The original patterns, one dictionary for each combination.
+            The patterns and their respective match settings as a list of dicts.
 
         Example:
             >>> import spacy
@@ -196,40 +212,49 @@ class TokenMatcher:
         return all_patterns
 
     @property
-    def vocab(self: TokenMatcher) -> Vocab:
-        """Returns the spaCy `Vocab` object utilized."""
+    def type(self: "TokenMatcher") -> SpaczzType:
+        """Getter for the matchers `SpaczzType`."""
+        return self._type
+
+    @property
+    def vocab(self: "TokenMatcher") -> Vocab:
+        """Getter for the matchers `Vocab`."""
         return self._searcher.vocab
 
     def add(
-        self: TokenMatcher,
+        self: "TokenMatcher",
         label: str,
-        patterns: List[List[Dict[str, Any]]],
-        on_match: TokenCallback = None,
+        patterns: ty.List[ty.List[ty.Dict[str, ty.Any]]],
+        on_match: "TokenCallback" = None,
     ) -> None:
         """Add a rule to the matcher, consisting of a label and one or more patterns.
 
-        Patterns must be a list of dictionary lists where each dictionary
-        list represent an individual pattern and each dictionary represents
-        an individual token.
+        Patterns must be a list of lists of dicts where each list of dicts represent an
+        individual pattern and each dictionary represents an individual token.
 
         Uses extended spaCy token matching patterns.
         "FUZZY" and "FREGEX" are the two additional spaCy token pattern options.
 
-        For example:
-            {"TEXT": {"FREGEX": "(database){e<=1}"}},
-            {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "quick_lev"}}
+        For example::
+
+            [
+                {"TEXT": {"FREGEX": "(database){e<=1}"}},
+                {"LOWER": {"FUZZY": "access", "MIN_R": 85, "FUZZY_FUNC": "partial"}},
+            ]
+
+        Make sure to use uppercase dictionary keys in patterns.
 
         Args:
             label: Name of the rule added to the matcher.
-            patterns: List of dictionary lists that will be matched
+            patterns: List of lists of dicts that will be matched
                 against the `Doc` object the matcher is called on.
             on_match: Optional callback function to modify the
                 `Doc` object the matcher is called on after matching.
                 Default is `None`.
 
         Raises:
-            TypeError: If patterns is not an iterable of `Doc` objects.
-            ValueError: pattern cannot have zero tokens.
+            TypeError: If patterns is not a list of `Doc` objects.
+            ValueError: Patterns cannot have zero tokens.
 
         Example:
             >>> import spacy
@@ -242,14 +267,14 @@ class TokenMatcher:
         """
         for pattern in patterns:
             if len(pattern) == 0:
-                raise ValueError("pattern cannot have zero tokens.")
+                raise ValueError("Pattern cannot have zero tokens.")
             if isinstance(pattern, list):
                 self._patterns[label].append(list(pattern))
             else:
                 raise TypeError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
-    def remove(self: TokenMatcher, label: str) -> None:
+    def remove(self: "TokenMatcher", label: str) -> None:
         """Remove a label and its respective patterns from the matcher.
 
         Args:
@@ -276,82 +301,65 @@ class TokenMatcher:
                 f"The label: {label} does not exist within the matcher rules."
             )
 
-    def pipe(
-        self: TokenMatcher,
-        stream: Iterable[Doc],
-        batch_size: int = 1000,
-        return_matches: bool = False,
-        as_tuples: bool = False,
-    ) -> Generator[Any, None, None]:
-        """Match a stream of `Doc` objects, yielding them in turn.
-
-        Deprecated as of spaCy v3.0 and spaczz v0.5.
-
-        Args:
-            stream: A stream of `Doc` objects.
-            batch_size: Number of documents to accumulate into a working set.
-                Default is `1000`.
-            return_matches: Yield the match lists along with the docs,
-                making results (doc, matches) tuples. Default is `False`.
-            as_tuples: Interpret the input stream as (doc, context) tuples,
-                and yield (result, context) tuples out.
-                If both return_matches and as_tuples are `True`,
-                the output will be a sequence of ((doc, matches), context) tuples.
-                Default is `False`.
-
-        Yields:
-            `Doc` objects, in order.
-        """
-        warnings.warn(
-            """As of spaczz v0.5 and spaCy v3.0, the matcher.pipe method
-        is deprecated. If you need to match on a stream of documents,
-        you can use nlp.pipe and call the matcher on each Doc object.""",
-            PipeDeprecation,
+    def _calc_ratio(
+        self: "TokenMatcher",
+        doc: Doc,
+        pattern: ty.List[ty.Dict[str, ty.Any]],
+        spaczz_match: ty.List[ty.Tuple[str, str, int]],
+        spacy_match: ty.Tuple[int, int, int],
+    ) -> ty.Tuple[str, int, int, int, str]:
+        """Calculates the fuzzy ratio for the entire token match."""
+        ratio = round(
+            sum(
+                [
+                    token_match[2]
+                    / sum(
+                        [len(token) for token in doc[spacy_match[1] : spacy_match[2]]]
+                    )
+                    * len(token)
+                    for token, token_match in zip(  # noqa: B905
+                        doc[spacy_match[1] : spacy_match[2]], spaczz_match
+                    )
+                ]
+            )
         )
-        if as_tuples:
-            for doc, context in stream:
-                matches = self(doc)
-                if return_matches:
-                    yield ((doc, matches), context)
-                else:
-                    yield (doc, context)
-        else:
-            for doc in stream:
-                matches = self(doc)
-                if return_matches:
-                    yield (doc, matches)
-                else:
-                    yield doc
+
+        return (
+            ty.cast(str, self.vocab.strings[spacy_match[0]]),
+            spacy_match[1],
+            spacy_match[2],
+            ratio,
+            ty.cast(str, srsly.json_dumps(pattern)),
+        )
+
+    @staticmethod
+    def _spacyfy(
+        match: ty.List[ty.Tuple[str, str, int]],
+        pattern: ty.List[ty.Dict[str, ty.Any]],
+    ) -> ty.List[ty.Dict[str, ty.Any]]:
+        """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
+        new_pattern = deepcopy(pattern)
+        for i, token in enumerate(match):
+            if token[0]:
+                del new_pattern[i][token[0]]
+                new_pattern[i]["TEXT"] = token[1]
+        return new_pattern
 
 
-def _spacyfy(
-    matches: List[List[Optional[Tuple[str, str]]]], pattern: List[Dict[str, Any]]
-) -> List[List[Dict[str, Any]]]:
-    """Turns token searcher matches into spaCy `Matcher` compatible patterns."""
-    new_patterns = []
-    if matches:
-        for match in matches:
-            new_pattern = deepcopy(pattern)
-            for i, token in enumerate(match):
-                if token:
-                    del new_pattern[i][token[0]]
-                    new_pattern[i]["TEXT"] = token[1]
-            new_patterns.append(new_pattern)
-    return new_patterns
-
-
-TokenCallback = Optional[
-    Callable[[TokenMatcher, Doc, int, List[Tuple[str, int, int, None]]], None]
+TokenCallback = ty.Optional[
+    ty.Callable[
+        [TokenMatcher, Doc, int, ty.List[ty.Tuple[str, int, int, int, str]]], None
+    ]
 ]
 
 
 def unpickle_matcher(
-    matcher: Type[TokenMatcher],
+    matcher: ty.Type[TokenMatcher],
     vocab: Vocab,
-    patterns: DefaultDict[str, List[List[Dict[str, Any]]]],
-    callbacks: Dict[str, TokenCallback],
-    defaults: Any,
-) -> Any:
+    patterns: ty.DefaultDict[str, ty.List[ty.List[ty.Dict[str, ty.Any]]]],
+    callbacks: ty.Dict[str, TokenCallback],
+    defaults: ty.Any,
+) -> TokenMatcher:
     """Will return a matcher from pickle protocol."""
     matcher_instance = matcher(vocab, **defaults)
     for key, specs in patterns.items():

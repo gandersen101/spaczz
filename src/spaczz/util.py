@@ -1,44 +1,40 @@
 """Module for various utility functions."""
 from collections import defaultdict
 from functools import partial
-from itertools import repeat, tee
+import itertools
+from os import PathLike
 from pathlib import Path
-from typing import Any, DefaultDict, Iterable, Union
+import typing as ty
 
 
-def ensure_path(path: Union[str, Path]) -> Path:
-    """Ensure string is converted to a Path.
+def nest_defaultdict(
+    default_factory: ty.Any, depth: int = 1, *args: ty.Any, **kwargs: ty.Any
+) -> ty.DefaultDict[ty.Any, ty.Any]:
+    """Nests defaultdicts where depth nesting is `defaultdict[default_factory]`."""
+    result = partial(defaultdict, default_factory)
+    for _ in itertools.repeat(None, depth):
+        result = partial(defaultdict, result)
+    return result(*args, **kwargs)
+
+
+def ensure_path(path: ty.Union[str, PathLike]) -> Path:
+    """Ensure str or Pathlike is converted to a Path.
 
     Args:
-        path: Anything. If string, it's converted to Path.
+        path: str or PathLike, if it's not a Path, it's converted to Path.
 
     Returns:
-        Path or original argument.
+        Path.
     """
-    if isinstance(path, str):
+    if not isinstance(path, Path):
         return Path(path)
     else:
         return path
 
 
-def nest_defaultdict(default_factory: Any, depth: int = 1) -> DefaultDict[Any, Any]:
-    """Returns a nested `defaultdict`."""
-    result = partial(defaultdict, default_factory)
-    for _ in repeat(None, depth - 1):
-        result = partial(defaultdict, result)
-    return result()
-
-
-def n_wise(iterable: Iterable[Any], n: int) -> Iterable[Any]:
-    """Iterates over an iterables in slices of length n by one step at a time."""
-    iterables = tee(iterable, n)
-    for i in range(len(iterables)):
-        for _ in range(i):
-            next(iterables[i], None)
-    return zip(*iterables)
-
-
-def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:
+def read_from_disk(
+    path: ty.Union[str, PathLike], readers: ty.Any, exclude: ty.Any
+) -> Path:
     """Reads a pipeline component from disk."""
     path = ensure_path(path)
     for key, reader in readers.items():
@@ -48,7 +44,9 @@ def read_from_disk(path: Union[str, Path], readers: Any, exclude: Any) -> Path:
     return path
 
 
-def write_to_disk(path: Union[str, Path], writers: Any, exclude: Any) -> Path:
+def write_to_disk(
+    path: ty.Union[str, PathLike], writers: ty.Any, exclude: ty.Any
+) -> Path:
     """Writes a pipeline component to disk."""
     path = ensure_path(path)
     if not path.exists():

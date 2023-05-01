@@ -4,7 +4,7 @@ from spacy.language import Language
 from spacy.tokens import Doc
 
 from spaczz.customattrs import SpaczzAttrs
-from spaczz.exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
+from spaczz.exceptions import AttrOverwriteWarning
 
 
 @pytest.fixture
@@ -17,15 +17,6 @@ def test_initialize_again_skips() -> None:
     """Subsequent `SpaczzAttrs` initializations do nothing."""
     SpaczzAttrs.initialize()
     assert SpaczzAttrs._initialized is True
-
-
-def test_get_spaczz_span(doc: Doc) -> None:
-    """Returns spaczz span boolean."""
-    for token in doc[:2]:
-        token._.spaczz_token = True
-    with pytest.warns(SpaczzSpanDeprecation):
-        value = doc[:2]._.spaczz_span
-    assert value is True
 
 
 def test_get_spaczz_ent(doc: Doc) -> None:
@@ -89,36 +80,8 @@ def test_get_ratio1(doc: Doc) -> None:
 def test_get_ratio2(doc: Doc) -> None:
     """Returns span ratio."""
     doc[0]._.spaczz_ratio = 100
-    doc[1]._.spaczz_counts = (0, 0, 0)
+    doc[1]._.spaczz_ratio = 90
     assert doc[:2]._.spaczz_ratio is None
-
-
-def test_get_counts1(doc: Doc) -> None:
-    """Returns span counts."""
-    for token in doc[:2]:
-        token._.spaczz_counts = (0, 0, 0)
-    assert doc[:2]._.spaczz_counts == (0, 0, 0)
-
-
-def test_get_counts2(doc: Doc) -> None:
-    """Returns span counts."""
-    doc[0]._.spaczz_ratio = 100
-    doc[1]._.spaczz_counts = (0, 0, 0)
-    assert doc[:2]._.spaczz_counts is None
-
-
-def test_get_details1(doc: Doc) -> None:
-    """Returns span details."""
-    for token in doc[:2]:
-        token._.spaczz_details = 1
-    assert doc[:2]._.spaczz_details == 1
-
-
-def test_get_details2(doc: Doc) -> None:
-    """Returns span details."""
-    doc[0]._.spaczz_details = 1
-    doc[1]._.spaczz_counts = (0, 0, 0)
-    assert doc[:2]._.spaczz_details is None
 
 
 def test_get_spaczz_doc(doc: Doc) -> None:

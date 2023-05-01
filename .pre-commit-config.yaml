@@ -1,20 +1,46 @@
+exclude: >
+      (?x)(
+          \.mypy_cache/
+          | \.pytest_cache/
+          | \.venv/
+          | build/
+          | dist/
+          | docs/_build/
+          | notebooks/
+          | \S+\.egg-info/
+      )
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.4.0
     hooks:
       - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: pretty-format-json
+        args: ["--autofix"]
       - id: end-of-file-fixer
       - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 21.12b0
+        args: ["--markdown-linebreak-ext=md"]
+  - repo: local
     hooks:
+      - id: isort
+        name: isort
+        entry: poetry run isort
+        types: [python]
+        language: system
       - id: black
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
-    hooks:
+        name: black
+        entry: poetry run black
+        types: [python]
+        language: system
       - id: flake8
-        additional_dependencies: [flake8-annotations, flake8-bugbear, flake8-bandit, flake8-docstrings, flake8-import-order]
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.930
-    hooks:
-    -   id: mypy
+        name: flake8
+        entry: poetry run flake8
+        types: [python]
+        language: system
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy
+        types: [python]
+        language: system

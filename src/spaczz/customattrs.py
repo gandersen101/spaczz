@@ -1,37 +1,35 @@
 """Custom spaCy attributes for spaczz."""
-from __future__ import annotations
-
-from typing import Iterable, Optional, Set, Tuple, Type
+import typing as ty
 import warnings
 
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc
+from spacy.tokens import Span
+from spacy.tokens import Token
 
-from .exceptions import AttrOverwriteWarning, SpaczzSpanDeprecation
+from .customtypes import SpaczzType
+from .exceptions import AttrOverwriteWarning
 
 
 class SpaczzAttrs:
-    """Adds spaczz custom attributes to spacy."""
+    """Adds spaczz custom attributes to spaCy."""
 
     _initialized = False
 
     @classmethod
-    def initialize(cls: Type[SpaczzAttrs]) -> None:
+    def initialize(cls: ty.Type["SpaczzAttrs"]) -> None:
         """Initializes and registers custom attributes."""
         if not cls._initialized:
             try:
                 Token.set_extension("spaczz_token", default=False)
                 Token.set_extension("spaczz_type", default=None)
                 Token.set_extension("spaczz_ratio", default=None)
-                Token.set_extension("spaczz_counts", default=None)
-                Token.set_extension("spaczz_details", default=None)
+                Token.set_extension("spaczz_pattern", default=None)
 
-                Span.set_extension("spaczz_span", getter=cls.get_spaczz_span)
                 Span.set_extension("spaczz_ent", getter=cls.get_spaczz_ent)
                 Span.set_extension("spaczz_type", getter=cls.get_span_type)
                 Span.set_extension("spaczz_types", getter=cls.get_span_types)
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio)
-                Span.set_extension("spaczz_counts", getter=cls.get_counts)
-                Span.set_extension("spaczz_details", getter=cls.get_details)
+                Span.set_extension("spaczz_pattern", getter=cls.get_pattern)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types)
@@ -40,37 +38,24 @@ class SpaczzAttrs:
                 warnings.warn(
                     """One or more spaczz custom extensions has already been registered.
                     These are being force overwritten. Please avoid defining personal,
-                    custom extensions prepended with "spaczz_".
+                    custom extensions prepended with `"spaczz_"`.
                 """,
                     AttrOverwriteWarning,
+                    stacklevel=2,
                 )
                 Token.set_extension("spaczz_token", default=False, force=True)
                 Token.set_extension("spaczz_type", default=None, force=True)
                 Token.set_extension("spaczz_ratio", default=None, force=True)
-                Token.set_extension("spaczz_counts", default=None, force=True)
 
-                Span.set_extension(
-                    "spaczz_span", getter=cls.get_spaczz_span, force=True
-                )
                 Span.set_extension("spaczz_type", getter=cls.get_span_type, force=True)
                 Span.set_extension(
                     "spaczz_types", getter=cls.get_span_types, force=True
                 )
                 Span.set_extension("spaczz_ratio", getter=cls.get_ratio, force=True)
-                Span.set_extension("spaczz_counts", getter=cls.get_counts, force=True)
+                Span.set_extension("spaczz_pattern", getter=cls.get_pattern, force=True)
 
                 Doc.set_extension("spaczz_doc", getter=cls.get_spaczz_doc, force=True)
                 Doc.set_extension("spaczz_types", getter=cls.get_doc_types, force=True)
-
-    @staticmethod
-    def get_spaczz_span(span: Span) -> bool:
-        """Getter for spaczz_span `Span` attribute."""
-        warnings.warn(
-            """spaczz_span is deprecated.
-        Use spaczz_ent instead.""",
-            SpaczzSpanDeprecation,
-        )
-        return all([token._.spaczz_token for token in span])
 
     @staticmethod
     def get_spaczz_ent(span: Span) -> bool:
@@ -78,7 +63,9 @@ class SpaczzAttrs:
         return all([token._.spaczz_token for token in span])
 
     @classmethod
-    def get_span_type(cls: Type[SpaczzAttrs], span: Span) -> Optional[str]:
+    def get_span_type(
+        cls: ty.Type["SpaczzAttrs"], span: Span
+    ) -> ty.Optional[SpaczzType]:
         """Getter for spaczz_type `Span` attribute."""
         if cls._all_equal([token._.spaczz_type for token in span]):
             return span[0]._.spaczz_type
@@ -86,13 +73,13 @@ class SpaczzAttrs:
             return None
 
     @staticmethod
-    def get_span_types(span: Span) -> Set[str]:
+    def get_span_types(span: Span) -> ty.Set[SpaczzType]:
         """Getter for spaczz_types `Span` attribute."""
         types = [token._.spaczz_type for token in span if token._.spaczz_type]
         return set(types)
 
     @classmethod
-    def get_ratio(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
+    def get_ratio(cls: ty.Type["SpaczzAttrs"], span: Span) -> ty.Optional[int]:
         """Getter for spaczz_ratio `Span` attribute."""
         if cls._all_equal([token._.spaczz_ratio for token in span]):
             return span[0]._.spaczz_ratio
@@ -100,20 +87,10 @@ class SpaczzAttrs:
             return None
 
     @classmethod
-    def get_counts(
-        cls: Type[SpaczzAttrs], span: Span
-    ) -> Optional[Tuple[int, int, int]]:
-        """Getter for spaczz_counts `Span` attribute."""
-        if cls._all_equal([token._.spaczz_counts for token in span]):
-            return span[0]._.spaczz_counts
-        else:
-            return None
-
-    @classmethod
-    def get_details(cls: Type[SpaczzAttrs], span: Span) -> Optional[int]:
-        """Getter for current placeholder spaczz_details `Span` attribute."""
-        if cls._all_equal([token._.spaczz_details for token in span]):
-            return span[0]._.spaczz_details
+    def get_pattern(cls: ty.Type["SpaczzAttrs"], span: Span) -> ty.Optional[str]:
+        """Getter for spaczz_pattern `Span` attribute."""
+        if cls._all_equal([token._.spaczz_pattern for token in span]):
+            return span[0]._.spaczz_pattern
         else:
             return None
 
@@ -123,13 +100,13 @@ class SpaczzAttrs:
         return any([token._.spaczz_token for token in doc])
 
     @staticmethod
-    def get_doc_types(doc: Doc) -> Set[str]:
+    def get_doc_types(doc: Doc) -> ty.Set[SpaczzType]:
         """Getter for spaczz_types `Doc` attribute."""
         types = [token._.spaczz_type for token in doc if token._.spaczz_type]
         return set(types)
 
     @staticmethod
-    def _all_equal(iterable: Iterable) -> bool:
+    def _all_equal(iterable: ty.Iterable[ty.Any]) -> bool:
         """Tests if all elements of iterable are equal."""
         iterator = iter(iterable)
         try:

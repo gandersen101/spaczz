@@ -1,0 +1,143 @@
+"""Registry of commonly used regex patterns."""
+from functools import lru_cache
+
+import catalogue
+import regex as re
+
+re_patterns = catalogue.create("spaczz", "re_patterns", entry_points=True)
+re_patterns.register(
+    "dates",
+    func=re.compile(
+        r"""(?ix)(?:(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?\s+(?:of\s+)?(?:jan\.?|
+        january|feb\.?|february|mar\.?|march|apr\.?|april|may|jun\.?|june|jul\.?|july|
+        aug\.?|august|sep\.?|september|oct\.?|october|nov\.?|november|dec\.?|december)|
+        (?:jan\.?|january|feb\.?|february|mar\.?|march|apr\.?|april|may|jun\.?|june|
+        jul\.?|july|aug\.?|august|sep\.?|september|oct\.?|october|nov\.?|november|
+        dec\.?|december)\s+(?<!\:)(?<!\:\d)[0-3]?\d(?:st|nd|rd|th)?)(?:\,)?\s*(?:\d{4})?
+        |[0-3]?\d[-\./][0-3]?\d[-\./]\d{2,4}"""
+    ),
+)
+re_patterns.register(
+    "times", func=re.compile(r"(?i)\d{1,2}:\d{2} ?(?:[ap]\.?m\.?)?|\d[ap]\.?m\.?")
+)
+re_patterns.register(
+    "phones",
+    func=re.compile(
+        r"""(?ix)((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d{3}
+        [-.\s*]?\d{4}(?![\d-]))|(?:(?<![\d-])(?:(?:\(\+?\d{2}\))|
+        (?:\+?\d{2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))"""
+    ),
+)
+re_patterns.register(
+    "phones_with_exts",
+    func=re.compile(
+        r"""(?ix)((?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*(?:[2-9]1[02-9]|[2-9][02-8]1|
+        [2-9][02-8][02-9])\s*\)|(?:[2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))
+        \s*(?:[.-]\s*)?)?(?:[2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)
+        ?(?:[0-9]{4})(?:\s*(?:\#|x\.?|ext\.?|extension)\s*(?:\d+)?))"""
+    ),
+)
+re_patterns.register(
+    "links",
+    func=re.compile(
+        r"""(?ix)(?i)((?:https?://|www\d{0,3}[.])?[a-z0-9.\-]+[.]
+        (?:(?:international)|(?:construction)|(?:contractors)|(?:enterprises)|
+        (?:photography)|(?:immobilien)|(?:management)|(?:technology)|(?:directory)|
+        (?:education)|(?:equipment)|(?:institute)|(?:marketing)|(?:solutions)|
+        (?:builders)|(?:clothing)|(?:computer)|(?:democrat)|(?:diamonds)|
+        (?:graphics)|(?:holdings)|(?:lighting)|(?:plumbing)|(?:training)|
+        (?:ventures)|(?:academy)|(?:careers)|(?:company)|(?:domains)|(?:florist)|
+        (?:gallery)|(?:guitars)|(?:holiday)|(?:kitchen)|(?:recipes)|(?:shiksha)|
+        (?:singles)|(?:support)|(?:systems)|(?:agency)|(?:berlin)|(?:camera)|(?:center)|
+        (?:coffee)|(?:estate)|(?:kaufen)|(?:luxury)|(?:monash)|(?:museum)|(?:photos)|
+        (?:repair)|(?:social)|(?:tattoo)|(?:travel)|(?:viajes)|(?:voyage)|(?:build)|
+        (?:cheap)|(?:codes)|(?:dance)|(?:email)|(?:glass)|(?:house)|(?:ninja)|(?:photo)|
+        (?:shoes)|(?:solar)|(?:today)|(?:aero)|(?:arpa)|(?:asia)|(?:bike)|(?:buzz)|
+        (?:camp)|(?:club)|(?:coop)|(?:farm)|(?:gift)|(?:guru)|(?:info)|(?:jobs)|
+        (?:kiwi)|(?:land)|(?:limo)|(?:link)|(?:menu)|(?:mobi)|(?:moda)|(?:name)|
+        (?:pics)|(?:pink)|(?:post)|(?:rich)|(?:ruhr)|(?:sexy)|(?:tips)|(?:wang)|
+        (?:wien)|(?:zone)|(?:biz)|(?:cab)|(?:cat)|(?:ceo)|(?:com)|(?:edu)|(?:gov)|
+        (?:int)|(?:mil)|(?:net)|(?:onl)|(?:org)|(?:pro)|(?:red)|(?:tel)|(?:uno)|(?:xxx)|
+        (?:ac)|(?:ad)|(?:ae)|(?:af)|(?:ag)|(?:ai)|(?:al)|(?:am)|(?:an)|(?:ao)|(?:aq)|
+        (?:ar)|(?:as)|(?:at)|(?:au)|(?:aw)|(?:ax)|(?:az)|(?:ba)|(?:bb)|(?:bd)|(?:be)|
+        (?:bf)|(?:bg)|(?:bh)|(?:bi)|(?:bj)|(?:bm)|(?:bn)|(?:bo)|(?:br)|(?:bs)|(?:bt)|
+        (?:bv)|(?:bw)|(?:by)|(?:bz)|(?:ca)|(?:cc)|(?:cd)|(?:cf)|(?:cg)|(?:ch)|(?:ci)|
+        (?:ck)|(?:cl)|(?:cm)|(?:cn)|(?:co)|(?:cr)|(?:cu)|(?:cv)|(?:cw)|(?:cx)|(?:cy)|
+        (?:cz)|(?:de)|(?:dj)|(?:dk)|(?:dm)|(?:do)|(?:dz)|(?:ec)|(?:ee)|(?:eg)|(?:er)|
+        (?:es)|(?:et)|(?:eu)|(?:fi)|(?:fj)|(?:fk)|(?:fm)|(?:fo)|(?:fr)|(?:ga)|(?:gb)|
+        (?:gd)|(?:ge)|(?:gf)|(?:gg)|(?:gh)|(?:gi)|(?:gl)|(?:gm)|(?:gn)|(?:gp)|(?:gq)|
+        (?:gr)|(?:gs)|(?:gt)|(?:gu)|(?:gw)|(?:gy)|(?:hk)|(?:hm)|(?:hn)|(?:hr)|(?:ht)|
+        (?:hu)|(?:id)|(?:ie)|(?:il)|(?:im)|(?:in)|(?:io)|(?:iq)|(?:ir)|(?:is)|(?:it)|
+        (?:je)|(?:jm)|(?:jo)|(?:jp)|(?:ke)|(?:kg)|(?:kh)|(?:ki)|(?:km)|(?:kn)|(?:kp)|
+        (?:kr)|(?:kw)|(?:ky)|(?:kz)|(?:la)|(?:lb)|(?:lc)|(?:li)|(?:lk)|(?:lr)|(?:ls)|
+        (?:lt)|(?:lu)|(?:lv)|(?:ly)|(?:ma)|(?:mc)|(?:md)|(?:me)|(?:mg)|(?:mh)|(?:mk)|
+        (?:ml)|(?:mm)|(?:mn)|(?:mo)|(?:mp)|(?:mq)|(?:mr)|(?:ms)|(?:mt)|(?:mu)|(?:mv)|
+        (?:mw)|(?:mx)|(?:my)|(?:mz)|(?:na)|(?:nc)|(?:ne)|(?:nf)|(?:ng)|(?:ni)|(?:nl)|
+        (?:no)|(?:np)|(?:nr)|(?:nu)|(?:nz)|(?:om)|(?:pa)|(?:pe)|(?:pf)|(?:pg)|(?:ph)|
+        (?:pk)|(?:pl)|(?:pm)|(?:pn)|(?:pr)|(?:ps)|(?:pt)|(?:pw)|(?:py)|(?:qa)|(?:re)|
+        (?:ro)|(?:rs)|(?:ru)|(?:rw)|(?:sa)|(?:sb)|(?:sc)|(?:sd)|(?:se)|(?:sg)|(?:sh)|
+        (?:si)|(?:sj)|(?:sk)|(?:sl)|(?:sm)|(?:sn)|(?:so)|(?:sr)|(?:st)|(?:su)|(?:sv)|
+        (?:sx)|(?:sy)|(?:sz)|(?:tc)|(?:td)|(?:tf)|(?:tg)|(?:th)|(?:tj)|(?:tk)|(?:tl)|
+        (?:tm)|(?:tn)|(?:to)|(?:tp)|(?:tr)|(?:tt)|(?:tv)|(?:tw)|(?:tz)|(?:ua)|(?:ug)|
+        (?:uk)|(?:us)|(?:uy)|(?:uz)|(?:va)|(?:vc)|(?:ve)|(?:vg)|(?:vi)|(?:vn)|(?:vu)|
+        (?:wf)|(?:ws)|(?:ye)|(?:yt)|(?:za)|(?:zm)|(?:zw))
+        (?:/[^\s()<>]+[^\s`!()\[\]{};:\'".,<>?\xab\xbb\u201c\u201d\u2018\u2019])?)"""
+    ),
+)
+re_patterns.register(
+    "emails",
+    func=re.compile(
+        r"""(?ix)([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+
+        [a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"""
+    ),
+)
+re_patterns.register(
+    "ips",
+    func=re.compile(
+        r"""(?ix)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?
+        [0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+        \.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"""
+    ),
+)
+re_patterns.register(
+    "ipv6s",
+    func=re.compile(
+        r"""(?isx)\s*(?!.*::.*::)(?:(?!:)|:(?=:))(?:[0-9a-f]{0,4}(?:(?<=::)|
+        (?<!::):)){6}(?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):)[0-9a-f]{0,4}(?:(?<=::)|(?<!:)|
+        (?<=:)(?<!::):)|(?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)
+        (?:\.(?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)){3})\s*"""
+    ),
+)
+re_patterns.register(
+    "prices",
+    func=re.compile(r"[$]\s?[+-]?[0-9]{1,3}(?:(?:,?[0-9]{3}))*(?:\.[0-9]{1,2})?"),
+)
+re_patterns.register(
+    "hex_colors", func=re.compile(r"(#(?:[0-9a-fA-F]{8})|#(?:[0-9a-fA-F]{3}){1,2})\b")
+)
+re_patterns.register(
+    "credit_cards",
+    func=re.compile(r"((?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16}))(?![\d])"),
+)
+re_patterns.register(
+    "btc_addresses", func=re.compile(r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}")
+)
+re_patterns.register(
+    "street_addresses",
+    func=re.compile(
+        r"""(?ix)\d{1,4} [\w\s]{1,20}(?:street|st|avenue|ave|road|rd|highway|hwy|square|
+        sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd|
+        lane|ln)\W?(?=\s|$)"""
+    ),
+)
+re_patterns.register("zip_codes", func=re.compile(r"\b\d{5}(?:[-\s]\d{4})?\b"))
+re_patterns.register("po_boxes", func=re.compile(r"(?i)P\.? ?O\.? Box \d+"))
+re_patterns.register(
+    "ssn_numbers",
+    func=re.compile(
+        r"""(?x)(?!000|666|333)0*(?:[0-6][0-9][0-9]|[0-7][0-6][0-9]|[0-7][0-7][0-2])
+        [- ](?!00)[0-9]{2}[- ](?!0000)[0-9]{4}"""
+    ),
+)
+
+get_re_pattern = lru_cache(None)(re_patterns.get)

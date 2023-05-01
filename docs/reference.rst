@@ -16,28 +16,14 @@ spaczz.matcher
 spaczz.pipeline
 --------------------------
 
-.. automodule:: spaczz.pipeline._spaczzruler
+.. automodule:: spaczz.pipeline
    :members:
 
 
-spaczz.search
+spaczz.registry
 --------------------------
 
-.. automodule:: spaczz.search
-   :members:
-
-
-spaczz.regex
---------------------------
-
-.. automodule:: spaczz.regex
-   :members:
-
-
-spaczz.process
---------------------------
-
-.. automodule:: spaczz.process
+.. automodule:: spaczz.registry
    :members:
 
 
@@ -48,10 +34,10 @@ spaczz.customattrs
    :members:
 
 
-spaczz.util
+spaczz.customtypes
 --------------------------
 
-.. automodule:: spaczz.util
+.. automodule:: spaczz.customtypes
    :members:
 
 

@@ -21,17 +21,9 @@ class PatternTypeWarning(Warning):
     """It warns if the spaczz pattern does not have a valid pattern type."""
 
 
-class PipeDeprecation(Warning):
-    """Warns that `matcher.pipe` methods are now deprecated."""
-
-
 class MissingVectorsWarning(Warning):
     """It warns if the spaCy Vocab does not have word vectors."""
 
 
 class RatioWarning(Warning):
     """It warns if match ratio values are incompatible with each other."""
-
-
-class SpaczzSpanDeprecation(Warning):
-    """It warns if the spaczz_span attribute is accessed."""
