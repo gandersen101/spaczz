@@ -1,7 +1,5 @@
 """Module for the SpaczzRuler."""
 from collections import defaultdict
-from itertools import chain
-from logging import exception
 from pathlib import Path
 import typing as ty
 import warnings
@@ -13,10 +11,13 @@ from spacy.tokens import Doc
 from spacy.tokens import Span
 from spacy.training import Example
 from spacy.training import validate_examples
+from spacy.util import registry
 from spacy.util import SimpleFrozenDict
 from spacy.util import SimpleFrozenList
 import srsly
 
+from ..customtypes import RulerPattern
+from ..customtypes import RulerResult
 from ..customtypes import SpaczzType
 from ..exceptions import PatternTypeWarning
 from ..matcher import FuzzyMatcher
@@ -31,26 +32,53 @@ DEFAULT_ENT_ID_SEP = "||"
 SIMPLE_FROZEN_DICT = SimpleFrozenDict()
 SIMPLE_FROZEN_LIST = SimpleFrozenList()
 
+REQUIRE_PATTERNS_WARNING = (
+    "The component 'spaczz_ruler' does not have any patterns defined."
+)
+warnings.filterwarnings("once", message=REQUIRE_PATTERNS_WARNING)
+
+DEFAULT_CONFIG = {
+    "overwrite_ents": False,
+    "ent_id_sep": DEFAULT_ENT_ID_SEP,
+    "fuzzy_defaults": SIMPLE_FROZEN_DICT,
+    "regex_defaults": SIMPLE_FROZEN_DICT,
+    "token_defaults": SIMPLE_FROZEN_DICT,
+    "scorer": {"@scorers": "spaczz.spaczz_ruler_scorer.v1"},
+}
+
+
+def spaczz_ruler_scorer(
+    examples: ty.Iterable[Example], **kwargs: ty.Any
+) -> ty.Dict[str, ty.Any]:
+    """Default spaczz scorer."""
+    return get_ner_prf(examples)
+
+
+if getattr(registry, "scorers", None):  # pragma: no cover
+
+    @registry.scorers("spaczz.spaczz_ruler_scorer.v1")  # type: ignore[attr-defined]
+    def make_spaczz_ruler_scorer() -> (
+        ty.Callable[[ty.Iterable[Example]], ty.Dict[str, ty.Any]]
+    ):
+        """Wrapping `spaczz_ruler_scorer` in a callable."""
+        return spaczz_ruler_scorer
+
+else:
+    del DEFAULT_CONFIG["scorer"]
+
 
 @Language.factory(
     "spaczz_ruler",
     assigns=["doc.ents", "token.ent_type", "token.ent_iob"],
-    default_config={
-        "overwrite_ents": False,
-        "ent_id_sep": DEFAULT_ENT_ID_SEP,
-        "fuzzy_defaults": SIMPLE_FROZEN_DICT,
-        "regex_defaults": SIMPLE_FROZEN_DICT,
-        "token_defaults": SIMPLE_FROZEN_DICT,
-    },
+    default_config=DEFAULT_CONFIG,
     default_score_weights={
         "ents_f": 1.0,
         "ents_p": 0.0,
         "ents_r": 0.0,
-        "ents_per_type": None,  # type: ignore
+        "ents_per_type": None,
     },
 )
 def make_spaczz_ruler(
-    # typing nlp with Language causes issue with Pydantic in spaCy integration
     nlp: Language,
     name: str,
     overwrite_ents: bool,
@@ -58,6 +86,7 @@ def make_spaczz_ruler(
     fuzzy_defaults: ty.Dict[str, ty.Any],
     regex_defaults: ty.Dict[str, ty.Any],
     token_defaults: ty.Dict[str, ty.Any],
+    scorer: ty.Optional[ty.Callable] = None,
 ) -> "SpaczzRuler":
     """Factory method for creating a `SpaczzRuler`."""
     return SpaczzRuler(
@@ -68,33 +97,37 @@ def make_spaczz_ruler(
         fuzzy_defaults=fuzzy_defaults,
         regex_defaults=regex_defaults,
         token_defaults=token_defaults,
+        scorer=scorer,
     )
 
 
 class SpaczzRuler(Pipe):
-    """The `SpaczzRuler` adds fuzzy and multi-token regex matches to spaCy `Doc.ents`.
+    """The `SpaczzRuler` adds fuzzy matches to spaCy `Doc.ents`.
 
     It can be combined with other spaCy NER components like the statistical
-    `EntityRecognizer` and/or the `EntityRuler` to boost accuracy.
+    `EntityRecognizer`, and/or the `EntityRuler` it is inspired by, to boost accuracy.
     After initialization, the component is typically added to the pipeline
     using `nlp.add_pipe`.
 
     Attributes:
-        nlp: The shared nlp object to pass the vocab to the matchers
-            (not currently used by spaczz matchers) and process fuzzy patterns.
-        fuzzy_patterns:
-            Patterns added to the fuzzy matcher.
-        regex_patterns:
-            Patterns added to the regex matcher.
-        token_patterns:
-            Patterns added to the token matcher
-        fuzzy_matcher: The `FuzzyMatcher` instance
+        nlp (Language): The shared `Language` object that passes its `Vocab` to the
+            matchers (not currently used by spaczz matchers) and processes fuzzy
+            patterns.
+        name (str): Instance name of the current pipeline component. Typically
+            passed in automatically from the factory when the component is
+            added. Used to disable the current entity ruler while creating
+            phrase patterns with the nlp object.
+        overwrite_ents (bool): If existing entities are present, e.g. entities
+            added by the model, overwrite them by matches if necessary.
+        ent_id_sep (str): Separator used internally for entity IDs.
+        scorer (Optional[Callable]): The scoring method for the ruler.
+        fuzzy_matcher (FuzzyMatcher): The `FuzzyMatcher` instance
             the spaczz ruler will use for fuzzy phrase matching.
-        regex_matcher: The `RegexMatcher` instance
+        regex_matcher (RegexMatcher): The `RegexMatcher` instance
             the spaczz ruler will use for regex phrase matching.
-        token_matcher: The `TokenMatcher` instance
-            the spaczz ruler will use for token matching.
-        defaults: Default matching settings for their respective matchers.
+        token_matcher (TokenMatcher): The `TokenMatcher` instance
+            the spaczz ruler will use for fuzzy token matching.
+        defaults (Dict[str, Any]): Default match settings for their respective matchers.
     """
 
     name = "spaczz_ruler"
@@ -109,8 +142,8 @@ class SpaczzRuler(Pipe):
         fuzzy_defaults: ty.Dict[str, ty.Any] = SIMPLE_FROZEN_DICT,
         regex_defaults: ty.Dict[str, ty.Any] = SIMPLE_FROZEN_DICT,
         token_defaults: ty.Dict[str, ty.Any] = SIMPLE_FROZEN_DICT,
-        patterns: ty.Optional[ty.Iterable[ty.Dict[str, ty.Any]]] = None,
-        **kwargs: ty.Any,
+        patterns: ty.Optional[ty.List[RulerPattern]] = None,
+        scorer: ty.Optional[ty.Callable] = spaczz_ruler_scorer,
     ) -> None:
         """Initialize the spaczz ruler.
 
@@ -119,59 +152,64 @@ class SpaczzRuler(Pipe):
         If the patterns are fuzzy or regex phrase patterns
         they can include the optional `"kwargs"` keys.
 
-        For example, a fuzzy phrase pattern:
-        `{'label': 'ORG', 'pattern': 'Apple',
-        'type': 'fuzzy', 'kwargs': {'min_r2': 90}}`
+        For example, a fuzzy phrase pattern::
 
-        Or, a token pattern:
-        `{'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}`
+            {
+                'label': 'ORG',
+                'pattern': 'Apple',
+                'kwargs': {'min_r2': 90},
+                'type': 'fuzzy',
+            }
+
+        Or, a token pattern::
+
+            {
+                'label': 'ORG',
+                'pattern': [{'TEXT': {'FUZZY': 'Apple'}}],
+                'type': 'token',
+            }
 
         Args:
-            nlp: The shared `Language` object to pass the vocab to the matchers
-                and process fuzzy patterns.
-            name: Instance name of the current pipeline component. Typically
+            nlp (Language): The shared `Language` object that passes its `Vocab` to the
+                matchers (not currently used by spaczz matchers) and processes fuzzy
+                patterns.
+            name (str): Instance name of the current pipeline component. Typically
                 passed in automatically from the factory when the component is
                 added. Used to disable the current entity ruler while creating
                 phrase patterns with the nlp object.
-            overwrite_ents: If existing entities are present, e.g. entities
+            overwrite_ents (bool): If existing entities are present, e.g. entities
                 added by the model, overwrite them by matches if necessary.
-                Default is `False`.
-            ent_id_sep: Separator used internally for entity IDs.
-            fuzzy_defaults: Modified default parameters to use with the `FuzzyMatcher`.
-                Default is `None`.
-            regex_defaults: Modified default parameters to use with the `RegexMatcher`.
-                Default is `None`.
-            token_defaults: Modified default parameters to use with the `TokenMatcher`.
-                Default is `None`.
-            patterns: Optional patterns to load in. Default is `None`.
-            kwargs: For backwards compatibility with "spaczz_" prepended parameters.
+            ent_id_sep (str): Separator used internally for entity IDs.
+            fuzzy_defaults (Dict[str, Any]): Modified default parameters to use with
+                the `FuzzyMatcher`. Default is `None`.
+            regex_defaults (Dict[str, Any]): Modified default parameters to use with
+                the `RegexMatcher`. Default is `None`.
+            token_defaults (Dict[str, Any]): Modified default parameters to use with
+                the `TokenMatcher`. Default is `None`.
+            patterns (Optional[Dict[str, str | Dict[str, Any] | List[Dict[str, Any]]]):
+                Optional patterns to load in.
+            scorer (Optional[Callable]): The scoring method. Defaults to
+                `spacy.scorer.get_ner_prf`.
 
         Raises:
             TypeError: If matcher defaults passed are not dictionaries.
         """
         self.nlp = nlp
         self.name = name
-        self.overwrite = kwargs.get("spaczz_overwrite_ents", overwrite_ents)
-        self.fuzzy_patterns: ty.DefaultDict[
+        self.overwrite = overwrite_ents
+        self._fuzzy_patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
         ] = nest_defaultdict(list)
-        self.regex_patterns: ty.DefaultDict[
+        self._regex_patterns: ty.DefaultDict[
             str, ty.DefaultDict[str, ty.Any]
         ] = nest_defaultdict(list)
-        self.token_patterns: ty.DefaultDict[
+        self._token_patterns: ty.DefaultDict[
             str, ty.List[ty.List[ty.Dict[str, ty.Any]]]
         ] = defaultdict(list)
         self.ent_id_sep = ent_id_sep
         self._ent_ids: ty.DefaultDict[ty.Any, ty.Any] = defaultdict(dict)
         self.defaults = {}
-        default_names = (
-            "fuzzy_defaults",
-            "regex_defaults",
-            "token_defaults",
-        )
-        fuzzy_defaults = kwargs.get("spaczz_fuzzy_defaults", fuzzy_defaults)
-        regex_defaults = kwargs.get("spaczz_regex_defaults", regex_defaults)
-        token_defaults = kwargs.get("spaczz_token_defaults", token_defaults)
+        default_names = ("fuzzy_defaults", "regex_defaults", "token_defaults")
         for default, name in zip(  # noqa: B905
             (fuzzy_defaults, regex_defaults, token_defaults), default_names
         ):
@@ -180,25 +218,25 @@ class SpaczzRuler(Pipe):
             else:
                 raise TypeError(
                     (
-                        "Defaults must be a dictionary of keyword arguments,",
-                        f"not {type(default)}.",
+                        "`{name}` must be a dictionary of keyword arguments,",
+                        f"not `{type(default)}`.",
                     )
                 )
         self.fuzzy_matcher = FuzzyMatcher(nlp.vocab, **self.defaults["fuzzy_defaults"])
         self.regex_matcher = RegexMatcher(nlp.vocab, **self.defaults["regex_defaults"])
         self.token_matcher = TokenMatcher(nlp.vocab, **self.defaults["token_defaults"])
-        patterns = kwargs.get("spaczz_patterns", patterns)
         if patterns is not None:
             self.add_patterns(patterns)
+        self.scorer = scorer
 
     def __call__(self: "SpaczzRuler", doc: Doc) -> Doc:
         """Find matches in document and add them as entities.
 
         Args:
-            doc: The Doc object in the pipeline.
+            doc: The `Doc` object in the pipeline.
 
         Returns:
-            The Doc with added entities, if available.
+            The `Doc` with added entities, if available.
 
         Example:
             >>> import spacy
@@ -217,22 +255,26 @@ class SpaczzRuler(Pipe):
             matches = self.match(doc)
             self.set_annotations(doc, matches)
             return doc
-        except exception as e:  # type: ignore
+        except Exception as e:
             error_handler(self.name, self, [doc], e)
 
     def __contains__(self: "SpaczzRuler", label: str) -> bool:
         """Whether a label is present in the patterns."""
         return (
-            label in self.fuzzy_patterns
-            or label in self.regex_patterns
-            or label in self.token_patterns
+            label in self._fuzzy_patterns
+            or label in self._regex_patterns
+            or label in self._token_patterns
         )
 
     def __len__(self: "SpaczzRuler") -> int:
         """The number of all patterns added to the ruler."""
-        n_fuzzy_patterns = sum(len(p["patterns"]) for p in self.fuzzy_patterns.values())
-        n_regex_patterns = sum(len(p["patterns"]) for p in self.regex_patterns.values())
-        n_token_patterns = sum(len(p) for p in self.token_patterns.values())
+        n_fuzzy_patterns = sum(
+            len(p["patterns"]) for p in self._fuzzy_patterns.values()
+        )
+        n_regex_patterns = sum(
+            len(p["patterns"]) for p in self._regex_patterns.values()
+        )
+        n_token_patterns = sum(len(p) for p in self._token_patterns.values())
         return n_fuzzy_patterns + n_regex_patterns + n_token_patterns
 
     @property
@@ -252,17 +294,16 @@ class SpaczzRuler(Pipe):
             >>> ruler.ent_ids
             ('BEAT',)
         """
-        keys = set(self.fuzzy_patterns.keys())
-        keys.update(self.regex_patterns.keys())
-        keys.update(self.token_patterns.keys())
+        keys = set(self._fuzzy_patterns.keys())
+        keys.update(self._regex_patterns.keys())
+        keys.update(self._token_patterns.keys())
         all_ent_ids = set()
 
         for k in keys:
             if self.ent_id_sep in k:
                 _, ent_id = self._split_label(k)
                 all_ent_ids.add(ent_id)
-        all_ent_ids_tuple = tuple(all_ent_ids)
-        return all_ent_ids_tuple
+        return tuple(all_ent_ids)
 
     @property
     def labels(self: "SpaczzRuler") -> ty.Tuple[str, ...]:
@@ -281,9 +322,9 @@ class SpaczzRuler(Pipe):
             >>> ruler.labels
             ('AUTHOR',)
         """
-        keys = set(self.fuzzy_patterns.keys())
-        keys.update(self.regex_patterns.keys())
-        keys.update(self.token_patterns.keys())
+        keys = set(self._fuzzy_patterns.keys())
+        keys.update(self._regex_patterns.keys())
+        keys.update(self._token_patterns.keys())
         all_labels = set()
         for k in keys:
             if self.ent_id_sep in k:
@@ -291,10 +332,10 @@ class SpaczzRuler(Pipe):
                 all_labels.add(label)
             else:
                 all_labels.add(k)
-        return tuple(all_labels)
+        return tuple(sorted(all_labels))
 
     @property
-    def patterns(self: "SpaczzRuler") -> ty.List[ty.Dict[str, ty.Any]]:
+    def patterns(self: "SpaczzRuler") -> ty.List[RulerPattern]:
         """Get all patterns and kwargs that were added to the ruler.
 
         Returns:
@@ -318,7 +359,7 @@ class SpaczzRuler(Pipe):
             True
         """
         all_patterns = []
-        for label, fuzzy_patterns in self.fuzzy_patterns.items():
+        for label, fuzzy_patterns in self._fuzzy_patterns.items():
             for fuzzy_pattern, fuzzy_kwargs in zip(  # noqa: B905
                 fuzzy_patterns["patterns"], fuzzy_patterns["kwargs"]
             ):
@@ -329,7 +370,7 @@ class SpaczzRuler(Pipe):
                 if ent_id:
                     p["id"] = ent_id
                 all_patterns.append(p)
-        for label, regex_patterns in self.regex_patterns.items():
+        for label, regex_patterns in self._regex_patterns.items():
             for regex_pattern, regex_kwargs in zip(  # noqa: B905
                 regex_patterns["patterns"], regex_patterns["kwargs"]
             ):
@@ -340,7 +381,7 @@ class SpaczzRuler(Pipe):
                 if ent_id:
                     p["id"] = ent_id
                 all_patterns.append(p)
-        for label, token_patterns in self.token_patterns.items():
+        for label, token_patterns in self._token_patterns.items():
             for token_pattern in token_patterns:
                 ent_label, ent_id = self._split_label(label)
                 p = {"label": ent_label, "pattern": token_pattern, "type": "token"}
@@ -351,7 +392,7 @@ class SpaczzRuler(Pipe):
 
     def add_patterns(
         self: "SpaczzRuler",
-        patterns: ty.Iterable[ty.Dict[str, ty.Any]],
+        patterns: ty.List[RulerPattern],
     ) -> None:
         """Add patterns to the ruler.
 
@@ -359,22 +400,30 @@ class SpaczzRuler(Pipe):
         `{label (str), pattern (str or list), type (str),
         optional kwargs (dict[str, Any]), and optional id (str)}`.
 
-        For example, a fuzzy phrase pattern:
-        `{'label': 'ORG', 'pattern': 'Apple',
-        'type': 'fuzzy', 'kwargs': {'min_r2': 90}}`
+        For example, a fuzzy phrase pattern::
 
-        Or, a token pattern:
-        `{'label': 'ORG', 'pattern': [{'TEXT': {'FUZZY': 'Apple'}}], 'type': 'token'}`
+            {
+                'label': 'ORG',
+                'pattern': 'Apple',
+                'kwargs': {'min_r2': 90},
+                'type': 'fuzzy',
+            }
+
+        Or, a token pattern::
+
+            {
+                'label': 'ORG',
+                'pattern': [{'TEXT': {'FUZZY': 'Apple'}}],
+                'type': 'token',
+            }
 
         To utilize regex flags, use inline flags.
-
-        Kwarg details to be updated.
 
         Args:
             patterns: The spaczz patterns to add.
 
         Raises:
-            TypeError: If patterns is not an iterable of dictionaries.
+            TypeError: If `patterns` is not a list of dicts.
             ValueError: If one or more patterns do not conform
                 the spaczz pattern structure.
 
@@ -436,9 +485,7 @@ class SpaczzRuler(Pipe):
                                 stacklevel=2,
                             )
                     else:
-                        raise TypeError(
-                            ("Patterns must either be an iterable of dicts.")
-                        )
+                        raise TypeError(("Patterns must be a list of dicts."))
                 except KeyError:
                     raise ValueError(
                         (
@@ -451,54 +498,63 @@ class SpaczzRuler(Pipe):
                     )
 
             fuzzy_patterns = []
-            for label, pattern, kwargs, ent_id in zip(  # noqa: B905
+            for flabel, fpattern, fkwargs, fent_id in zip(  # noqa: B905
                 fuzzy_pattern_labels,
-                self.nlp.pipe(fuzzy_pattern_texts),
+                self.nlp.pipe(ty.cast(str, fuzzy_pattern_texts)),
                 fuzzy_pattern_kwargs,
                 fuzzy_pattern_ids,
             ):
                 fuzzy_pattern = {
-                    "label": label,
-                    "pattern": pattern,
-                    "kwargs": kwargs,
+                    "label": flabel,
+                    "pattern": fpattern,
+                    "kwargs": fkwargs,
                     "type": "fuzzy",
                 }
-                if ent_id:
-                    fuzzy_pattern["id"] = ent_id
+                if fent_id:
+                    fuzzy_pattern["id"] = fent_id
                 fuzzy_patterns.append(fuzzy_pattern)
 
             regex_patterns = []
-            for label, pattern, kwargs, ent_id in zip(  # noqa: B905
+            for rlabel, rpattern, rkwargs, rent_id in zip(  # noqa: B905
                 regex_pattern_labels,
                 regex_pattern_texts,
                 regex_pattern_kwargs,
                 regex_pattern_ids,
             ):
                 regex_pattern = {
-                    "label": label,
-                    "pattern": pattern,
-                    "kwargs": kwargs,
+                    "label": rlabel,
+                    "pattern": rpattern,
+                    "kwargs": rkwargs,
                     "type": "regex",
                 }
-                if ent_id:
-                    regex_pattern["id"] = ent_id
+                if rent_id:
+                    regex_pattern["id"] = rent_id
                 regex_patterns.append(regex_pattern)
 
             self._add_patterns(fuzzy_patterns, regex_patterns, token_patterns)
 
     def clear(self: "SpaczzRuler") -> None:
         """Reset all patterns."""
-        self.fuzzy_patterns = nest_defaultdict(list)
-        self.regex_patterns = nest_defaultdict(list)
-        self.token_patterns = defaultdict(list)
+        self._fuzzy_patterns = nest_defaultdict(list)
+        self._regex_patterns = nest_defaultdict(list)
+        self._token_patterns = defaultdict(list)
         self._ent_ids = defaultdict(dict)
+        self.fuzzy_matcher = FuzzyMatcher(
+            self.nlp.vocab, **self.defaults["fuzzy_defaults"]
+        )
+        self.regex_matcher = RegexMatcher(
+            self.nlp.vocab, **self.defaults["regex_defaults"]
+        )
+        self.token_matcher = TokenMatcher(
+            self.nlp.vocab, **self.defaults["token_defaults"]
+        )
 
     def initialize(
         self: "SpaczzRuler",
         get_examples: ty.Callable[[], ty.Iterable[Example]],
         *,
         nlp: ty.Optional[Language] = None,
-        patterns: ty.Optional[ty.Iterable[ty.Dict[str, ty.Any]]] = None,
+        patterns: ty.Optional[ty.Sequence[RulerPattern]] = None,
     ) -> None:
         """Initialize the pipe for training.
 
@@ -510,21 +566,74 @@ class SpaczzRuler(Pipe):
         """
         self.clear()
         if patterns:
-            self.add_patterns(patterns)
+            self.add_patterns(patterns)  # type: ignore[arg-type]
 
-    def match(
-        self: "SpaczzRuler", doc: Doc
-    ) -> ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]]:
-        """Used in call to find matches in a doc."""
-        matches: ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]] = (
-            [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)]
-            + [(*match, "regex") for match in self.regex_matcher(doc)]
-            + [(*match, "token") for match in self.token_matcher(doc)]
-        )
+    def match(self: "SpaczzRuler", doc: Doc) -> ty.List[RulerResult]:
+        """Used in call to find matches in `doc`."""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="\\[W036")
+            matches: ty.List[ty.Tuple[str, int, int, int, str, SpaczzType]] = (
+                [(*match, "fuzzy") for match in self.fuzzy_matcher(doc)]
+                + [(*match, "regex") for match in self.regex_matcher(doc)]
+                + [(*match, "token") for match in self.token_matcher(doc)]
+            )
+        matches = self._get_final_matches(matches)
         return sorted(matches, key=lambda x: (x[2] - x[1], -x[1], x[3]), reverse=True)
 
-    def score(self: "SpaczzRuler", examples: ty.Any, **kwargs: ty.Any) -> ty.Any:
-        """Pipeline scoring for spaCy compatibility."""
+    def remove(self: "SpaczzRuler", ent_id: str) -> None:
+        """Remove patterns by their `ent_id`."""
+        label_id_pairs = [
+            (label, eid) for (label, eid) in self._ent_ids.values() if eid == ent_id
+        ]
+        if not label_id_pairs:
+            raise ValueError(
+                f"The `ent_id`: '{ent_id}' does not exist within the ruler."  # noqa: B907
+            )
+        created_labels = [
+            self._create_label(label, eid) for (label, eid) in label_id_pairs
+        ]
+        # remove the patterns from self.fuzzy_patterns
+        self._fuzzy_patterns = nest_defaultdict(
+            list,
+            1,
+            {
+                label: val
+                for (label, val) in self._fuzzy_patterns.items()
+                if label not in created_labels
+            },
+        )
+        # remove the patterns from self.regex_patterns
+        self._regex_patterns = nest_defaultdict(
+            list,
+            1,
+            {
+                label: val
+                for (label, val) in self._regex_patterns.items()
+                if label not in created_labels
+            },
+        )
+        # remove the patterns from self.token_pattern
+        self._token_patterns = defaultdict(
+            list,
+            {
+                label: val
+                for (label, val) in self._token_patterns.items()
+                if label not in created_labels
+            },
+        )
+        # remove the patterns from the matchers
+        for label in created_labels:
+            if label in self.fuzzy_matcher:
+                self.fuzzy_matcher.remove(label)
+            elif label in self.regex_matcher:
+                self.regex_matcher.remove(label)
+            else:
+                self.token_matcher.remove(label)
+
+    def score(
+        self: "SpaczzRuler", examples: ty.Iterable[Example], **kwargs: ty.Any
+    ) -> ty.Any:
+        """Pipeline scoring for spaCy >= 3.0, < 3.2 compatibility."""
         validate_examples(examples, "SpaczzRuler.score")
         return get_ner_prf(examples)
 
@@ -573,7 +682,7 @@ class SpaczzRuler(Pipe):
         """Load the spaczz ruler from a bytestring.
 
         Args:
-            patterns_bytes : The bytestring to load.
+            patterns_bytes: The bytestring to load.
             exclude: For spaCy consistency.
 
         Returns:
@@ -663,6 +772,9 @@ class SpaczzRuler(Pipe):
         Returns:
             The loaded spaczz ruler.
 
+        Raises:
+            ValueError: If `path` does not exist or cannot be accessed.
+
         Example:
             >>> import os
             >>> import tempfile
@@ -682,10 +794,19 @@ class SpaczzRuler(Pipe):
         path = ensure_path(path)
         self.clear()
         depr_patterns_path = path.with_suffix(".jsonl")
-        if depr_patterns_path.is_file():
+        if path.suffix == ".jsonl":  # user provides a jsonl
+            if path.is_file():
+                patterns = srsly.read_jsonl(path)
+                self.add_patterns(patterns)
+            else:
+                raise ValueError(
+                    f"Couldn't read SpaczzRuler from '{path}'. "  # noqa: B907
+                    "This file doesn't exist."
+                )
+        elif depr_patterns_path.is_file():
             patterns = srsly.read_jsonl(depr_patterns_path)
             self.add_patterns(patterns)
-        else:
+        elif path.is_dir():
             cfg = {}
             deserializers_patterns = {
                 "patterns": lambda p: self.add_patterns(
@@ -710,6 +831,8 @@ class SpaczzRuler(Pipe):
                 )
             self.ent_id_sep = cfg.get("ent_id_sep", DEFAULT_ENT_ID_SEP)
             read_from_disk(path, deserializers_patterns, {})
+        else:  # path is not a valid directory or file
+            raise ValueError(f"Could not access f{path}.")
         return self
 
     def to_disk(
@@ -773,13 +896,13 @@ class SpaczzRuler(Pipe):
                 self._ent_ids[label] = (ent_label, entry["id"])
             pattern = entry["pattern"]
             if isinstance(pattern, Doc):
-                self.fuzzy_patterns[label]["patterns"].append(pattern)
-                self.fuzzy_patterns[label]["kwargs"].append(entry["kwargs"])
+                self._fuzzy_patterns[label]["patterns"].append(pattern)
+                self._fuzzy_patterns[label]["kwargs"].append(entry["kwargs"])
             elif isinstance(pattern, str):
-                self.regex_patterns[label]["patterns"].append(pattern)
-                self.regex_patterns[label]["kwargs"].append(entry["kwargs"])
+                self._regex_patterns[label]["patterns"].append(pattern)
+                self._regex_patterns[label]["kwargs"].append(entry["kwargs"])
             elif isinstance(pattern, list):
-                self.token_patterns[label].append(pattern)
+                self._token_patterns[label].append(pattern)
             else:
                 raise ValueError(
                     (
@@ -790,12 +913,12 @@ class SpaczzRuler(Pipe):
                         "and optional id (str)}.",
                     )
                 )
-        for label, patterns in self.fuzzy_patterns.items():
+        for label, patterns in self._fuzzy_patterns.items():
             self.fuzzy_matcher.add(label, patterns["patterns"], patterns["kwargs"])
-        for label, patterns in self.regex_patterns.items():
+        for label, patterns in self._regex_patterns.items():
             self.regex_matcher.add(label, patterns["patterns"], patterns["kwargs"])
-        for label, _token_patterns in self.token_patterns.items():
-            self.token_matcher.add(label, _token_patterns)
+        for label, token_patterns_ in self._token_patterns.items():
+            self.token_matcher.add(label, token_patterns_)
 
     def _create_label(
         self: "SpaczzRuler", label: str, ent_id: ty.Union[str, None]
@@ -810,12 +933,20 @@ class SpaczzRuler(Pipe):
             The label and ent_id joined with configured ent_id_sep.
         """
         if isinstance(ent_id, str):
-            label = "{}{}{}".format(label, self.ent_id_sep, ent_id)
+            label = f"{label}{self.ent_id_sep}{ent_id}"
         return label
+
+    def _require_patterns(self: "SpaczzRuler") -> None:
+        """Raise a warning if this component has no patterns defined."""
+        if len(self) == 0:
+            warnings.warn(
+                REQUIRE_PATTERNS_WARNING,
+                stacklevel=2,
+            )
 
     def _split_label(
         self: "SpaczzRuler", label: str
-    ) -> ty.Tuple[str, ty.Union[str, None]]:
+    ) -> ty.Tuple[str, ty.Optional[str]]:
         """Split Entity label into ent_label and ent_id if it contains self.ent_id_sep.
 
         Args:
@@ -832,41 +963,17 @@ class SpaczzRuler(Pipe):
             return ent_label, None
 
     @staticmethod
-    def _filter_overlapping_matches(
-        matches: ty.List[ty.Tuple[str, int, int]],
-        lookup: ty.DefaultDict[str, ty.Dict[ty.Tuple[str, int, int], ty.Any]],
-    ) -> ty.Tuple[
-        ty.List[ty.Tuple[str, int, int]],
-        ty.DefaultDict[str, ty.Dict[ty.Tuple[str, int, int], ty.Any]],
-    ]:
-        """Prevents multiple match spans from overlapping.
-
-        Expects matches to be pre-sorted by matcher priority,
-        with each matcher's matches being pre-sorted by descending length,
-        then ascending start index, then descending match score
-        If more than one match span includes the same tokens
-        the first of these match spans in matches is kept.
-
-        It also removes non-kept matches from the lookup dict as well.
-
-        Args:
-            matches: List of match span tuples
-                (match_id, start_index, end_index).
-            lookup: Match ratio, count and detail values in
-                a `defaultdict(dict)`.
-
-        Returns:
-            The filtered list of match span tuples.
-        """
-        filtered_matches: ty.List[ty.Tuple[str, int, int]] = []
+    def _get_final_matches(
+        matches: ty.List[RulerResult],
+    ) -> ty.List[RulerResult]:
+        final_matches = []
+        lookup: ty.Dict[ty.Tuple[str, int, int], int] = dict()
         for match in matches:
-            if not set(range(match[1], match[2])).intersection(
-                chain(*[set(range(n[1], n[2])) for n in filtered_matches])
-            ):
-                filtered_matches.append(match)
-                if match in lookup["ratios"]:
-                    _ = lookup["details"].pop(match, None)
-        return filtered_matches, lookup
+            ratio = lookup.get(match[:3], 0)
+            if match[3] > ratio:
+                final_matches.append(match)
+                lookup[match[:3]] = ratio
+        return final_matches
 
     @staticmethod
     def _update_custom_attrs(

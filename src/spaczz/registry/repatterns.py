@@ -140,4 +140,4 @@ re_patterns.register(
     ),
 )
 
-get_re_pattern = lru_cache(1)(re_patterns.get)
+get_re_pattern = lru_cache(None)(re_patterns.get)

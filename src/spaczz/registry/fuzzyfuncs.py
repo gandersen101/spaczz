@@ -23,4 +23,4 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
-get_fuzzy_func = lru_cache(1)(fuzzy_funcs.get)
+get_fuzzy_func = lru_cache(None)(fuzzy_funcs.get)

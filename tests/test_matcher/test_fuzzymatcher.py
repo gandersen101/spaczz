@@ -88,24 +88,24 @@ def test_add_with_more_explicit_kwargs_than_patterns_warns(
 
 
 def test_add_where_patterns_is_not_list_raises_error(matcher: FuzzyMatcher) -> None:
-    """Trying to add non Doc objects as patterns raises a ValueError."""
-    with pytest.raises(ValueError):
+    """Trying to add non Doc objects as patterns raises a TypeError."""
+    with pytest.raises(TypeError):
         matcher.add("TEST", "Test1")  # type: ignore
 
 
 def test_add_where_patterns_are_not_doc_objects_raises_error(
     matcher: FuzzyMatcher,
 ) -> None:
-    """Trying to add non Doc objects as patterns raises a ValueError."""
-    with pytest.raises(ValueError):
+    """Trying to add non Doc objects as patterns raises a TypeError."""
+    with pytest.raises(TypeError):
         matcher.add("TEST", ["Test1"])  # type: ignore
 
 
 def test_add_where_kwargs_are_not_dicts_raises_error(
     matcher: FuzzyMatcher, nlp: Language
 ) -> None:
-    """Trying to add non Dict objects as kwargs raises a ValueError."""
-    with pytest.raises(ValueError):
+    """Trying to add non Dict objects as kwargs raises a TypeError."""
+    with pytest.raises(TypeError):
         matcher.add("TEST", [nlp.make_doc("Test1")], ["ignore_case"])  # type: ignore
 
 

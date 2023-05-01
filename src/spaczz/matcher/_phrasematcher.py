@@ -114,7 +114,7 @@ class PhraseMatcher(abc.ABC):
     ) -> None:
         """Add a rule to the matcher."""
         if not isinstance(patterns, list):
-            raise ValueError("Patterns must be a list of Doc objects.")
+            raise TypeError("Patterns must be a list of `Doc` objects.")
         if kwargs is None:
             kwargs = [{} for _ in patterns]
         elif len(kwargs) < len(patterns):
@@ -136,11 +136,11 @@ class PhraseMatcher(abc.ABC):
             if isinstance(pattern, Doc):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise ValueError("Patterns must be a list of Doc objects.")
+                raise TypeError("`patterns` must be a list of `Doc` objects.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise ValueError("Kwargs must be a list of dicts.")
+                raise TypeError("`kwargs` must be a list of dicts.")
         self._callbacks[label] = on_match
 
     def remove(self: "PhraseMatcher", label: str) -> None:
@@ -150,7 +150,8 @@ class PhraseMatcher(abc.ABC):
             del self._callbacks[label]
         except KeyError:
             raise ValueError(
-                f"The label: {label} does not exist within the matcher rules."
+                f"The label: '{label}' does not exist within "  # noqa: B907
+                "the matcher rules."
             )
 
     @staticmethod

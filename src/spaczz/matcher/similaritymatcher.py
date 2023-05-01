@@ -101,10 +101,10 @@ class SimilarityMatcher(PhraseMatcher):
             >>> from spaczz.matcher import SimilarityMatcher
             >>> nlp = spacy.load("en_core_web_md")
             >>> matcher = SimilarityMatcher(nlp.vocab)
-            >>> doc = nlp("Ridley Scott was the director of Alien.")
-            >>> matcher.add("DIRECTOR", [nlp("Steven Spielberg")])
+            >>> doc = nlp("I like apples.")
+            >>> matcher.add("FRUIT", [nlp("fruit")], [{'min_r': 60}])
             >>> matcher(doc)
-            [('DIRECTOR', 0, 2, 100)]
+            [('FRUIT', 2, 3, 70, 'fruit')]
         """
         return super().__call__(doc)
 
@@ -149,7 +149,7 @@ class SimilarityMatcher(PhraseMatcher):
 
         Example:
             >>> import spacy
-            >>> from spaczz.matcher import Similarity
+            >>> from spaczz.matcher import SimilarityMatcher
             >>> nlp = spacy.load("en_core_web_md")
             >>> matcher = SimilarityMatcher(nlp.vocab)
             >>> matcher.add("AUTHOR", [nlp("Kerouac")],
@@ -158,7 +158,7 @@ class SimilarityMatcher(PhraseMatcher):
                 {
                     "label": "AUTHOR",
                     "pattern": "Kerouac",
-                    "type": "fuzzy",
+                    "type": "similarity",
                     "kwargs": {"ignore_case": False}
                     },
                     ]

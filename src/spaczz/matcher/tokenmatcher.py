@@ -58,7 +58,12 @@ class TokenMatcher:
             Default is `"simple`".
         fuzzy_weights: Name of weighting method for regex insertion, deletion, and
             substituion counts. Can only be set at the pattern level. For "FREGEX"
-            patterns only. Default is `"indel"`.
+            patterns only. Included weighting methods are:
+
+            * `"indel"` = `(1, 1, 2)`
+            * `"lev"` = `(1, 1, 1)`
+
+            Default is `"indel"`.
         predef: Whether regex should be interpreted as a key to
             a predefined regex pattern or not. Can only be set at the pattern level.
             For "FREGEX" patterns only. Default is `False`.
@@ -106,8 +111,8 @@ class TokenMatcher:
                 [{"TEXT": {"FUZZY": "Ridley"}},
                 {"TEXT": {"FUZZY": "Scott"}}]
                 ])
-            >>> matcher(doc)
-            [('NAME', 0, 2, None)]
+            >>> matcher(doc)[0][:4]
+            ('NAME', 0, 2, 90)
         """
         matches: ty.Set[ty.Tuple[str, int, int, int, str]] = set()
         for label, patterns in self._patterns.items():
@@ -248,7 +253,7 @@ class TokenMatcher:
                 Default is `None`.
 
         Raises:
-            ValueError: If patterns is not a list of `Doc` objects.
+            TypeError: If patterns is not a list of `Doc` objects.
             ValueError: Patterns cannot have zero tokens.
 
         Example:
@@ -266,7 +271,7 @@ class TokenMatcher:
             if isinstance(pattern, list):
                 self._patterns[label].append(list(pattern))
             else:
-                raise ValueError("Patterns must be lists of dictionaries.")
+                raise TypeError("Patterns must be lists of dictionaries.")
         self._callbacks[label] = on_match
 
     def remove(self: "TokenMatcher", label: str) -> None:

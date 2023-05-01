@@ -54,7 +54,7 @@ class TokenSearcher:
                 {"TEXT": {"FREGEX": "(advair){e<=1}"}}
                 ]
             >>> searcher.match(doc, pattern)
-            [[('TEXT', 'zithramax'), ("", "", 100), ('TEXT', 'advar')]]
+            [[('TEXT', 'zithramax', 89), ('', '', 100), ('TEXT', 'advar', 91)]]
         """
         matches = []
         matches = [
@@ -142,7 +142,7 @@ class TokenSearcher:
             >>> nlp = spacy.blank("en")
             >>> searcher = TokenSearcher(nlp)
             >>> searcher.regex_compare("sequel", "(sql){i<=3}")
-            True
+            67
         """
         pattern_ = parse_regex(pattern, predef=predef)
         if ignore_case:

@@ -101,9 +101,9 @@ def test__calc_flex_warns_if_flex_less_than_0(
 def test__calc_flex_raises_error_if_non_valid_value(
     nlp: Language, searcher: FuzzySearcher
 ) -> None:
-    """It raises ValueError if flex is not an int or "default"."""
+    """It raises TypeError if flex is not an int or "default"."""
     query = nlp("Test query.")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         searcher._calc_flex(query, None)  # type: ignore
 
 

@@ -248,20 +248,11 @@ class PhraseSearcher(abc.ABC):
             The new `flex` value.
 
         Raises:
-            ValueError: If `flex` is not `"default"`, `"max"`, `"min"`, or an `int`.
+            TypeError: If `flex` is not `"default"`, `"max"`, `"min"`, or an `int`.
 
         Warnings:
             FlexWarning:
                 If `flex` > `len(query)` or `flex` < `0`.
-
-        Example:
-            >>> import spacy
-            >>> from spaczz._search import PhraseSearcher
-            >>> nlp = spacy.blank("en")
-            >>> searcher = PhraseSearcher(nlp.vocab)
-            >>> query = nlp("Test query")
-            >>> searcher._calc_flex(query, "default")
-            1
         """
         if flex == "default":
             flex = len(query) // 2
@@ -274,7 +265,7 @@ class PhraseSearcher(abc.ABC):
             if flex > query_len:
                 warnings.warn(
                     f"""`flex` of size `{flex}` is > `len(query)`, `{query_len}`.
-                        Setting flex to `{query_len}` instead.""",
+                        Setting `flex` to `{query_len}` instead.""",
                     FlexWarning,
                     stacklevel=2,
                 )
@@ -288,10 +279,10 @@ class PhraseSearcher(abc.ABC):
                 )
                 flex = 0
         else:
-            raise ValueError(
+            raise TypeError(
                 (
-                    "`flex` must be the string value of `'default'`,",
-                    "`'max'` or `'min'`, or an `int`.",
+                    "`flex` must be a `FlexLiteral` (`'default'`,",
+                    "`'max'` or `'min'`), or an `int`.",
                 )
             )
         return flex

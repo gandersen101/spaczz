@@ -8,13 +8,13 @@ import typing as ty
 
 
 def nest_defaultdict(
-    default_factory: ty.Any, depth: int = 1
+    default_factory: ty.Any, depth: int = 1, *args: ty.Any, **kwargs: ty.Any
 ) -> ty.DefaultDict[ty.Any, ty.Any]:
     """Nests defaultdicts where depth nesting is `defaultdict[default_factory]`."""
     result = partial(defaultdict, default_factory)
     for _ in itertools.repeat(None, depth):
         result = partial(defaultdict, result)
-    return result()
+    return result(*args, **kwargs)
 
 
 def ensure_path(path: ty.Union[str, PathLike]) -> Path:

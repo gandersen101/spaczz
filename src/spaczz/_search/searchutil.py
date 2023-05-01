@@ -27,7 +27,7 @@ def filter_overlapping_matches(
         The filtered list of matches.
 
     Example:
-        >>> from spaczz.search.searchutil import filter_overlapping_matches
+        >>> from spaczz._search.searchutil import filter_overlapping_matches
         >>> matches = [(1, 3, 80), (1, 2, 70)]
         >>> filter_overlapping_matches(matches)
         [(1, 3, 80)]
@@ -61,7 +61,7 @@ def parse_regex(
         RegexParseError: If regex compilation produces any errors.
 
     Example:
-        >>> from spaczz.search.util import parse_regex
+        >>> from spaczz._search.searchutil import parse_regex
         >>> pattern = parse_regex("Test")
         >>> isinstance(pattern, re.Pattern)
         True

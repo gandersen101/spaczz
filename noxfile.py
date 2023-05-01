@@ -106,7 +106,7 @@ def xdoctest(session: Session) -> None:
     args = session.posargs or ["all"]
     session.run("poetry", "install", "--only", "main,xdoctest", external=True)
     session.run("python", "-m", "spacy", "download", "en_core_web_md")
-    session.run("python", "-m", "xdoctest", PACKAGE, *args)
+    session.run("xdoctest", PACKAGE, *args)
 
 
 @nox.session(python=PYTHON)

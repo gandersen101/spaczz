@@ -103,7 +103,7 @@ class FuzzyMatcher(PhraseMatcher):
             >>> doc = nlp("Rdley Scott was the director of Alien.")
             >>> matcher.add("NAME", [nlp.make_doc("Ridley Scott")])
             >>> matcher(doc)
-            [('NAME', 0, 2, 100)]
+            [('NAME', 0, 2, 96, 'Ridley Scott')]
         """
         return super().__call__(doc)
 

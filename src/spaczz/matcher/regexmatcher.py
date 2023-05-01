@@ -38,7 +38,6 @@ class RegexMatcher:
             * `"indel"` = `(1, 1, 2)`
             * `"lev"` = `(1, 1, 1)`
 
-
             Default is `"indel"`.
         partial: (bool): Whether partial matches should be extended
                 to `Token` or `Span` boundaries in `doc` or not.
@@ -109,8 +108,8 @@ class RegexMatcher:
             >>> matcher = RegexMatcher(nlp.vocab)
             >>> doc = nlp.make_doc("I live in the united states, or the US")
             >>> matcher.add("GPE", ["[Uu](nited|\.?) ?[Ss](tates|\.?)"])
-            >>> matcher(doc)
-            [('GPE', 4, 6, 100), ('GPE', 9, 10, 100)]
+            >>> matcher(doc)[0]
+            ('GPE', 4, 6, 100, '[Uu](nited|\\.?) ?[Ss](tates|\\.?)')
         """
         matches = set()
         for label, patterns in self._patterns.items():
@@ -244,8 +243,8 @@ class RegexMatcher:
                 Default is `None`.
 
         Raises:
-            ValueError: If `patterns` is not a list of strings.
-            ValueError: If `kwargs` is not a list of dictionaries.
+            TypeError: If `patterns` is not a list of strings.
+            TypeError: If `kwargs` is not a list of dictionaries.
 
         Warnings:
             KwargsWarning:
@@ -282,16 +281,16 @@ class RegexMatcher:
                 stacklevel=2,
             )
         if not isinstance(patterns, list):
-            raise ValueError("Patterns must be a list of Doc objects.")
+            raise TypeError("Patterns must be a list strings.")
         for pattern, kwarg in zip(patterns, kwargs):  # noqa: B905
             if isinstance(pattern, str):
                 self._patterns[label]["patterns"].append(pattern)
             else:
-                raise ValueError("Patterns must be a list of Doc objects.")
+                raise TypeError("Patterns must be a list of strings.")
             if isinstance(kwarg, dict):
                 self._patterns[label]["kwargs"].append(kwarg)
             else:
-                raise ValueError("Kwargs must be a list of dicts.")
+                raise TypeError("Kwargs must be a list of dicts.")
         self._callbacks[label] = on_match
 
     def remove(self: "RegexMatcher", label: str) -> None:

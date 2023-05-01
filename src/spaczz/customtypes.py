@@ -17,3 +17,7 @@ TextContainer = ty.Union[Doc, Span, Token]
 SearchResult = ty.Tuple[int, int, int]
 MatchResult = ty.Tuple[str, int, int, int, str]
 SpaczzType = Literal["fuzzy", "regex", "token", "similarity", "phrase"]
+RulerPattern = ty.Dict[
+    str, ty.Union[str, ty.Dict[str, ty.Any], ty.List[ty.Dict[str, ty.Any]]]
+]
+RulerResult = ty.Tuple[str, int, int, int, str, SpaczzType]  # type: ignore[valid-type]
