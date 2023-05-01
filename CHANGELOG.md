@@ -4,8 +4,8 @@
 - *Support for `python<=3.11,>=3.7`, along with `rapidfuzz>=1.0.0`.
 - *Dropped support for spaCy v2. Sorry to do this without a deprecation cycle, but I stepped away from this project for a long time.*
 - *Removed support of `"spaczz_"` preprended optional `SpaczzRuler` init arguments. Also, sorry to do this without a deprecation cycle.*
-- *`Matcher.pipe` methods, which were deprecated, are now removed.
-- *`spaczz_span` custom attribute, which was deprecated, is now removed.
+- *`Matcher.pipe` methods, which were deprecated, are now removed.*
+- *`spaczz_span` custom attribute, which was deprecated, is now removed.*
 
 *v0.5.4 Release Notes:*
 - BugFix for German combination words for RegexSearcher.
