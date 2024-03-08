@@ -1,4 +1,9 @@
-"""Nox sessions."""
+"""Nox sessions.
+
+Even though `nox` is part of the full spaczz dev-install, nothing outside of the stdlib
+and `nox` itself should be imported in this module. This is because CI won't have any
+other dependencies installed at the time of calling `nox`.
+"""
 from itertools import product
 
 import nox
@@ -10,11 +15,15 @@ PACKAGE = "spaczz"
 LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
 PYTHON = "3.11"
 PYTHONS = ["3.11", "3.10", "3.9", "3.8", "3.7"]
-SPACY_VERSION = "3.5.2"
-SPACY_MYPY_VERSIONS = {SPACY_VERSION: PYTHONS, "3.1.7": PYTHONS}
+SPACY_VERSION = "3.7.4"
+SPACY_MYPY_VERSIONS = {SPACY_VERSION: PYTHONS, "3.2.6": PYTHONS}
 SPACY_TEST_VERIONS = {SPACY_VERSION: PYTHONS, "3.0.9": ["3.10", "3.9", "3.8", "3.7"]}
+RAPIDFUZZ_VERSION = "3.4.0"
 RAPIDFUZZ_VERSIONS = {
-    "3.0.0": PYTHONS,
+    "3.6.2": ["3.11", "3.10", "3.9", "3.8"],
+    # rapidfuzz dropped Python 3.7 support at v3.5, but the spaczz
+    # locked version is v3.4, which still supports Python 3.7 like spaczz does.
+    RAPIDFUZZ_VERSION: PYTHONS,
     "2.15.1": PYTHONS,
     "1.9.1": ["3.10", "3.9", "3.8", "3.7"],
 }
@@ -27,7 +36,7 @@ RAPIDFUZZ_VERSIONS = {
 def isort(session: Session) -> None:
     """Run isort import formatter."""
     args = session.posargs or LOCATIONS
-    session.run("poetry", "install", "--only", "isort", external=True)
+    session.run("poetry", "install", "--no-root", "--only", "isort", external=True)
     session.run("isort", *args)
 
 
@@ -35,7 +44,7 @@ def isort(session: Session) -> None:
 def black(session: Session) -> None:
     """Run black code formatter."""
     args = session.posargs or LOCATIONS
-    session.run("poetry", "install", "--only", "black", external=True)
+    session.run("poetry", "install", "--no-root", "--only", "black", external=True)
     session.run("black", *args)
 
 
@@ -46,7 +55,7 @@ def black(session: Session) -> None:
 def lint(session: Session) -> None:
     """Lint using flake8."""
     args = session.posargs or LOCATIONS
-    session.run("poetry", "install", "--only", "lint", external=True)
+    session.run("poetry", "install", "--no-root", "--only", "lint", external=True)
     session.run("flake8", *args)
 
 

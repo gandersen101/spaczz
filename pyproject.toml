@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spaczz"
-version = "0.6.0"
+version = "0.6.1"
 description = "Adds fuzzy matching and additional regex matching support to spaCy."
 license = "MIT"
 readme = "README.md"
@@ -13,6 +13,10 @@ documentation = "https://spaczz.readthedocs.io"
 [tool.poetry.plugins."spacy_factories"]
 "spaczz_ruler" = "spaczz.pipeline:SpaczzRuler"
 
+[build-system]
+requires = ["poetry>=1.0.0"]
+build-backend = "poetry.masonry.api"
+
 # Dependencies
 
 [tool.poetry.dependencies]
@@ -20,12 +24,6 @@ python = "^3.7"
 spacy = "^3.0"
 catalogue = "*"
 srsly = "*"
-numpy = [
-    {version = ">=1.15, <1.22", python = "~3.7"},
-    {version = ">=1.17.3", python = "~3.8"},
-    {version = ">=1.19.3", python = "~3.9"},
-    {version = ">=1.21.2", python = "^3.10"}
-]
 rapidfuzz = ">=1.0.0"
 regex = ">=2020.6.8"
 importlib_metadata = {version = "*", python = "<3.8"}
@@ -51,10 +49,11 @@ flake8-bugbear = ">=22.4"
 flake8-docstrings = ">=1.6"
 flake8-import-order = ">=0.18"
 
-## Typechecking
+## Type-Checking
 
 [tool.poetry.group.mypy.dependencies]
-mypy = ">=0.9"
+mypy = ">=1.0"
+# Below need to be installed for mypy to be able to type check them.
 nox = "*"
 pytest = "*"
 
@@ -79,7 +78,10 @@ sphinx = ">=4.0.2"
 sphinx-autobuild = "*"
 sphinx-autodoc-typehints = "*"
 
-# Other Tools
+[tool.poetry.group.automation.dependencies]
+nox = "*"
+
+# Config
 
 [tool.black]
 extend-exclude = '''
@@ -128,7 +130,3 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[build-system]
-requires = ["poetry>=1.0.0"]
-build-backend = "poetry.masonry.api"
