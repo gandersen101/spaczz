@@ -56,6 +56,15 @@ def test_match_will_expand_on_partial_match_if_partials(
     assert matches == [(5, 6, 100)]
 
 
+def test_match_will_expand_on_partial_match_at_index_0(
+    searcher: RegexSearcher, nlp: Language
+) -> None:
+    """It extends partial matches to span boundaries - index 0 bug is fixed."""
+    doc = nlp("withh something")
+    matches = searcher.match(doc, "with")
+    assert matches == [(0, 1, 100)]
+
+
 def test_match_on_german_combination_words(
     searcher: RegexSearcher, nlp: Language
 ) -> None:
