@@ -9,6 +9,7 @@ import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
 from spacy.tokens import Span
+from spacy.training import Example
 import srsly
 
 from spaczz.customtypes import RulerPattern
@@ -478,7 +479,7 @@ def test_remove_unknown_ent_id_raises_error(ruler: SpaczzRuler) -> None:
 
 def test_initialize(ruler: SpaczzRuler) -> None:
     """It intializes the ruler without patterns."""
-    ruler.initialize(lambda: [1, 2, 3])
+    ruler.initialize(lambda: [Example(ruler.nlp("predicted"), ruler.nlp("reference"))])
     assert len(ruler) == 0
 
 
@@ -486,5 +487,8 @@ def test_initialize_with_patterns(
     ruler: SpaczzRuler, patterns: ty.List[RulerPattern]
 ) -> None:
     """It initializes the ruler with patterns."""
-    ruler.initialize(lambda: [1, 2, 3], patterns=patterns)
+    ruler.initialize(
+        lambda: [Example(ruler.nlp("predicted"), ruler.nlp("reference"))],
+        patterns=patterns,
+    )
     assert len(ruler) == len(patterns)

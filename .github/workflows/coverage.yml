@@ -9,12 +9,12 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.10'
+        python-version: '3.11'
         architecture: x64
     - name: Install Root Dependencies
       run: pip install nox poetry
     - name: Generate Coverage Report
-      run: nox --session "tests-3.10(spacy='3.5.2', rapidfuzz='3.0.0')" -- --cov --cov-report=xml
+      run: nox --session "tests-3.11(spacy='3.7.4', rapidfuzz='3.6.2')" -- --cov --cov-report=xml
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v3
       with:

@@ -24,6 +24,12 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
+      - id: poetry-check
+        name: poetry-check
+        entry: poetry check --lock
+        always_run: true
+        pass_filenames: false
+        language: system
       - id: isort
         name: isort
         entry: poetry run isort
