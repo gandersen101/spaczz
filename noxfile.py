@@ -16,16 +16,16 @@ LOCATIONS = "src", "tests", "./noxfile.py", "docs/conf.py"
 PYTHON = "3.11"
 PYTHONS = ["3.11", "3.10", "3.9", "3.8", "3.7"]
 SPACY_VERSION = "3.7.4"
-SPACY_MYPY_VERSIONS = {SPACY_VERSION: PYTHONS, "3.2.6": PYTHONS}
-SPACY_TEST_VERIONS = {SPACY_VERSION: PYTHONS, "3.0.9": ["3.10", "3.9", "3.8", "3.7"]}
+SPACY_MYPY_VERSIONS = {SPACY_VERSION: PYTHONS, "3.2.6": PYTHONS[1:]}
+SPACY_TEST_VERIONS = {SPACY_VERSION: PYTHONS, "3.0.9": PYTHONS[1:]}
 RAPIDFUZZ_VERSION = "3.4.0"
 RAPIDFUZZ_VERSIONS = {
-    "3.6.2": ["3.11", "3.10", "3.9", "3.8"],
+    "3.6.2": PYTHONS[:-1],
     # rapidfuzz dropped Python 3.7 support at v3.5, but the spaczz
     # locked version is v3.4, which still supports Python 3.7 like spaczz does.
     RAPIDFUZZ_VERSION: PYTHONS,
     "2.15.1": PYTHONS,
-    "1.9.1": ["3.10", "3.9", "3.8", "3.7"],
+    "1.9.1": PYTHONS[1:],
 }
 
 
